@@ -38,14 +38,6 @@ contract XXXFund is IXXXFund, XXXERC20 {
 // swapAmountOfA: null,
 // swapAmountOfB : null } ]
 
-    struct ShareHolder {
-
-        address holder;
-
-        uint share;
-
-    }
-
 
     struct Token {
         
@@ -81,18 +73,21 @@ contract XXXFund is IXXXFund, XXXERC20 {
         address swapFrom;
 
         address swapTo;
-                                       
+
     }
 
 
     address public factory;
     address public manager;
     address[] public allTokens;
-    ShareHolder[] public shareHolders;
+
+    address[] public holders;
+    mapping(address => uint) public shares;
+
     mapping(address => uint) public reservedToken;
     History[] public history;
 
-    uint DECIMAL = 1000 ** 3; 
+    uint SHARE_DECIMAL = 1000 ** 2; 
 
     uint private unlocked = 1;
     modifier lock() {
@@ -115,11 +110,6 @@ contract XXXFund is IXXXFund, XXXERC20 {
             require(tokenFiatPrice >= 0);
             totalFiatValue += tokenFiatPrice * tokenAmount;
         }
-    }
-
-    function setUserShareRatio(address sender, address token, uint amount) {
-        uint fiatValue = getFiatPrice(token) * amount;
-        userShareRatio[sender] = fiatValue * DECIMAL / getTotalFiatValue();
     }
 
     function getReserves(address token) public view returns (uint _reserve) {
@@ -175,13 +165,23 @@ contract XXXFund is IXXXFund, XXXERC20 {
             address token = allTokens[i];
             if (token == _token) {
                 reserveToken[_token] += _amount;
-                setUserShareRatio(sender, _token, _amount);
+                depositFiatValue = getFiatValue(_token, _amount);
+                reservedFiatValue = getReservedFiatValue();
+                newShare = SHARE_DECIMAL * depositFiatValue / (reservedFiatValue + depositFiatValue);
+
+                shares[sender] = newShare;
+                for (uint256 i = 0; i < holders.length; i++) {
+                    address otherHolder = holders[i];
+                    if (otherHolder == sender) {
+                        continue;
+                    }
+                    shares[otherHolder] = (((SHARE_DECIMAL * 1) - newShare) * shares[holders]) / SHARE_DECIMAL;
+                }
                 return;
             }
         }
         allTokens.push(_token);
         reserveToken[_token] = _amount;
-        setUserShareRatio(sender, _token, _amount);
 
 
 
