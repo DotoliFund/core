@@ -3,7 +3,7 @@ pragma solidity ^0.8.9;
 
 import './interfaces/IXXXFund.sol';
 import './XXXERC20.sol';
-import './interfaces/IERC20.sol';
+import './interfaces/IERC20Minimal.sol';
 import './interfaces/IXXXFactory.sol';
 
 contract XXXFund is IXXXFund, XXXERC20 {
@@ -88,6 +88,8 @@ contract XXXFund is IXXXFund, XXXERC20 {
 
     History[] public history;
 
+    uint public turnver;
+
     uint SHARE_DECIMAL = 10 ** 6; 
 
     uint private unlocked = 1;
@@ -148,17 +150,6 @@ contract XXXFund is IXXXFund, XXXERC20 {
         reserveToken[_token] = _amount;
     }
 
-    // update reserves and, on the first call per block, price accumulators
-    function _update(uint balance0, uint balance1, uint112 _reserve0, uint112 _reserve1) private {
-
-
-        // require(balance0 <= uint112(-1) && balance1 <= uint112(-1), 'UniswapV2: OVERFLOW');
-        // uint32 blockTimestamp = uint32(block.timestamp % 2**32);
-        // reserve0 = uint112(balance0);
-        // reserve1 = uint112(balance1);
-        // emit Sync(reserve0, reserve1);
-    }
-
     // this low-level function should be called from a contract which performs important safety checks
     function deposit(address sender, address _token, uint256 _amount) external lock {
         require(msg.sender == sender); // sufficient check
@@ -186,7 +177,7 @@ contract XXXFund is IXXXFund, XXXERC20 {
             }
             allTokens.push(_token);
             reserveToken[_token] = _amount;
-            emit Deposit(msg.sender, _token, _amount);
+            emit Deposit(sender, _token, _amount);
         }
     }
 
@@ -199,11 +190,11 @@ contract XXXFund is IXXXFund, XXXERC20 {
         uint reservedFiatValue = getReservedFiatValue();
         uint share = SHARE_DECIMAL * withdrawFiatValue / reservedFiatValue;
 
-        uint success = IERC20Minimal(_token).transferFrom(sender, address(this), _amount);
+        uint success = IERC20Minimal(_token).transferFrom(to, address(this), _amount);
 
         if (success) {
             //update share[]
-            shares[sender] -= share;
+            shares[to] -= share;
             for (uint256 i = 0; i < holders.length; i++) {
                 shares[holders[i]] = ((SHARE_DECIMAL + ((SHARE_DECIMAL * share) / (SHARE_DECIMAL - share))) * shares[holders[i]]) / SHARE_DECIMAL;
             }
@@ -212,33 +203,11 @@ contract XXXFund is IXXXFund, XXXERC20 {
                 address token = allTokens[j];
                 if (token == _token) {
                     reserveToken[_token] -= _amount;
-                    emit Withdraw(msg.sender, _token, _amount);
+                    emit Withdraw(to, _token, _amount);
                     return;
                 }
             }
         }
-
-
-
-        // (uint112 _reserve0, uint112 _reserve1,) = getReserves(); // gas savings
-        // address _token0 = token0;                                // gas savings
-        // address _token1 = token1;                                // gas savings
-        // uint balance0 = IERC20(_token0).balanceOf(address(this));
-        // uint balance1 = IERC20(_token1).balanceOf(address(this));
-        // uint liquidity = balanceOf[address(this)];
-
-        // uint _totalSupply = totalSupply; // gas savings, must be defined here since totalSupply can update in _mintFee
-        // amount0 = liquidity.mul(balance0) / _totalSupply; // using balances ensures pro-rata distribution
-        // amount1 = liquidity.mul(balance1) / _totalSupply; // using balances ensures pro-rata distribution
-        // require(amount0 > 0 && amount1 > 0, 'UniswapV2: INSUFFICIENT_LIQUIDITY_BURNED');
-        // _burn(address(this), liquidity);
-        // _safeTransfer(_token0, to, amount0);
-        // _safeTransfer(_token1, to, amount1);
-        // balance0 = IERC20(_token0).balanceOf(address(this));
-        // balance1 = IERC20(_token1).balanceOf(address(this));
-
-        // _update(balance0, balance1, _reserve0, _reserve1);
-        // emit Burn(msg.sender, amount0, amount1, to);
     }
 
     // this low-level function should be called from a contract which performs important safety checks
@@ -283,8 +252,4 @@ contract XXXFund is IXXXFund, XXXERC20 {
         // emit Swap(msg.sender, amount0In, amount1In, amount0Out, amount1Out, to);
     }
 
-    // force reserves to match balances
-    function sync() external lock {
-        _update(IERC20(token0).balanceOf(address(this)), IERC20(token1).balanceOf(address(this)), reserve0, reserve1);
-    }
 }
