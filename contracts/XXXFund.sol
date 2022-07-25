@@ -79,15 +79,16 @@ contract XXXFund is IXXXFund, XXXERC20 {
 
     address public factory;
     address public manager;
+
     address[] public allTokens;
+    mapping(address => uint) public reservedToken;
 
     address[] public holders;
     mapping(address => uint) public shares;
 
-    mapping(address => uint) public reservedToken;
     History[] public history;
 
-    uint SHARE_DECIMAL = 1000 ** 2; 
+    uint SHARE_DECIMAL = 10 ** 6; 
 
     uint private unlocked = 1;
     modifier lock() {
@@ -121,8 +122,8 @@ contract XXXFund is IXXXFund, XXXERC20 {
         require(success && (data.length == 0 || abi.decode(data, (bool))), 'XXXFund: TRANSFER_FAILED');
     }
 
-    event Deposit(address indexed sender, uint amount0, uint amount1);
-    event Withdraw(address indexed sender, uint amount0, uint amount1, address indexed to);
+    event Deposit(address indexed sender, address _token, uint _amount);
+    event Withdraw(address indexed sender, address _token, uint _amount);
     event Swap(
         address indexed sender,
         uint amount0In,
@@ -159,64 +160,63 @@ contract XXXFund is IXXXFund, XXXERC20 {
     }
 
     // this low-level function should be called from a contract which performs important safety checks
-    function deposit(address sender, address _token, uint _amount) external lock {
+    function deposit(address sender, address _token, uint256 _amount) external lock {
         require(msg.sender == sender); // sufficient check
-        for (uint256 i = 0; i < allTokens.length; i++) {
-            address token = allTokens[i];
-            if (token == _token) {
-                reserveToken[_token] += _amount;
-                depositFiatValue = getFiatValue(_token, _amount);
-                reservedFiatValue = getReservedFiatValue();
-                newShare = SHARE_DECIMAL * depositFiatValue / (reservedFiatValue + depositFiatValue);
 
-                shares[sender] = newShare;
-                for (uint256 i = 0; i < holders.length; i++) {
-                    address otherHolder = holders[i];
-                    if (otherHolder == sender) {
-                        continue;
-                    }
-                    shares[otherHolder] = (((SHARE_DECIMAL * 1) - newShare) * shares[holders]) / SHARE_DECIMAL;
-                }
-                return;
+        uint depositFiatValue = getFiatValue(_token, _amount);
+        uint reservedFiatValue = getReservedFiatValue();
+        uint share = SHARE_DECIMAL * depositFiatValue / (reservedFiatValue + depositFiatValue);
+
+        uint success = IERC20Minimal(_token).transferFrom(sender, address(this), _amount);
+
+        if (success) {
+            //update share[]
+            for (uint256 i = 0; i < holders.length; i++) {
+                shares[holders[i]] = (((SHARE_DECIMAL * 1) - share) * shares[holders[i]]) / SHARE_DECIMAL;
             }
+            shares[sender] += share;
+            //update allTokens[], reserveToken[]
+            for (uint256 j = 0; j < allTokens.length; j++) {
+                address token = allTokens[j];
+                if (token == _token) {
+                    reserveToken[_token] += _amount;
+                    emit Deposit(msg.sender, _token, _amount);
+                    return;
+                }
+            }
+            allTokens.push(_token);
+            reserveToken[_token] = _amount;
+            emit Deposit(msg.sender, _token, _amount);
         }
-        allTokens.push(_token);
-        reserveToken[_token] = _amount;
-
-
-
-
-
-
-
-        // (uint112 _reserve0, uint112 _reserve1,) = getReserves(); // gas savings
-        // uint balance0 = IERC20(token0).balanceOf(address(this));
-        // uint balance1 = IERC20(token1).balanceOf(address(this));
-        // uint amount0 = balance0.sub(_reserve0);
-        // uint amount1 = balance1.sub(_reserve1);
-
-        // uint _totalSupply = totalSupply; // gas savings, must be defined here since totalSupply can update in _depositFee
-        // if (_totalSupply == 0) {
-        //     liquidity = Math.sqrt(amount0.mul(amount1)).sub(MINIMUM_LIQUIDITY);
-        //    _deposit(address(0), MINIMUM_LIQUIDITY); // permanently lock the first MINIMUM_LIQUIDITY tokens
-        // } else {
-        //     liquidity = Math.min(amount0.mul(_totalSupply) / _reserve0, amount1.mul(_totalSupply) / _reserve1);
-        // }
-        // require(liquidity > 0, 'UniswapV2: INSUFFICIENT_LIQUIDITY_DEPOSITED');
-        // _deposit(to, liquidity);
-
-        // _update(balance0, balance1, _reserve0, _reserve1);
-        // emit Deposit(msg.sender, amount0, amount1);
     }
 
     // this low-level function should be called from a contract which performs important safety checks
-    function withdraw(address to) external lock returns (uint amount0, uint amount1) {
+    function withdraw(address _token, address to, uint256 _amount) external lock returns (uint amount0, uint amount1) {
+        require(msg.sender == to); // sufficient check
+        require(reserveToken[_token] >= _amount);
 
+        uint withdrawFiatValue = getFiatValue(_token, _amount);
+        uint reservedFiatValue = getReservedFiatValue();
+        uint share = SHARE_DECIMAL * withdrawFiatValue / reservedFiatValue;
 
+        uint success = IERC20Minimal(_token).transferFrom(sender, address(this), _amount);
 
-
-
-
+        if (success) {
+            //update share[]
+            shares[sender] -= share;
+            for (uint256 i = 0; i < holders.length; i++) {
+                shares[holders[i]] = ((SHARE_DECIMAL + ((SHARE_DECIMAL * share) / (SHARE_DECIMAL - share))) * shares[holders[i]]) / SHARE_DECIMAL;
+            }
+            //update allTokens[], reserveToken[]
+            for (uint256 j = 0; j < allTokens.length; j++) {
+                address token = allTokens[j];
+                if (token == _token) {
+                    reserveToken[_token] -= _amount;
+                    emit Withdraw(msg.sender, _token, _amount);
+                    return;
+                }
+            }
+        }
 
 
 
