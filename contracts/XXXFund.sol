@@ -12,28 +12,83 @@ contract XXXFund is IXXXFund, XXXERC20 {
     bytes4 private constant SELECTOR = bytes4(keccak256(bytes('transfer(address,uint256)')));
 
 
+// [  {  date : 2022-07-23, 
+// fundAddress : 0x3939,
+// fundManager : 0x9943,
+// tokens : [ { address : 0xasdf, name : ETH, amount : 100, price : $1 },
+// { address : 0xqwer, name : LINK, amount : 100, price : $1 } ], 
+// totalValue : $200,
+// type : swap,
+// swapFrom :  ETH,
+// swapTo : LINK,
+// swapAmountOfA: 100,
+// swapAmountOfB : 100 },
+// {  date : 2022-10-23,
+// fundAddress : 0x3939,
+// fundManager : 0x9943,
+// tokens : [ { tokenAddress : 0xasdf, name : ETH, amount : 200, fiatPrice : $2, etherPrice : 0.1 },
+// { address : 0xqwer, name : LINK, amount : 100, fiatPrice : $1, etherPrice : 0.05 } ], 
+// totalValue : $500,
+// type : deposit,
+// depositor : 0x6436,
+// depositToken : 0xasdf,
+// depositAmount : 100,
+// swapFrom :  null,
+// swapTo : null,
+// swapAmountOfA: null,
+// swapAmountOfB : null } ]
+
+    struct ShareHolder {
+
+        address holder;
+
+        uint share;
+
+    }
+
+
+    struct Token {
+        
+        address tokenAddress;
+
+        string name;
+
+        uint amount;
+
+        uint fiatPrice;
+
+        uint etherPrice;
+
+    }
+
+
     struct History {
-        // the current price
-        uint160 sqrtPriceX96;
-        // the current tick
-        int24 tick;
-        // the most-recently updated index of the observations array
-        uint16 observationIndex;
-        // the current maximum number of observations that are being stored
-        uint16 observationCardinality;
-        // the next maximum number of observations to store, triggered in observations.write
-        uint16 observationCardinalityNext;
-        // the current protocol fee as a percentage of the swap fee taken on withdrawal
-        // represented as an integer denominator (1/x)%
-        uint8 feeProtocol;
-        // whether the pool is locked
-        bool unlocked;
+
+        string date;
+
+        address fundAddress;
+
+        address fundManager;
+
+        Token[] tokens;
+
+        uint totalFiatValue;
+
+        uint totalEtherValue;
+
+        string type;
+
+        address swapFrom;
+
+        address swapTo;
+                                       
     }
 
 
     address public factory;
     address public manager;
     address[] public allTokens;
+    ShareHolder[] public shareHolders;
     mapping(address => uint) public reservedToken;
     History[] public history;
 
