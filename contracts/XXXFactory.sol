@@ -7,12 +7,17 @@ import './XXXFund.sol';
 contract XXXFactory is IXXXFactory {
     address public override owner;
 
+    /// @notice Emitted when the owner of the factory is changed
+    /// @param oldOwner The owner before the owner was changed
+    /// @param newOwner The owner after the owner was changed
+    event OwnerChanged(address indexed oldOwner, address indexed newOwner);
+
     mapping(address => address) public getFund;
     uint public totalFunds;
 
-    event FundAdded(address indexed token0, address indexed token1, address pair, uint);
+    event FundCreated(address manager, address fund, uint totalFunds);
 
-    constructor() public {
+    constructor() {
         owner = msg.sender;
         totalFunds = 0;
         emit OwnerChanged(address(0), msg.sender);

@@ -9,8 +9,6 @@ import './libraries/TransferHelper.sol';
 
 contract XXXFund is IXXXFund {
 
-    bytes4 private constant SELECTOR = bytes4(keccak256(bytes('transfer(address,uint256)')));
-
 
 // [  {  date : 2022-07-23, 
 // fundAddress : 0x3939,
@@ -119,10 +117,6 @@ contract XXXFund is IXXXFund {
         _reserve = reservedToken[token];
     }
 
-    function _safeTransfer(address token, address to, uint value) private {
-        (bool success, bytes memory data) = token.call(abi.encodeWithSelector(SELECTOR, to, value));
-        require(success && (data.length == 0 || abi.decode(data, (bool))), 'XXXFund: TRANSFER_FAILED');
-    }
 
     event Deposit(address indexed sender, address _token, uint _amount);
     event Withdraw(address indexed sender, address _token, uint _amount);
@@ -134,9 +128,8 @@ contract XXXFund is IXXXFund {
         uint amount1Out,
         address indexed to
     );
-    event Sync(uint112 reserve0, uint112 reserve1);
 
-    constructor(address _manager) public {
+    constructor() {
         factory = msg.sender;
     }
 
@@ -150,11 +143,11 @@ contract XXXFund is IXXXFund {
         reservedToken[_token] = _amount;
     }
 
-    function getFiatValue(address token) private returns (uint fiatValue) {
+    function getFiatValue(address token, uint256 _amount) private returns (uint fiatValue) {
         fiatValue = 0; 
     }
 
-    function getReservedFiatValue(address token) private returns (uint reservedFiatValue) {
+    function getReservedFiatValue() private returns (uint reservedFiatValue) {
         reservedFiatValue = 0; 
     }
 
@@ -166,7 +159,7 @@ contract XXXFund is IXXXFund {
         uint reservedFiatValue = getReservedFiatValue();
         uint share = SHARE_DECIMAL * depositFiatValue / (reservedFiatValue + depositFiatValue);
 
-        uint success = IERC20Minimal(_token).transferFrom(sender, address(this), _amount);
+        bool success = IERC20Minimal(_token).transferFrom(sender, address(this), _amount);
 
         if (success) {
             //update share[]
@@ -190,7 +183,7 @@ contract XXXFund is IXXXFund {
     }
 
     // this low-level function should be called from a contract which performs important safety checks
-    function withdraw(address _token, address to, uint256 _amount) external lock returns (uint amount0, uint amount1) {
+    function withdraw(address _token, address to, uint256 _amount) external lock {
         require(msg.sender == to); // sufficient check
         require(reservedToken[_token] >= _amount);
 
@@ -198,7 +191,7 @@ contract XXXFund is IXXXFund {
         uint reservedFiatValue = getReservedFiatValue();
         uint share = SHARE_DECIMAL * withdrawFiatValue / reservedFiatValue;
 
-        uint success = IERC20Minimal(_token).transferFrom(to, address(this), _amount);
+        bool success = IERC20Minimal(_token).transferFrom(to, address(this), _amount);
 
         if (success) {
             //update share[]
