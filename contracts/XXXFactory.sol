@@ -24,13 +24,12 @@ contract XXXFactory is IXXXFactory {
     }
 
     function createFund(address manager, address token, uint amount) external returns (address fund) {
-        require(manager == msg.sender, 'XXXFactory: IDENTICAL_ADDRESSES');
-        require(manager != address(0), 'XXXFactory: ZERO_ADDRESS');
+        require(msg.sender == manager, 'XXXFactory: IDENTICAL_ADDRESSES');
         require(getFund[manager] == address(0), 'XXXFactory: FUND_EXISTS'); // single check is sufficient
-        require(token != address(0), 'XXXFactory: INVALID_TOKEN_ADDRESS');
+
         fund = address(new XXXFund{salt: keccak256(abi.encode(address(this), manager))}());
-        IXXXFund(fund).initialize(manager, token, amount);
-        getFund[manager] = fund; // populate mapping in the reverse direction
+        getFund[manager] = fund;
+        IXXXFund(fund).initialize(manager);
         totalFunds += 1;
         emit FundCreated(manager, fund, totalFunds);
     }

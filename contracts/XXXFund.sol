@@ -134,13 +134,10 @@ contract XXXFund is IXXXFund {
     }
 
     // called once by the factory at time of deployment
-    function initialize(address _manager, address _token, uint _amount) external {
+    function initialize(address _manager) external {
         require(msg.sender == factory, 'XXXFund: FORBIDDEN'); // sufficient check
         require(allTokens.length == 0);
-        require(_manager != address(0));
         manager = _manager;
-        allTokens.push(_token);
-        reservedToken[_token] = _amount;
     }
 
     function getFiatValue(address token, uint256 _amount) private returns (uint fiatValue) {
