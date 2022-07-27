@@ -23,7 +23,7 @@ contract XXXFactory is IXXXFactory {
         emit OwnerChanged(address(0), msg.sender);
     }
 
-    function createFund(address manager, address token, uint amount) external returns (address fund) {
+    function createFund(address manager) external returns (address fund) {
         require(msg.sender == manager, 'XXXFactory: IDENTICAL_ADDRESSES');
         require(getFund[manager] == address(0), 'XXXFactory: FUND_EXISTS'); // single check is sufficient
 
