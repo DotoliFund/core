@@ -9,6 +9,12 @@ import { getCreate2Address } from './shared/utilities'
 const { waffle } = require("hardhat");
 const { createFixtureLoader } = waffle;
 
+// manager, token address, token amount
+const TEST_CREATE_FUND: [string, string, number][] = [
+  ['0x1000000000000000000000000000000000000000', '0x2000000000000000000000000000000000000000', 10],
+  ['0x1000000000000000000000000000000000000000', '0x2000000000000000000000000000000000000000', 10],
+  ['0x1000000000000000000000000000000000000000', '0x2000000000000000000000000000000000000000', 10]
+]
 
 
 describe('XXXFactory', () => {
@@ -44,15 +50,15 @@ describe('XXXFactory', () => {
     tokens: [string, string],
   ) {
     const create2Address = getCreate2Address(fundBytecode, wallet.address)
-    const create = factory.createFund(wallet.address)
+    const create = factory.createFund(TEST_CREATE_FUND[0][0], TEST_CREATE_FUND[0][1], TEST_CREATE_FUND[0][2])
     const fundCount = 1
 
     await expect(create)
       .to.emit(factory, 'PoolCreated')
       .withArgs(wallet.address, create2Address, fundCount)
 
-    await expect(factory.createFund(wallet.address)).to.be.reverted
-    await expect(factory.createFund(wallet.address)).to.be.reverted
+    await expect(factory.createFund(TEST_CREATE_FUND[0][0], TEST_CREATE_FUND[0][1], TEST_CREATE_FUND[0][2])).to.be.reverted
+    await expect(factory.createFund(TEST_CREATE_FUND[0][0], TEST_CREATE_FUND[0][1], TEST_CREATE_FUND[0][2])).to.be.reverted
     expect(await factory.getFund(wallet.address), 'getFund in order').to.eq(create2Address)
     expect(await factory.getFund(wallet.address), 'getFund in reverse').to.eq(create2Address)
 
