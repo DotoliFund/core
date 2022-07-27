@@ -37,11 +37,11 @@ contract XXXFund is IXXXFund {
 // swapAmountOfB : null } ]
 
 
-    struct Token {
+    struct ReservedToken {
         
         address tokenAddress;
 
-        string name;
+        string tokenName;
 
         uint amount;
 
@@ -51,8 +51,7 @@ contract XXXFund is IXXXFund {
 
     }
 
-
-    struct History {
+    struct SwapHistory {
 
         string date;
 
@@ -60,18 +59,23 @@ contract XXXFund is IXXXFund {
 
         address fundManager;
 
-        Token[] tokens;
+        address swapFrom;
+
+        address swapTo;
+
+        string swapFromName;
+
+        string swapToName;
+
+        ReservedToken[] reservedTokens;
 
         uint totalFiatValue;
 
         uint totalEtherValue;
 
-        string dataType;
+        uint turnverRatio;
 
-        address swapFrom;
-
-        address swapTo;
-
+        uint rateOfReturn;
     }
 
 
@@ -79,16 +83,15 @@ contract XXXFund is IXXXFund {
     address public manager;
 
     address[] public allTokens;
-    mapping(address => uint) public reservedToken;
+    mapping(address => uint) public reservedTokens;
 
     address[] public holders;
     mapping(address => uint) public shares;
 
-    History[] public history;
-
-    uint public turnver;
+    SwapHistory[] public swapHistory;
 
     uint SHARE_DECIMAL = 10 ** 6; 
+
 
     uint private unlocked = 1;
     modifier lock() {
