@@ -129,55 +129,50 @@ contract XXXFund is IXXXFund {
 
         if (_token != address(0) && _amount > 0) {
             uint share = 1 * SHARE_DECIMAL;
-            bool success = IERC20Minimal(_token).transferFrom(manager, address(this), _amount);
-            if (success) {
-                //update share[]
-                shares[manager] = share;
-                //update allTokens[], reservedTokens[]
-                allTokens.push(_token);
-                reservedTokens[_token] = _amount;
-                emit Deposit(manager, _token, _amount);
-            }
+            TransferHelper.safeTransferFrom(_token, manager, address(this), _amount);
+            //update share[]
+            shares[manager] = share;
+            //update allTokens[], reservedTokens[]
+            allTokens.push(_token);
+            reservedTokens[_token] = _amount;
+            emit Deposit(manager, _token, _amount);
         }
     }
 
-    function getFiatValue(address token, uint256 _amount) private returns (uint fiatValue) {
-        fiatValue = 0; 
+    function getFiatAmount(address token, uint256 _amount) private returns (uint fiatAmount) {
+        fiatAmount = 0; 
     }
 
-    function getReservedFiatValue() private returns (uint reservedFiatValue) {
-        reservedFiatValue = 0; 
+    function getTotalFiatAmount() private returns (uint totalFiatAmount) {
+        totalFiatAmount = 0; 
     }
 
     // this low-level function should be called from a contract which performs important safety checks
     function deposit(address sender, address _token, uint256 _amount) override external lock {
         require(msg.sender == sender); // sufficient check
 
-        uint depositFiatValue = getFiatValue(_token, _amount);
-        uint reservedFiatValue = getReservedFiatValue();
+        uint depositFiatValue = getFiatAmount(_token, _amount);
+        uint reservedFiatValue = getTotalFiatAmount();
         uint share = SHARE_DECIMAL * depositFiatValue / (reservedFiatValue + depositFiatValue);
 
-        bool success = IERC20Minimal(_token).transferFrom(sender, address(this), _amount);
-
-        if (success) {
-            //update share[]
-            for (uint256 i = 0; i < holders.length; i++) {
-                shares[holders[i]] = (((SHARE_DECIMAL * 1) - share) * shares[holders[i]]) / SHARE_DECIMAL;
-            }
-            shares[sender] += share;
-            //update allTokens[], reservedTokens[]
-            for (uint256 j = 0; j < allTokens.length; j++) {
-                address token = allTokens[j];
-                if (token == _token) {
-                    reservedTokens[_token] += _amount;
-                    emit Deposit(msg.sender, _token, _amount);
-                    return;
-                }
-            }
-            allTokens.push(_token);
-            reservedTokens[_token] = _amount;
-            emit Deposit(sender, _token, _amount);
+        TransferHelper.safeTransfer(_token, address(this), _amount);
+        //update share[]
+        for (uint256 i = 0; i < holders.length; i++) {
+            shares[holders[i]] = (((SHARE_DECIMAL * 1) - share) * shares[holders[i]]) / SHARE_DECIMAL;
         }
+        shares[sender] += share;
+        //update allTokens[], reservedTokens[]
+        for (uint256 j = 0; j < allTokens.length; j++) {
+            address token = allTokens[j];
+            if (token == _token) {
+                reservedTokens[_token] += _amount;
+                emit Deposit(msg.sender, _token, _amount);
+                return;
+            }
+        }
+        allTokens.push(_token);
+        reservedTokens[_token] = _amount;
+        emit Deposit(msg.sender, _token, _amount);
     }
 
     // this low-level function should be called from a contract which performs important safety checks
@@ -185,26 +180,26 @@ contract XXXFund is IXXXFund {
         require(msg.sender == to); // sufficient check
         require(reservedTokens[_token] >= _amount);
 
-        uint withdrawFiatValue = getFiatValue(_token, _amount);
-        uint reservedFiatValue = getReservedFiatValue();
-        uint share = SHARE_DECIMAL * withdrawFiatValue / reservedFiatValue;
+        uint withdrawableFiatAmount = shares[to] * getTotalFiatAmount() / SHARE_DECIMAL;
+        uint withdrawFiatAmount = getFiatAmount(_token, _amount);
+        require(withdrawableFiatAmount >= withdrawFiatAmount);
 
-        bool success = IERC20Minimal(_token).transferFrom(to, address(this), _amount);
+        uint reservedFiatAmount = getTotalFiatValue();
+        uint share = SHARE_DECIMAL * withdrawFiatAmount / reservedFiatAmount;
 
-        if (success) {
-            //update share[]
-            shares[to] -= share;
-            for (uint256 i = 0; i < holders.length; i++) {
-                shares[holders[i]] = ((SHARE_DECIMAL + ((SHARE_DECIMAL * share) / (SHARE_DECIMAL - share))) * shares[holders[i]]) / SHARE_DECIMAL;
-            }
-            //update allTokens[], reservedTokens[]
-            for (uint256 j = 0; j < allTokens.length; j++) {
-                address token = allTokens[j];
-                if (token == _token) {
-                    reservedTokens[_token] -= _amount;
-                    emit Withdraw(to, _token, _amount);
-                    return;
-                }
+        TransferHelper.safeTransferFrom(_token, address(this), to, _amount);
+        //update share[]
+        shares[to] -= share;
+        for (uint256 i = 0; i < holders.length; i++) {
+            shares[holders[i]] = ((SHARE_DECIMAL + ((SHARE_DECIMAL * share) / (SHARE_DECIMAL - share))) * shares[holders[i]]) / SHARE_DECIMAL;
+        }
+        //update allTokens[], reservedTokens[]
+        for (uint256 j = 0; j < allTokens.length; j++) {
+            address token = allTokens[j];
+            if (token == _token) {
+                reservedTokens[_token] -= _amount;
+                emit Withdraw(to, _token, _amount);
+                return;
             }
         }
     }
@@ -215,7 +210,7 @@ contract XXXFund is IXXXFund {
 
     // For this example, we will set the pool fee to 0.3%.
     uint24 public constant poolFee = 3000;
-    
+
     // this low-level function should be called from a contract which performs important safety checks
     function swap(uint amount0Out, uint amount1Out, address to, bytes calldata data) override external lock {
 
