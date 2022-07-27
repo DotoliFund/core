@@ -14,33 +14,6 @@ contract XXXFund is IXXXFund {
     address swapRouterAddress = 0xE592427A0AEce92De3Edee1F18E0157C05861564;
     uint SHARE_DECIMAL = 10 ** 6; 
 
-// [  {  date : 2022-07-23, 
-// fundAddress : 0x3939,
-// fundManager : 0x9943,
-// tokens : [ { address : 0xasdf, name : ETH, amount : 100, price : $1 },
-// { address : 0xqwer, name : LINK, amount : 100, price : $1 } ], 
-// totalValue : $200,
-// type : swap,
-// swapFrom :  ETH,
-// swapTo : LINK,
-// swapAmountOfA: 100,
-// swapAmountOfB : 100 },
-// {  date : 2022-10-23,
-// fundAddress : 0x3939,
-// fundManager : 0x9943,
-// tokens : [ { tokenAddress : 0xasdf, name : ETH, amount : 200, fiatPrice : $2, etherPrice : 0.1 },
-// { address : 0xqwer, name : LINK, amount : 100, fiatPrice : $1, etherPrice : 0.05 } ], 
-// totalValue : $500,
-// type : deposit,
-// depositor : 0x6436,
-// depositToken : 0xasdf,
-// depositAmount : 100,
-// swapFrom :  null,
-// swapTo : null,
-// swapAmountOfA: null,
-// swapAmountOfB : null } ]
-
-
     struct ReservedToken {
         address tokenAddress;
         string tokenName;
@@ -63,7 +36,6 @@ contract XXXFund is IXXXFund {
         uint turnverRatio;
         uint rateOfReturn;
     }
-
 
     address public factory;
     address public manager;
@@ -220,53 +192,19 @@ contract XXXFund is IXXXFund {
     // For this example, we will set the pool fee to 0.3%.
     uint24 public constant poolFee = 3000;
 
-    // this low-level function should be called from a contract which performs important safety checks
-    function swap(uint amount0Out, uint amount1Out, address to, bytes calldata data) override onlyManager external lock {
-
-        // require(amount0Out > 0 || amount1Out > 0, 'UniswapV2: INSUFFICIENT_OUTPUT_AMOUNT');
-        // (uint112 _reserve0, uint112 _reserve1,) = getReserves(); // gas savings
-        // require(amount0Out < _reserve0 && amount1Out < _reserve1, 'UniswapV2: INSUFFICIENT_LIQUIDITY');
-
-        // uint balance0;
-        // uint balance1;
-        // { // scope for _token{0,1}, avoids stack too deep errors
-        // address _token0 = token0;
-        // address _token1 = token1;
-        // require(to != _token0 && to != _token1, 'UniswapV2: INVALID_TO');
-        // if (amount0Out > 0) _safeTransfer(_token0, to, amount0Out); // optimistically transfer tokens
-        // if (amount1Out > 0) _safeTransfer(_token1, to, amount1Out); // optimistically transfer tokens
-        // if (data.length > 0) IUniswapV2Callee(to).uniswapV2Call(msg.sender, amount0Out, amount1Out, data);
-        // balance0 = IERC20(_token0).balanceOf(address(this));
-        // balance1 = IERC20(_token1).balanceOf(address(this));
-        // }
-        // uint amount0In = balance0 > _reserve0 - amount0Out ? balance0 - (_reserve0 - amount0Out) : 0;
-        // uint amount1In = balance1 > _reserve1 - amount1Out ? balance1 - (_reserve1 - amount1Out) : 0;
-        // require(amount0In > 0 || amount1In > 0, 'UniswapV2: INSUFFICIENT_INPUT_AMOUNT');
-        // { // scope for reserve{0,1}Adjusted, avoids stack too deep errors
-        // uint balance0Adjusted = balance0.mul(1000).sub(amount0In.mul(3));
-        // uint balance1Adjusted = balance1.mul(1000).sub(amount1In.mul(3));
-        // require(balance0Adjusted.mul(balance1Adjusted) >= uint(_reserve0).mul(_reserve1).mul(1000**2), 'UniswapV2: K');
-        // }
-
-        // _update(balance0, balance1, _reserve0, _reserve1);
-        // emit Swap(msg.sender, amount0In, amount1In, amount0Out, amount1Out, to);
-    }
-
-
 
     /// @notice swapExactInputSingle swaps a fixed amount of DAI for a maximum possible amount of WETH9
     /// using the DAI/WETH9 0.3% pool by calling `exactInputSingle` in the swap router.
     /// @dev The calling address must approve this contract to spend at least `amountIn` worth of its DAI for this function to succeed.
-    /// @param amountIn The exact amount of DAI that will be swapped for WETH9.
     /// @return amountOut The amount of WETH9 received.
-    function swapExactInputSingle(uint256 amountIn) external returns (uint256 amountOut) {
+    function swapExactInputSingle(ISwapRouter.ExactInputSingleParams calldata _params) onlyManager external returns (uint256 amountOut) {
         // msg.sender must approve this contract
 
         // Transfer the specified amount of DAI to this contract.
-        TransferHelper.safeTransferFrom(DAI, msg.sender, address(this), amountIn);
+        TransferHelper.safeTransferFrom(DAI, msg.sender, address(this), _params.amountIn);
 
         // Approve the router to spend DAI.
-        TransferHelper.safeApprove(DAI, address(swapRouter), amountIn);
+        TransferHelper.safeApprove(DAI, address(swapRouter), _params.amountIn);
 
         // Naively set amountOutMinimum to 0. In production, use an oracle or other data source to choose a safer value for amountOutMinimum.
         // We also set the sqrtPriceLimitx96 to be 0 to ensure we swap our exact input amount.
@@ -277,7 +215,7 @@ contract XXXFund is IXXXFund {
                 fee: poolFee,
                 recipient: msg.sender,
                 deadline: block.timestamp,
-                amountIn: amountIn,
+                amountIn: _params.amountIn,
                 amountOutMinimum: 0,
                 sqrtPriceLimitX96: 0
             });
@@ -289,16 +227,14 @@ contract XXXFund is IXXXFund {
     /// @notice swapExactOutputSingle swaps a minimum possible amount of DAI for a fixed amount of WETH.
     /// @dev The calling address must approve this contract to spend its DAI for this function to succeed. As the amount of input DAI is variable,
     /// the calling address will need to approve for a slightly higher amount, anticipating some variance.
-    /// @param amountOut The exact amount of WETH9 to receive from the swap.
-    /// @param amountInMaximum The amount of DAI we are willing to spend to receive the specified amount of WETH9.
     /// @return amountIn The amount of DAI actually spent in the swap.
-    function swapExactOutputSingle(uint256 amountOut, uint256 amountInMaximum) external returns (uint256 amountIn) {
+    function swapExactOutputSingle(ISwapRouter.ExactOutputSingleParams calldata _params) onlyManager external returns (uint256 amountIn) {
         // Transfer the specified amount of DAI to this contract.
-        TransferHelper.safeTransferFrom(DAI, msg.sender, address(this), amountInMaximum);
+        TransferHelper.safeTransferFrom(DAI, msg.sender, address(this), _params.amountInMaximum);
 
         // Approve the router to spend the specifed `amountInMaximum` of DAI.
         // In production, you should choose the maximum amount to spend based on oracles or other data sources to acheive a better swap.
-        TransferHelper.safeApprove(DAI, address(swapRouter), amountInMaximum);
+        TransferHelper.safeApprove(DAI, address(swapRouter), _params.amountInMaximum);
 
         ISwapRouter.ExactOutputSingleParams memory params =
             ISwapRouter.ExactOutputSingleParams({
@@ -307,8 +243,8 @@ contract XXXFund is IXXXFund {
                 fee: poolFee,
                 recipient: msg.sender,
                 deadline: block.timestamp,
-                amountOut: amountOut,
-                amountInMaximum: amountInMaximum,
+                amountOut: _params.amountOut,
+                amountInMaximum: _params.amountInMaximum,
                 sqrtPriceLimitX96: 0
             });
 
@@ -317,9 +253,9 @@ contract XXXFund is IXXXFund {
 
         // For exact output swaps, the amountInMaximum may not have all been spent.
         // If the actual amount spent (amountIn) is less than the specified maximum amount, we must refund the msg.sender and approve the swapRouter to spend 0.
-        if (amountIn < amountInMaximum) {
+        if (amountIn < _params.amountInMaximum) {
             TransferHelper.safeApprove(DAI, address(swapRouter), 0);
-            TransferHelper.safeTransfer(DAI, msg.sender, amountInMaximum - amountIn);
+            TransferHelper.safeTransfer(DAI, msg.sender, _params.amountInMaximum - amountIn);
         }
     }
 
@@ -328,7 +264,7 @@ contract XXXFund is IXXXFund {
     /// @dev The calling address must approve this contract to spend at least `amountIn` worth of its DAI for this function to succeed.
     /// @param amountIn The amount of DAI to be swapped.
     /// @return amountOut The amount of WETH9 received after the swap.
-    function swapExactInputMultihop(uint256 amountIn) external returns (uint256 amountOut) {
+    function swapExactInputMultihop(uint256 amountIn) onlyManager external returns (uint256 amountOut) {
         // Transfer `amountIn` of DAI to this contract.
         TransferHelper.safeTransferFrom(DAI, msg.sender, address(this), amountIn);
 
@@ -358,7 +294,7 @@ contract XXXFund is IXXXFund {
     /// @param amountOut The desired amount of WETH9.
     /// @param amountInMaximum The maximum amount of DAI willing to be swapped for the specified amountOut of WETH9.
     /// @return amountIn The amountIn of DAI actually spent to receive the desired amountOut.
-    function swapExactOutputMultihop(uint256 amountOut, uint256 amountInMaximum) external returns (uint256 amountIn) {
+    function swapExactOutputMultihop(uint256 amountOut, uint256 amountInMaximum) onlyManager external returns (uint256 amountIn) {
         // Transfer the specified `amountInMaximum` to this contract.
         TransferHelper.safeTransferFrom(DAI, msg.sender, address(this), amountInMaximum);
         // Approve the router to spend  `amountInMaximum`.
