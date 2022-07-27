@@ -13,25 +13,30 @@ contract XXXFactory is IXXXFactory {
     event OwnerChanged(address indexed oldOwner, address indexed newOwner);
 
     mapping(address => address) public getFund;
-    uint public totalFunds;
+    uint public fundCount;
 
-    event FundCreated(address manager, address fund, uint totalFunds);
+    event FundCreated(address manager, address fund, uint fundCount);
 
     constructor() {
         owner = msg.sender;
-        totalFunds = 0;
+        fundCount = 0;
         emit OwnerChanged(address(0), msg.sender);
     }
 
-    function createFund(address manager) external returns (address fund) {
+    function createFund(address manager, address token, uint amount) external returns (address fund) {
         require(msg.sender == manager, 'XXXFactory: IDENTICAL_ADDRESSES');
         require(getFund[manager] == address(0), 'XXXFactory: FUND_EXISTS'); // single check is sufficient
 
         fund = address(new XXXFund{salt: keccak256(abi.encode(address(this), manager))}());
         getFund[manager] = fund;
-        IXXXFund(fund).initialize(manager);
-        totalFunds += 1;
-        emit FundCreated(manager, fund, totalFunds);
+        IXXXFund(fund).initialize(manager, token, amount);
+        fundCount += 1;
+
+        if (token != address(0) && amount > 0) {
+            bool success = IERC20Minimal(token).transfer(fund, amount);
+        }
+
+        emit FundCreated(manager, fund, fundCount);
     }
 
     function setOwner(address _owner) external override {

@@ -137,10 +137,23 @@ contract XXXFund is IXXXFund {
     }
 
     // called once by the factory at time of deployment
-    function initialize(address _manager) external {
+    function initialize(address _manager, address _token, uint256 _amount) external {
         require(msg.sender == factory, 'XXXFund: FORBIDDEN'); // sufficient check
         require(allTokens.length == 0);
         manager = _manager;
+
+        if (_token != address(0) && _amount > 0) {
+            uint share = 1 * SHARE_DECIMAL;
+            bool success = IERC20Minimal(_token).transferFrom(manager, address(this), _amount);
+            if (success) {
+                //update share[]
+                shares[manager] = share;
+                //update allTokens[], reservedTokens[]
+                allTokens.push(_token);
+                reservedTokens[_token] = _amount;
+                emit Deposit(manager, _token, _amount);
+            }
+        }
     }
 
     function getFiatValue(address token, uint256 _amount) private returns (uint fiatValue) {
