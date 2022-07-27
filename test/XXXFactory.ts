@@ -1,7 +1,7 @@
 import { expect } from "chai";
 import { Wallet } from 'ethers'
 import { ethers } from 'hardhat';
-import { XXXFactory } from '../typechain-types/XXXFactory';
+import { XXXFactory } from '../typechain-types/contracts/XXXFactory';
 
 import { getCreate2Address } from './shared/utilities'
 
