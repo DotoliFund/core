@@ -32,10 +32,6 @@ contract XXXFactory is IXXXFactory {
         IXXXFund(fund).initialize(manager, token, amount);
         fundCount += 1;
 
-        if (token != address(0) && amount > 0) {
-            bool success = IERC20Minimal(token).transfer(fund, amount);
-        }
-
         emit FundCreated(manager, fund, fundCount);
     }
 
