@@ -1,11 +1,13 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
-pragma solidity ^0.8.9;
+pragma solidity ^0.7.6;
+pragma abicoder v2;
 
 import './interfaces/IXXXFund.sol';
 import './interfaces/IERC20Minimal.sol';
 import './interfaces/IXXXFactory.sol';
-import './libraries/TransferHelper.sol';
 
+import '@uniswap/v3-periphery/contracts/libraries/TransferHelper.sol';
+import '@uniswap/v3-periphery/contracts/interfaces/ISwapRouter.sol';
 
 contract XXXFund is IXXXFund {
 
@@ -137,7 +139,7 @@ contract XXXFund is IXXXFund {
     }
 
     // called once by the factory at time of deployment
-    function initialize(address _manager, address _token, uint256 _amount) external {
+    function initialize(address _manager, address _token, uint256 _amount) override external {
         require(msg.sender == factory, 'XXXFund: FORBIDDEN'); // sufficient check
         require(allTokens.length == 0);
         manager = _manager;
@@ -165,7 +167,7 @@ contract XXXFund is IXXXFund {
     }
 
     // this low-level function should be called from a contract which performs important safety checks
-    function deposit(address sender, address _token, uint256 _amount) external lock {
+    function deposit(address sender, address _token, uint256 _amount) override external lock {
         require(msg.sender == sender); // sufficient check
 
         uint depositFiatValue = getFiatValue(_token, _amount);
@@ -196,7 +198,7 @@ contract XXXFund is IXXXFund {
     }
 
     // this low-level function should be called from a contract which performs important safety checks
-    function withdraw(address _token, address to, uint256 _amount) external lock {
+    function withdraw(address _token, address to, uint256 _amount) override external lock {
         require(msg.sender == to); // sufficient check
         require(reservedTokens[_token] >= _amount);
 
@@ -225,7 +227,7 @@ contract XXXFund is IXXXFund {
     }
 
     // this low-level function should be called from a contract which performs important safety checks
-    function swap(uint amount0Out, uint amount1Out, address to, bytes calldata data) external lock {
+    function swap(uint amount0Out, uint amount1Out, address to, bytes calldata data) override external lock {
 
 
 
