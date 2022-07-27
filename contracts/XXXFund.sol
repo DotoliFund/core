@@ -96,6 +96,16 @@ contract XXXFund is IXXXFund {
         unlocked = 1;
     }
 
+    // Modifier to check that the caller is the manager of
+    // the contract.
+    modifier onlyManager() {
+        require(msg.sender == manager, "Not manager");
+        // Underscore is a special character only used inside
+        // a function modifier and it tells Solidity to
+        // execute the rest of the code.
+        _;
+    }
+
 
     constructor() {
         factory = msg.sender;
@@ -179,7 +189,6 @@ contract XXXFund is IXXXFund {
     function withdraw(address _token, address to, uint256 _amount) override external lock {
         require(msg.sender == to); // sufficient check
         require(reservedTokens[_token] >= _amount);
-
         uint withdrawableFiatAmount = shares[to] * getTotalFiatAmount() / SHARE_DECIMAL;
         uint withdrawFiatAmount = getFiatAmount(_token, _amount);
         require(withdrawableFiatAmount >= withdrawFiatAmount);
@@ -212,7 +221,7 @@ contract XXXFund is IXXXFund {
     uint24 public constant poolFee = 3000;
 
     // this low-level function should be called from a contract which performs important safety checks
-    function swap(uint amount0Out, uint amount1Out, address to, bytes calldata data) override external lock {
+    function swap(uint amount0Out, uint amount1Out, address to, bytes calldata data) override onlyManager external lock {
 
         // require(amount0Out > 0 || amount1Out > 0, 'UniswapV2: INSUFFICIENT_OUTPUT_AMOUNT');
         // (uint112 _reserve0, uint112 _reserve1,) = getReserves(); // gas savings
