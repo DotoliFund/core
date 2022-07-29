@@ -11,15 +11,20 @@ import '@uniswap/v3-periphery/contracts/interfaces/ISwapRouter.sol';
 
 contract XXXFund is IXXXFund {
 
+    // Uniswap v3 swapRouter
     address swapRouterAddress = 0xE592427A0AEce92De3Edee1F18E0157C05861564;
-    uint SHARE_DECIMAL = 10 ** 6; 
 
-    struct ReservedToken {
+    uint256 SHARE_DECIMAL = 10 ** 6; 
+
+    struct Token {
         address tokenAddress;
-        string tokenName;
-        uint amount;
-        uint fiatPrice;
-        uint etherPrice;
+        uint256 amount;
+    }
+
+    struct Investor {
+        address investorAddress;
+        address tokenAddress;
+        uint256 amount;
     }
 
     struct SwapHistory {
@@ -28,39 +33,38 @@ contract XXXFund is IXXXFund {
         address fundManager;
         address swapFrom;
         address swapTo;
-        string swapFromName;
-        string swapToName;
-        ReservedToken[] reservedTokens;
-        uint totalFiatValue;
-        uint totalEtherValue;
-        uint turnverRatio;
-        uint rateOfReturn;
+        uint256 totalFiatValue;
+        uint256 totalEtherValue;
+        uint256 turnverRatio;
+        uint256 rateOfReturn;
     }
 
+
     address public factory;
-    address public manager;
-    address[] public allTokens;
-    mapping(address => uint) public reservedTokens;
-    address[] public holders;
-    mapping(address => uint) public shares;
+    address public fundManager;
+    mapping(address => mapping(address => uint256)) public investorTokenAmount; // deposit, withdraw
+    mapping(address => Token[]) public investorTokenList; // withdraw
+    Token[] public fundTokenList; // swap
+    mapping(address => Investor[]) public fundTokenOwner; // swap 
+    
     SwapHistory[] public swapHistory;
 
     ISwapRouter public immutable swapRouter;
 
 
-    event Deposit(address indexed sender, address _token, uint _amount);
-    event Withdraw(address indexed sender, address _token, uint _amount);
+    event Deposit(address indexed sender, address _token, uint256 _amount);
+    event Withdraw(address indexed sender, address _token, uint256 _amount);
     event Swap(
         address indexed sender,
-        uint amount0In,
-        uint amount1In,
-        uint amount0Out,
-        uint amount1Out,
+        uint256 amount0In,
+        uint256 amount1In,
+        uint256 amount0Out,
+        uint256 amount1Out,
         address indexed to
     );
 
 
-    uint private unlocked = 1;
+    uint256 private unlocked = 1;
     modifier lock() {
         require(unlocked == 1, 'XXXFund: LOCKED');
         unlocked = 0;
@@ -70,8 +74,8 @@ contract XXXFund is IXXXFund {
 
     // Modifier to check that the caller is the manager of
     // the contract.
-    modifier onlyManager() {
-        require(msg.sender == manager, "Not manager");
+    modifier onlyFundManager() {
+        require(msg.sender == fundManager, "Not fundManager");
         // Underscore is a special character only used inside
         // a function modifier and it tells Solidity to
         // execute the rest of the code.
@@ -84,48 +88,54 @@ contract XXXFund is IXXXFund {
         swapRouter = ISwapRouter(swapRouterAddress);
     }
     
-    function getFiatPrice(address token) private returns (uint fiatPrice) {
+    function getFiatPrice(address token) private returns (uint256 fiatPrice) {
         fiatPrice = 0; 
     }
 
-    function getTotalFiatValue() private returns (uint totalFiatValue) {
+    function getTotalFiatValue() private returns (uint256 totalFiatValue) {
         totalFiatValue = 0;
-        for (uint i = 0; i < allTokens.length; i++) {
-            address token = allTokens[i];
-            uint tokenFiatPrice = getFiatPrice(token);
-            uint tokenAmount = reservedTokens[token];
-            require(tokenFiatPrice >= 0);
-            totalFiatValue += tokenFiatPrice * tokenAmount;
-        }
-    }
-
-    function getReserves(address token) public view returns (uint _reserve) {
-        _reserve = reservedTokens[token];
+        // for (uint256 i = 0; i < tokens.length; i++) {
+        //     address token = tokens[i];
+        //     uint256 tokenFiatPrice = getFiatPrice(token);
+        //     uint256 tokenAmount = tokenAmount[token];
+        //     require(tokenFiatPrice >= 0);
+        //     totalFiatValue += tokenFiatPrice * tokenAmount;
+        // }
     }
 
     // called once by the factory at time of deployment
-    function initialize(address _manager, address _token, uint256 _amount) override external {
+    function initialize(address _fundManager, address _token, uint256 _amount) override external {
         require(msg.sender == factory, 'XXXFund: FORBIDDEN'); // sufficient check
-        require(allTokens.length == 0);
-        manager = _manager;
+        fundManager = _fundManager;
 
         if (_token != address(0) && _amount > 0) {
-            uint share = 1 * SHARE_DECIMAL;
-            TransferHelper.safeTransferFrom(_token, manager, address(this), _amount);
-            //update share[]
-            shares[manager] = share;
-            //update allTokens[], reservedTokens[]
-            allTokens.push(_token);
-            reservedTokens[_token] = _amount;
-            emit Deposit(manager, _token, _amount);
+
+            TransferHelper.safeTransferFrom(_token, fundManager, address(this), _amount);
+
+            investorTokenAmount[_fundManager][_token] = _amount;
+
+            Token memory token;
+            token.tokenAddress = _token;
+            token.amount = _amount;
+
+            fundTokenList.push(token);
+            investorTokenList[_fundManager].push(token);
+
+            Investor memory investor;
+            investor.investorAddress = _fundManager;
+            investor.tokenAddress = _token;
+            investor.amount = _amount;
+            fundTokenOwner[_token].push(investor);
+
+            emit Deposit(fundManager, _token, _amount);
         }
     }
 
-    function getFiatAmount(address token, uint256 _amount) private returns (uint fiatAmount) {
+    function getFiatAmount(address token, uint256 _amount) private returns (uint256 fiatAmount) {
         fiatAmount = 0; 
     }
 
-    function getTotalFiatAmount() private returns (uint totalFiatAmount) {
+    function getTotalFiatAmount() private returns (uint256 totalFiatAmount) {
         totalFiatAmount = 0; 
     }
 
@@ -133,56 +143,83 @@ contract XXXFund is IXXXFund {
     function deposit(address sender, address _token, uint256 _amount) override external lock {
         require(msg.sender == sender); // sufficient check
 
-        uint depositFiatValue = getFiatAmount(_token, _amount);
-        uint reservedFiatValue = getTotalFiatAmount();
-        uint share = SHARE_DECIMAL * depositFiatValue / (reservedFiatValue + depositFiatValue);
 
-        TransferHelper.safeTransfer(_token, address(this), _amount);
-        //update share[]
-        for (uint256 i = 0; i < holders.length; i++) {
-            shares[holders[i]] = (((SHARE_DECIMAL * 1) - share) * shares[holders[i]]) / SHARE_DECIMAL;
-        }
-        shares[sender] += share;
-        //update allTokens[], reservedTokens[]
-        for (uint256 j = 0; j < allTokens.length; j++) {
-            address token = allTokens[j];
-            if (token == _token) {
-                reservedTokens[_token] += _amount;
-                emit Deposit(msg.sender, _token, _amount);
-                return;
-            }
-        }
-        allTokens.push(_token);
-        reservedTokens[_token] = _amount;
-        emit Deposit(msg.sender, _token, _amount);
+
+
+
+
+
+
+
+
+
+
+
+
+        // uint depositFiatValue = getFiatAmount(_token, _amount);
+        // uint reservedFiatValue = getTotalFiatAmount();
+        // uint share = SHARE_DECIMAL * depositFiatValue / (reservedFiatValue + depositFiatValue);
+
+        // TransferHelper.safeTransfer(_token, address(this), _amount);
+        // //update share[]
+        // for (uint256 i = 0; i < holders.length; i++) {
+        //     shares[holders[i]] = (((SHARE_DECIMAL * 1) - share) * shares[holders[i]]) / SHARE_DECIMAL;
+        // }
+        // shares[sender] += share;
+        // //update tokens[], tokenAmount[]
+        // for (uint256 j = 0; j < tokens.length; j++) {
+        //     address token = tokens[j];
+        //     if (token == _token) {
+        //         tokenAmount[_token] += _amount;
+        //         emit Deposit(msg.sender, _token, _amount);
+        //         return;
+        //     }
+        // }
+        // tokens.push(_token);
+        // tokenAmount[_token] = _amount;
+        // emit Deposit(msg.sender, _token, _amount);
     }
 
     // this low-level function should be called from a contract which performs important safety checks
     function withdraw(address _token, address to, uint256 _amount) override external lock {
         require(msg.sender == to); // sufficient check
-        require(reservedTokens[_token] >= _amount);
-        uint withdrawableFiatAmount = shares[to] * getTotalFiatAmount() / SHARE_DECIMAL;
-        uint withdrawFiatAmount = getFiatAmount(_token, _amount);
-        require(withdrawableFiatAmount >= withdrawFiatAmount);
 
-        uint reservedFiatAmount = getTotalFiatValue();
-        uint share = SHARE_DECIMAL * withdrawFiatAmount / reservedFiatAmount;
 
-        TransferHelper.safeTransferFrom(_token, address(this), to, _amount);
-        //update share[]
-        shares[to] -= share;
-        for (uint256 i = 0; i < holders.length; i++) {
-            shares[holders[i]] = ((SHARE_DECIMAL + ((SHARE_DECIMAL * share) / (SHARE_DECIMAL - share))) * shares[holders[i]]) / SHARE_DECIMAL;
-        }
-        //update allTokens[], reservedTokens[]
-        for (uint256 j = 0; j < allTokens.length; j++) {
-            address token = allTokens[j];
-            if (token == _token) {
-                reservedTokens[_token] -= _amount;
-                emit Withdraw(to, _token, _amount);
-                return;
-            }
-        }
+
+
+
+
+
+
+
+
+
+
+
+
+        // require(tokenAmount[_token] >= _amount);
+        // uint withdrawableFiatAmount = shares[to] * getTotalFiatAmount() / SHARE_DECIMAL;
+        // uint withdrawFiatAmount = getFiatAmount(_token, _amount);
+        // require(withdrawableFiatAmount >= withdrawFiatAmount);
+
+        // uint reservedFiatAmount = getTotalFiatValue();
+        // uint share = SHARE_DECIMAL * withdrawFiatAmount / reservedFiatAmount;
+
+        // TransferHelper.safeTransferFrom(_token, address(this), to, _amount);
+        // //update share[]
+        // shares[to] -= share;
+        // for (uint256 i = 0; i < holders.length; i++) {
+        //     shares[holders[i]] = ((SHARE_DECIMAL + ((SHARE_DECIMAL * share) / (SHARE_DECIMAL - share))) * shares[holders[i]]) / SHARE_DECIMAL;
+        // }
+        // //update tokens[], tokenAmount[]
+        // for (uint256 j = 0; j < tokens.length; j++) {
+        //     address token = tokens[j];
+        //     if (token == _token) {
+        //         tokenAmount[_token] -= _amount;
+        //         emit Withdraw(to, _token, _amount);
+        //         return;
+        //     }
+        // }
     }
 
     address public constant DAI = 0x6B175474E89094C44Da98b954EedeAC495271d0F;
@@ -193,7 +230,7 @@ contract XXXFund is IXXXFund {
     uint24 public constant poolFee = 3000;
 
 
-    function swapExactInputSingle(ISwapRouter.ExactInputSingleParams calldata _params) onlyManager external returns (uint256 amountOut) {
+    function swapExactInputSingle(ISwapRouter.ExactInputSingleParams calldata _params) onlyFundManager external returns (uint256 amountOut) {
         // msg.sender must approve this contract
 
         // Transfer the specified amount of DAI to this contract.
@@ -220,7 +257,7 @@ contract XXXFund is IXXXFund {
         amountOut = swapRouter.exactInputSingle(params);
     }
 
-    function swapExactOutputSingle(ISwapRouter.ExactOutputSingleParams calldata _params) onlyManager external returns (uint256 amountIn) {
+    function swapExactOutputSingle(ISwapRouter.ExactOutputSingleParams calldata _params) onlyFundManager external returns (uint256 amountIn) {
         // Transfer the specified amount of DAI to this contract.
         TransferHelper.safeTransferFrom(DAI, msg.sender, address(this), _params.amountInMaximum);
 
@@ -251,7 +288,7 @@ contract XXXFund is IXXXFund {
         }
     }
 
-    function swapExactInputMultihop(ISwapRouter.ExactInputParams calldata _params) onlyManager external returns (uint256 amountOut) {
+    function swapExactInputMultihop(ISwapRouter.ExactInputParams calldata _params) onlyFundManager external returns (uint256 amountOut) {
         // Transfer `amountIn` of DAI to this contract.
         TransferHelper.safeTransferFrom(DAI, msg.sender, address(this), _params.amountIn);
 
@@ -274,7 +311,7 @@ contract XXXFund is IXXXFund {
         amountOut = swapRouter.exactInput(params);
     }
 
-    function swapExactOutputMultihop(ISwapRouter.ExactOutputParams calldata _params) onlyManager external returns (uint256 amountIn) {
+    function swapExactOutputMultihop(ISwapRouter.ExactOutputParams calldata _params) onlyFundManager external returns (uint256 amountIn) {
         // Transfer the specified `amountInMaximum` to this contract.
         TransferHelper.safeTransferFrom(DAI, msg.sender, address(this), _params.amountInMaximum);
         // Approve the router to spend  `amountInMaximum`.

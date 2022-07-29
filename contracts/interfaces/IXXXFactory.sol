@@ -13,5 +13,5 @@ interface IXXXFactory {
     /// @param _owner The new owner of the factory
     function setOwner(address _owner) external;
 
-    function createFund(address manager, address token, uint amount) external returns (address fund);
+    function createFund(address manager, address token, uint256 amount) external returns (address fund);
 }

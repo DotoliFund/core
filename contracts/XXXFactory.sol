@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity =0.7.6;
+pragma abicoder v2;
+
 import './interfaces/IXXXFactory.sol';
 import './XXXFund.sol';
 
@@ -12,9 +14,9 @@ contract XXXFactory is IXXXFactory {
     event OwnerChanged(address indexed oldOwner, address indexed newOwner);
 
     mapping(address => address) public getFund;
-    uint public fundCount;
+    uint256 public fundCount;
 
-    event FundCreated(address manager, address fund, uint fundCount);
+    event FundCreated(address manager, address fund, uint256 fundCount);
 
     constructor() {
         owner = msg.sender;
@@ -22,7 +24,7 @@ contract XXXFactory is IXXXFactory {
         emit OwnerChanged(address(0), msg.sender);
     }
 
-    function createFund(address manager, address token, uint amount) override external returns (address fund) {
+    function createFund(address manager, address token, uint256 amount) override external returns (address fund) {
         require(msg.sender == manager, 'XXXFactory: IDENTICAL_ADDRESSES');
         require(getFund[manager] == address(0), 'XXXFactory: FUND_EXISTS'); // single check is sufficient
 
