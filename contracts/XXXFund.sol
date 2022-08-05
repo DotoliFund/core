@@ -21,33 +21,45 @@ contract XXXFund is IXXXFund {
         uint256 amount;
     }
 
-    struct Investor {
-        address investorAddress;
-        address tokenAddress;
-        uint256 amount;
-    }
-
-    struct SwapHistory {
+    struct FundHistory {
         string date;
-        address fundAddress;
-        address fundManager;
-        address swapFrom;
-        address swapTo;
-        uint256 totalFiatValue;
-        uint256 totalEtherValue;
+        Token[] tokens;
+        uint256 depositValue;
+        uint256 totalValue;
+        uint256 swapValue;
         uint256 turnverRatio;
         uint256 rateOfReturn;
     }
 
+    struct InvestorHistory {
+        string date;
+        address dataType;
+        uint256 swapFrom;
+        uint256 swapFromAmount;
+        uint256 swapTo;
+        uint256 swapToAmount;
+        address depositToken;
+        uint256 depositAmount;
+        address withdrawToken;
+        uint256 withdrawAmount;
+    }
+
+    struct InvestorDetail {
+        Token[] tokens;
+        uint256 depositValue;
+        uint256 totalValue;
+        uint256 swapValue;
+        uint256 turnverRatio;
+        uint256 rateOfReturn;
+    }
 
     address public factory;
-    address public fundManager;
-    mapping(address => mapping(address => uint256)) public investorTokenAmount; // deposit, withdraw
-    mapping(address => Token[]) public investorTokenList; // withdraw
-    Token[] public fundTokenList; // swap
-    mapping(address => Investor[]) public fundTokenOwner; // swap 
-    
-    SwapHistory[] public swapHistory;
+    address public manager;
+
+    FundHistory[] public fundHistory;
+
+    mapping(address => InvestorHistory[]) public investorHistory;
+    mapping(address => InvestorDetail) public investorDetail;
 
     ISwapRouter public immutable swapRouter;
 
@@ -74,8 +86,8 @@ contract XXXFund is IXXXFund {
 
     // Modifier to check that the caller is the manager of
     // the contract.
-    modifier onlyFundManager() {
-        require(msg.sender == fundManager, "Not fundManager");
+    modifier onlyManager() {
+        require(msg.sender == manager, "Not manager");
         // Underscore is a special character only used inside
         // a function modifier and it tells Solidity to
         // execute the rest of the code.
@@ -104,30 +116,30 @@ contract XXXFund is IXXXFund {
     }
 
     // called once by the factory at time of deployment
-    function initialize(address _fundManager, address _token, uint256 _amount) override external {
+    function initialize(address _manager, address _token, uint256 _amount) override external {
         require(msg.sender == factory, 'XXXFund: FORBIDDEN'); // sufficient check
-        fundManager = _fundManager;
+        manager = _manager;
 
         if (_token != address(0) && _amount > 0) {
 
-            TransferHelper.safeTransferFrom(_token, fundManager, address(this), _amount);
+            TransferHelper.safeTransferFrom(_token, manager, address(this), _amount);
 
-            investorTokenAmount[_fundManager][_token] = _amount;
+            investorTokenAmount[_manager][_token] = _amount;
 
             Token memory token;
             token.tokenAddress = _token;
             token.amount = _amount;
 
+            investorTokenList[_manager].push(token);
             fundTokenList.push(token);
-            investorTokenList[_fundManager].push(token);
 
             Investor memory investor;
-            investor.investorAddress = _fundManager;
+            investor.investorAddress = _manager;
             investor.tokenAddress = _token;
             investor.amount = _amount;
             fundTokenOwner[_token].push(investor);
 
-            emit Deposit(fundManager, _token, _amount);
+            emit Deposit(manager, _token, _amount);
         }
     }
 
@@ -143,16 +155,37 @@ contract XXXFund is IXXXFund {
     function deposit(address sender, address _token, uint256 _amount) override external lock {
         require(msg.sender == sender); // sufficient check
 
+        TransferHelper.safeTransfer(_token, address(this), _amount);
+
+        investorTokenAmount[sender][_token] += _amount;
+
+        bool investorTokenExist = false;
+        for (uint256 i = 0; i < investorTokenList[sender].length; i++) {
+            if (investorTokenList[sender][i].tokenAddress == _token) {
+                investorTokenList[sender][i].amount += _amount;
+                investorTokenExist = true;
+            }
+        }
+        if (!investorTokenExist) {
+            Token memory token;
+            token.tokenAddress = _token;
+            token.amount = _amount;
+
+            investorTokenList[sender].push(token);    
+        }
+
+        fundTokenList.push(token);
+
+        Investor memory investor;
+        investor.investorAddress = sender;
+        investor.tokenAddress = _token;
+        investor.amount = _amount;
+        fundTokenOwner[_token].push(investor);
 
 
 
 
-
-
-
-
-
-
+        emit Deposit(msg.sender, _token, _amount);
 
 
 
@@ -230,7 +263,7 @@ contract XXXFund is IXXXFund {
     uint24 public constant poolFee = 3000;
 
 
-    function swapExactInputSingle(ISwapRouter.ExactInputSingleParams calldata _params) onlyFundManager external returns (uint256 amountOut) {
+    function swapExactInputSingle(ISwapRouter.ExactInputSingleParams calldata _params) onlyManager external returns (uint256 amountOut) {
         // msg.sender must approve this contract
 
         // Transfer the specified amount of DAI to this contract.
@@ -257,7 +290,7 @@ contract XXXFund is IXXXFund {
         amountOut = swapRouter.exactInputSingle(params);
     }
 
-    function swapExactOutputSingle(ISwapRouter.ExactOutputSingleParams calldata _params) onlyFundManager external returns (uint256 amountIn) {
+    function swapExactOutputSingle(ISwapRouter.ExactOutputSingleParams calldata _params) onlyManager external returns (uint256 amountIn) {
         // Transfer the specified amount of DAI to this contract.
         TransferHelper.safeTransferFrom(DAI, msg.sender, address(this), _params.amountInMaximum);
 
@@ -288,7 +321,7 @@ contract XXXFund is IXXXFund {
         }
     }
 
-    function swapExactInputMultihop(ISwapRouter.ExactInputParams calldata _params) onlyFundManager external returns (uint256 amountOut) {
+    function swapExactInputMultihop(ISwapRouter.ExactInputParams calldata _params) onlyManager external returns (uint256 amountOut) {
         // Transfer `amountIn` of DAI to this contract.
         TransferHelper.safeTransferFrom(DAI, msg.sender, address(this), _params.amountIn);
 
@@ -311,7 +344,7 @@ contract XXXFund is IXXXFund {
         amountOut = swapRouter.exactInput(params);
     }
 
-    function swapExactOutputMultihop(ISwapRouter.ExactOutputParams calldata _params) onlyFundManager external returns (uint256 amountIn) {
+    function swapExactOutputMultihop(ISwapRouter.ExactOutputParams calldata _params) onlyManager external returns (uint256 amountIn) {
         // Transfer the specified `amountInMaximum` to this contract.
         TransferHelper.safeTransferFrom(DAI, msg.sender, address(this), _params.amountInMaximum);
         // Approve the router to spend  `amountInMaximum`.
