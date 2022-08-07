@@ -21,45 +21,25 @@ contract XXXFund is IXXXFund {
         uint256 amount;
     }
 
-    struct FundHistory {
-        string date;
-        Token[] tokens;
-        uint256 depositValue;
-        uint256 totalValue;
-        uint256 swapValue;
-        uint256 turnverRatio;
-        uint256 rateOfReturn;
-    }
-
     struct InvestorHistory {
         string date;
-        address dataType;
-        uint256 swapFrom;
-        uint256 swapFromAmount;
-        uint256 swapTo;
-        uint256 swapToAmount;
-        address depositToken;
-        uint256 depositAmount;
-        address withdrawToken;
-        uint256 withdrawAmount;
-    }
-
-    struct InvestorDetail {
-        Token[] tokens;
-        uint256 depositValue;
-        uint256 totalValue;
-        uint256 swapValue;
-        uint256 turnverRatio;
-        uint256 rateOfReturn;
+        string history;
     }
 
     address public factory;
     address public manager;
 
-    FundHistory[] public fundHistory;
+    //fund info
+    uint256 fundPrincipalUSD = 0;
+    mapping(uint265 => Token) public fundTokens;
+    uint256 public fundTokenCount = 0;
+    //investor info
+    mapping(address => uint265) public investorPrincipalUSD;
+    mapping(address => mapping(uint265 => Token)) public investorTokens;
+    mapping(address => uint265) public investorTokenCount;
+    mapping(address => mapping(uint265 => InvestorHistory)) public investorHistory;
+    mapping(address => uint265) public investorHistoryCount;
 
-    mapping(address => InvestorHistory[]) public investorHistory;
-    mapping(address => InvestorDetail) public investorDetail;
 
     ISwapRouter public immutable swapRouter;
 
@@ -115,29 +95,37 @@ contract XXXFund is IXXXFund {
         // }
     }
 
+    function setInvestorHistory(address token) private returns (uint256 fiatPrice) {
+        InvestorHistory memory _investorHistory;
+        _investorHistory.
+        investorHistory.push();
+
+
+
+    }
+
+
     // called once by the factory at time of deployment
     function initialize(address _manager, address _token, uint256 _amount) override external {
         require(msg.sender == factory, 'XXXFund: FORBIDDEN'); // sufficient check
         manager = _manager;
 
         if (_token != address(0) && _amount > 0) {
-
-            TransferHelper.safeTransferFrom(_token, manager, address(this), _amount);
-
-            investorTokenAmount[_manager][_token] = _amount;
-
             Token memory token;
             token.tokenAddress = _token;
             token.amount = _amount;
+            string _date = getDate();
+            uint265 fiatValue = getFiatPrice(_token) * _amount;
 
-            investorTokenList[_manager].push(token);
-            fundTokenList.push(token);
+            investorTokens[_manager][0] = token;
+            investorHistory[_manager][0].date = _date;
+            investorHistory[_manager][0].history = _history;
+            investorHistoryCount[_manager] += 1;
+            investorPrincipalUSD[_manager] += fiatValue;
 
-            Investor memory investor;
-            investor.investorAddress = _manager;
-            investor.tokenAddress = _token;
-            investor.amount = _amount;
-            fundTokenOwner[_token].push(investor);
+            fundTokens[fundTokenCount] = token;
+            fundTokenCount += 1;
+            fundPrincipalUSD += fiatValue;
 
             emit Deposit(manager, _token, _amount);
         }
@@ -151,66 +139,116 @@ contract XXXFund is IXXXFund {
         totalFiatAmount = 0; 
     }
 
+    function addInvestorHistory() private returns (uint256 totalFiatAmount) {
+        totalFiatAmount = 0; 
+    }
+
+    function handleDeposit(address sender, address _token, uint256 _amount) {
+        string _date = getDate();
+        uint256 fiatValue = getFiatPrice(_token) * _amount;
+
+        //set fund info
+        bool isNewFundToken = true;
+        for (uint256 i=0; i<fundTokenCount; i++) {
+            address token = fundTokens[i].tokenAddress;
+            if (token == _token) {
+                isNewFundToken = false;
+                fundTokensp[i].amount += _amount;
+                break;
+            }
+        }
+        if (isNewFundToken) {
+            Token memory token;
+            token.tokenAddress = _token;
+            token.amount = _amount;
+            fundTokens[fundTokenCount] = token;
+            fundTokenCount += 1;
+        }
+        fundPrincipalUSD += fiatValue;
+
+        //set investor info
+        bool isNewInvestorToken = true;
+        for (uint256 i=0; i<investorTokenCount; i++) {
+            address token = investorTokens[_manager][i].tokenAddress;
+            if (token == _token) {
+                isNewInvestorToken = false;
+                investorTokens[_manager][i].amount += _amount;
+                break;
+            }
+        }
+        if (isNewInvestorToken) {
+            Token memory token;
+            token.tokenAddress = _token;
+            token.amount = _amount;
+            investorTokens[_manager][investorTokenCount] = token;
+            investorTokenCount += 1;
+        }
+        investorHistory[_manager][investorHistoryCount].date = _date;
+        investorHistory[_manager][investorHistoryCount].history = _history;
+        investorHistoryCount[_manager] += 1;
+        investorPrincipalUSD[_manager] += fiatValue;
+    }
+
+    function handleWithdraw(address _token, address to, uint256 _amount) {
+
+    }
+
+    function handleSwap() {
+
+    }
+
     // this low-level function should be called from a contract which performs important safety checks
     function deposit(address sender, address _token, uint256 _amount) override external lock {
         require(msg.sender == sender); // sufficient check
 
         TransferHelper.safeTransfer(_token, address(this), _amount);
 
-        investorTokenAmount[sender][_token] += _amount;
+        handleDeposit(address sender, address _token, uint256 _amount);
 
-        bool investorTokenExist = false;
-        for (uint256 i = 0; i < investorTokenList[sender].length; i++) {
-            if (investorTokenList[sender][i].tokenAddress == _token) {
-                investorTokenList[sender][i].amount += _amount;
-                investorTokenExist = true;
+        string _date = getDate();
+        uint256 fiatValue = getFiatPrice(_token) * _amount;
+
+        bool isNewFundToken = true;
+        for (uint256 i=0; i<fundTokenCount; i++) {
+            address token = fundTokens[i].tokenAddress;
+            if (token == _token) {
+                isNewFundToken = false;
+                fundTokensp[i].amount += _amount;
+                break;
             }
         }
-        if (!investorTokenExist) {
+        if (isNewFundToken) {
             Token memory token;
             token.tokenAddress = _token;
             token.amount = _amount;
-
-            investorTokenList[sender].push(token);    
+            fundTokens[fundTokenCount] = token;
+            fundTokenCount += 1;
         }
+        fundPrincipalUSD += fiatValue;
 
-        fundTokenList.push(token);
+        bool isNewInvestorToken = true;
+        for (uint256 i=0; i<investorTokenCount; i++) {
+            address token = investorTokens[_manager][i].tokenAddress;
+            if (token == _token) {
+                isNewInvestorToken = false;
+                investorTokens[_manager][i].amount += _amount;
+                break;
+            }
+        }
+        if (isNewInvestorToken) {
+            Token memory token;
+            token.tokenAddress = _token;
+            token.amount = _amount;
+            investorTokens[_manager][investorTokenCount] = token;
+            investorTokenCount += 1;
+        }
+        investorHistory[_manager][investorHistoryCount].date = _date;
+        investorHistory[_manager][investorHistoryCount].history = _history;
+        investorHistoryCount[_manager] += 1;
+        investorPrincipalUSD[_manager] += fiatValue;
 
-        Investor memory investor;
-        investor.investorAddress = sender;
-        investor.tokenAddress = _token;
-        investor.amount = _amount;
-        fundTokenOwner[_token].push(investor);
 
-
-
-
-        emit Deposit(msg.sender, _token, _amount);
-
-
-
-        // uint depositFiatValue = getFiatAmount(_token, _amount);
-        // uint reservedFiatValue = getTotalFiatAmount();
-        // uint share = SHARE_DECIMAL * depositFiatValue / (reservedFiatValue + depositFiatValue);
-
-        // TransferHelper.safeTransfer(_token, address(this), _amount);
-        // //update share[]
-        // for (uint256 i = 0; i < holders.length; i++) {
-        //     shares[holders[i]] = (((SHARE_DECIMAL * 1) - share) * shares[holders[i]]) / SHARE_DECIMAL;
-        // }
-        // shares[sender] += share;
-        // //update tokens[], tokenAmount[]
-        // for (uint256 j = 0; j < tokens.length; j++) {
-        //     address token = tokens[j];
-        //     if (token == _token) {
-        //         tokenAmount[_token] += _amount;
-        //         emit Deposit(msg.sender, _token, _amount);
-        //         return;
-        //     }
-        // }
-        // tokens.push(_token);
-        // tokenAmount[_token] = _amount;
-        // emit Deposit(msg.sender, _token, _amount);
+        emit Deposit(sender, _token, _amount);
     }
 
     // this low-level function should be called from a contract which performs important safety checks
@@ -218,41 +256,10 @@ contract XXXFund is IXXXFund {
         require(msg.sender == to); // sufficient check
 
 
+        handleWithdraw(address sender, address _token, uint256 _amount);
 
 
-
-
-
-
-
-
-
-
-
-
-        // require(tokenAmount[_token] >= _amount);
-        // uint withdrawableFiatAmount = shares[to] * getTotalFiatAmount() / SHARE_DECIMAL;
-        // uint withdrawFiatAmount = getFiatAmount(_token, _amount);
-        // require(withdrawableFiatAmount >= withdrawFiatAmount);
-
-        // uint reservedFiatAmount = getTotalFiatValue();
-        // uint share = SHARE_DECIMAL * withdrawFiatAmount / reservedFiatAmount;
-
-        // TransferHelper.safeTransferFrom(_token, address(this), to, _amount);
-        // //update share[]
-        // shares[to] -= share;
-        // for (uint256 i = 0; i < holders.length; i++) {
-        //     shares[holders[i]] = ((SHARE_DECIMAL + ((SHARE_DECIMAL * share) / (SHARE_DECIMAL - share))) * shares[holders[i]]) / SHARE_DECIMAL;
-        // }
-        // //update tokens[], tokenAmount[]
-        // for (uint256 j = 0; j < tokens.length; j++) {
-        //     address token = tokens[j];
-        //     if (token == _token) {
-        //         tokenAmount[_token] -= _amount;
-        //         emit Withdraw(to, _token, _amount);
-        //         return;
-        //     }
-        // }
+        emit Withdraw(_token, to, _amount);
     }
 
     address public constant DAI = 0x6B175474E89094C44Da98b954EedeAC495271d0F;
