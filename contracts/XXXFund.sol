@@ -1,9 +1,8 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
-pragma solidity =0.7.6;
+pragma solidity =0.8.4;
 pragma abicoder v2;
 
 import './interfaces/IXXXFund.sol';
-import './interfaces/IERC20Minimal.sol';
 import './interfaces/IXXXFactory.sol';
 
 import '@uniswap/v3-periphery/contracts/libraries/TransferHelper.sol';
@@ -21,11 +20,6 @@ contract XXXFund is IXXXFund {
         uint256 amount;
     }
 
-    struct InvestorHistory {
-        string date;
-        string history;
-    }
-
     address public factory;
     address public manager;
 
@@ -37,8 +31,6 @@ contract XXXFund is IXXXFund {
     mapping(address => uint256) public investorPrincipalUSD;
     mapping(address => mapping(uint256 => Token)) public investorTokens;
     mapping(address => uint256) public investorTokenCount;
-    mapping(address => mapping(uint256 => InvestorHistory)) public investorHistory;
-    mapping(address => uint256) public investorHistoryCount;
 
     ISwapRouter public immutable swapRouter;
 
@@ -82,24 +74,10 @@ contract XXXFund is IXXXFund {
 
     function getFundTotalValueUSD() private returns (uint256 totalFiatValue) {
         totalFiatValue = 0;
-        // for (uint256 i = 0; i < tokens.length; i++) {
-        //     address token = tokens[i];
-        //     uint256 tokenFiatPrice = getPriceUSD(token);
-        //     uint256 tokenAmount = tokenAmount[token];
-        //     require(tokenFiatPrice >= 0);
-        //     totalFiatValue += tokenFiatPrice * tokenAmount;
-        // }
     }
 
     function getInvestorTotalValueUSD(address investor) private returns (uint256 totalFiatValue) {
         totalFiatValue = 0;
-        // for (uint256 i = 0; i < tokens.length; i++) {
-        //     address token = tokens[i];
-        //     uint256 tokenFiatPrice = getPriceUSD(token);
-        //     uint256 tokenAmount = tokenAmount[token];
-        //     require(tokenFiatPrice >= 0);
-        //     totalFiatValue += tokenFiatPrice * tokenAmount;
-        // }
     }
 
     function getDate() private returns (string memory){
@@ -117,13 +95,9 @@ contract XXXFund is IXXXFund {
             token.tokenAddress = _token;
             token.amount = _amount;
             string memory _date = getDate();
-            string memory _history = '';
             uint256 depositValue = getPriceUSD(_token) * _amount;
 
             investorTokens[_manager][0] = token;
-            investorHistory[_manager][0].date = _date;
-            investorHistory[_manager][0].history = _history;
-            investorHistoryCount[_manager] += 1;
             investorPrincipalUSD[_manager] += depositValue;
 
             fundTokens[fundTokenCount] = token;
@@ -184,13 +158,6 @@ contract XXXFund is IXXXFund {
         return isNewToken;
     }
 
-    function updateInvestorHistory(address investor, string memory _history) private {
-        uint256 newHistoryIndex = investorHistoryCount[investor];
-        investorHistory[investor][newHistoryIndex].date = getDate();
-        investorHistory[investor][newHistoryIndex].history = _history;
-        investorHistoryCount[investor] += 1;
-    }
-
     function updateDepositInfo(address investor, address _token, uint256 _amount) private {
         //update fund info
         bool isNewFundToken = increaseFundTokenAmount(_token, _amount);
@@ -200,7 +167,6 @@ contract XXXFund is IXXXFund {
             fundTokenCount += 1;
         }
         uint256 depositValue = getPriceUSD(_token) * _amount;
-        string memory _history = '';
         fundPrincipalUSD += depositValue;
 
         //update investor info
@@ -211,7 +177,6 @@ contract XXXFund is IXXXFund {
             investorTokens[investor][newTokenIndex].amount = _amount;
             investorTokenCount[investor] += 1;
         }
-        updateInvestorHistory(investor, _history);
         investorPrincipalUSD[investor] += depositValue;
     }
 
@@ -220,14 +185,12 @@ contract XXXFund is IXXXFund {
         bool isNewFundToken = decreaseFundTokenAmount(_token, _amount);
         require(isNewFundToken == false, 'updateWithdrawInfo: Invalid fund token withdraw attempt');
         uint256 withdrawValue = getPriceUSD(_token) * _amount;
-        string memory _history = '';
         uint256 fundWithdrawRatio = withdrawValue / getFundTotalValueUSD();
         fundPrincipalUSD -= fundPrincipalUSD * fundWithdrawRatio;
 
         //update investor info
         bool isNewInvestorToken = decreaseInvestorTokenAmount(investor, _token, _amount);
         require(isNewInvestorToken == false, 'updateWithdrawInfo: Invalid investor token withdraw attempt');
-        updateInvestorHistory(investor, _history);
         uint256 investorWithdrawRatio = withdrawValue / getInvestorTotalValueUSD(investor);
         investorPrincipalUSD[investor] -= investorPrincipalUSD[investor] * investorWithdrawRatio;
     }
@@ -257,8 +220,6 @@ contract XXXFund is IXXXFund {
             investorTokens[investor][newTokenIndex].amount = swapToAmount;
             investorTokenCount[investor] += 1;
         }
-        string memory _history = '';
-        updateInvestorHistory(investor, _history);
     }
 
     // this low-level function should be called from a contract which performs important safety checks
@@ -286,7 +247,7 @@ contract XXXFund is IXXXFund {
         }
         require(isValidTokenAmount == true, 'withdraw: Invalid token');
         // Transfer the specified amount of token to this contract.
-        TransferHelper.safeTransferFrom(_token, address(this), investor, _amount);
+        TransferHelper.safeTransfer(_token, investor, _amount);
 
         updateWithdrawInfo(investor, _token, _amount);
 

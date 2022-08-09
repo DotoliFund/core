@@ -19,7 +19,7 @@ if (typeof GOERLI_PRIVATE_KEY === 'undefined') {
 }
 
 const config: HardhatUserConfig = {
-  solidity: "0.7.6",
+  solidity: "0.8.4",
   networks: {
     goerli: {
       url: `https://eth-goerli.alchemyapi.io/v2/${ALCHEMY_API_KEY}`,
