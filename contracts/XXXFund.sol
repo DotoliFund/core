@@ -226,6 +226,42 @@ contract XXXFund is IXXXFund {
         }
     }
 
+    function isValidTokenAmount(address investor, address _token, uint256 _amount) returns (bool) {
+        bool _isValidTokenAmount = false;
+        for (uint256 i=0; i<investorTokenCount[investor]; i++) {
+            if (investorTokens[investor][i].tokenAddress == _token) {
+                require(investorTokens[investor][i].amount >= _amount, 'withdraw: Invalid withdraw token amount');
+                _isValidTokenAmount = true;
+                break;
+            }
+        }
+        return _isValidTokenAmount;
+    }
+
+    function getManagerReward(address investor, address _token, uint256 _amount) private returns (uint256) {
+        uint256 withdrawValue = getPriceUSD(_token) * _amount;
+        require(address(investor) != 0, 'getManagerReward: Invalid investor address');
+        uint256 managerReward = 0;
+        uint256 investorTotalValue = getInvestorTotalValueUSD(investor);
+        uint256 investorProfit = investorTotalValue - investorPrincipalUSD[investor];
+        if (investorProfit > 0) {
+            managerReward = investorProfit * withdrawValue / investorTotalValue;
+        }
+        return managerReward;
+    }
+
+    function increaseManagerRewardTokenAmount(address _token, uint256 _amount) private returns (bool){
+        bool isNewToken = true;
+        for (uint256 i=0; i<rewardTokenCount; i++) {
+            if (rewardTokens[i].tokenAddress == _token) {
+                isNewToken = false;
+                rewardTokens[i].amount += _amount;
+                break;
+            }
+        }
+        return isNewToken;
+    }
+
     // this low-level function should be called from a contract which performs important safety checks
     function deposit(address investor, address _token, uint256 _amount) override external lock {
         require(msg.sender == investor); // sufficient check
@@ -241,19 +277,30 @@ contract XXXFund is IXXXFund {
     function withdraw(address investor, address _token, uint256 _amount) override external lock {
         require(msg.sender == investor); // sufficient check
         //check if investor has valid token amount
-        bool isValidTokenAmount = false;
-        for (uint256 i=0; i<investorTokenCount[investor]; i++) {
-            if (investorTokens[investor][i].tokenAddress == _token) {
-                require(investorTokens[investor][i].amount >= _amount, 'withdraw: Invalid withdraw token amount');
-                isValidTokenAmount = true;
-                break;
+        require(isValidTokenAmount(investor, _token, _amount) == true, 'withdraw: Invalid token');
+        if (investor == manager) {
+            // manager withdraw is no fee
+        } else {
+            //if investor has a profit, send manager reward.
+            uint256 managerReward = getManagerReward(investor, withdrawValue);
+            if (managerReward > 0) {
+                uint256 rewardTokenAmount = managerReward / getPriceUSD(_token);
+                bool isNewRewardToken = increaseManagerRewardTokenAmount(_token, rewardTokenAmount);
+                if (isNewRewardToken) {
+                    rewardTokens[rewardTokenCount].tokenAddress = _token;
+                    rewardTokens[rewardTokenCount].amount = rewardTokenAmount;
+                    rewardTokenCount += 1;
+                }
+                // Transfer the specified amount of token to this contract.
+                TransferHelper.safeTransfer(_token, investor, _amount - rewardTokenAmount);
+                updateWithdrawInfo(investor, _token, _amount);
+
+            } else {
+                // Transfer the specified amount of token to this contract.
+                TransferHelper.safeTransfer(_token, investor, _amount);
+                updateWithdrawInfo(investor, _token, _amount);
             }
         }
-        require(isValidTokenAmount == true, 'withdraw: Invalid token');
-        // Transfer the specified amount of token to this contract.
-        TransferHelper.safeTransfer(_token, investor, _amount);
-
-        updateWithdrawInfo(investor, _token, _amount);
 
         emit Withdraw(investor, _token, _amount);
     }
