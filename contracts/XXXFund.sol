@@ -31,6 +31,10 @@ contract XXXFund is IXXXFund {
     mapping(address => uint256) public investorPrincipalUSD;
     mapping(address => mapping(uint256 => Token)) public investorTokens;
     mapping(address => uint256) public investorTokenCount;
+    //fund manager profit rewards added, only if the investor receives a profit.
+    mapping(uint256 => Token) public rewardTokens;
+    uint256 public rewardTokenCount = 0;
+
 
     ISwapRouter public immutable swapRouter;
 
