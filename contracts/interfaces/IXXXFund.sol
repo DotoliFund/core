@@ -6,4 +6,6 @@ interface IXXXFund {
     
     function deposit(address sender, address _token, uint256 _amount) external;
     function withdraw(address _token, address to, uint256 _amount) external;
+
+    function getManagerHistory() external;
 }

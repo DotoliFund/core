@@ -13,15 +13,26 @@ contract XXXFund is IXXXFund {
     // Uniswap v3 swapRouter
     address swapRouterAddress = 0xE592427A0AEce92De3Edee1F18E0157C05861564;
 
-    uint256 SHARE_DECIMAL = 10 ** 6; 
+    uint256 MANAGER_FEE = 1; // 1% of investor profit ex) MANAGER_FEE = 10 -> 10% of investor profit
 
     struct Token {
         address tokenAddress;
         uint256 amount;
     }
 
+    struct ManagerHistory {
+        string date;
+        Token[] tokens;
+        uint256 fundPrincipalUSD;
+        uint256 totalValueUSD;
+        uint256 totalValueETH;
+        uint256 profitRate;
+    }
+
     address public factory;
     address public manager;
+
+    ManagerHistory[] managerHistory;
 
     //fund info
     uint256 fundPrincipalUSD = 0;
@@ -34,7 +45,6 @@ contract XXXFund is IXXXFund {
     //fund manager profit rewards added, only if the investor receives a profit.
     mapping(uint256 => Token) public rewardTokens;
     uint256 public rewardTokenCount = 0;
-
 
     ISwapRouter public immutable swapRouter;
 
@@ -226,7 +236,7 @@ contract XXXFund is IXXXFund {
         }
     }
 
-    function isValidTokenAmount(address investor, address _token, uint256 _amount) returns (bool) {
+    function isValidTokenAmount(address investor, address _token, uint256 _amount) private returns (bool) {
         bool _isValidTokenAmount = false;
         for (uint256 i=0; i<investorTokenCount[investor]; i++) {
             if (investorTokens[investor][i].tokenAddress == _token) {
@@ -240,12 +250,12 @@ contract XXXFund is IXXXFund {
 
     function getManagerReward(address investor, address _token, uint256 _amount) private returns (uint256) {
         uint256 withdrawValue = getPriceUSD(_token) * _amount;
-        require(address(investor) != 0, 'getManagerReward: Invalid investor address');
+        require(address(investor) != address(0), 'getManagerReward: Invalid investor address');
         uint256 managerReward = 0;
         uint256 investorTotalValue = getInvestorTotalValueUSD(investor);
         uint256 investorProfit = investorTotalValue - investorPrincipalUSD[investor];
         if (investorProfit > 0) {
-            managerReward = investorProfit * withdrawValue / investorTotalValue;
+            managerReward = investorProfit * MANAGER_FEE * withdrawValue / investorTotalValue;
         }
         return managerReward;
     }
@@ -279,10 +289,12 @@ contract XXXFund is IXXXFund {
         //check if investor has valid token amount
         require(isValidTokenAmount(investor, _token, _amount) == true, 'withdraw: Invalid token');
         if (investor == manager) {
-            // manager withdraw is no fee
+            // manager withdraw is no need manager fee
+            TransferHelper.safeTransfer(_token, investor, _amount);
+            updateWithdrawInfo(investor, _token, _amount);
         } else {
             //if investor has a profit, send manager reward.
-            uint256 managerReward = getManagerReward(investor, withdrawValue);
+            uint256 managerReward = getManagerReward(investor, _token, _amount);
             if (managerReward > 0) {
                 uint256 rewardTokenAmount = managerReward / getPriceUSD(_token);
                 bool isNewRewardToken = increaseManagerRewardTokenAmount(_token, rewardTokenAmount);
@@ -291,18 +303,37 @@ contract XXXFund is IXXXFund {
                     rewardTokens[rewardTokenCount].amount = rewardTokenAmount;
                     rewardTokenCount += 1;
                 }
-                // Transfer the specified amount of token to this contract.
                 TransferHelper.safeTransfer(_token, investor, _amount - rewardTokenAmount);
                 updateWithdrawInfo(investor, _token, _amount);
 
             } else {
-                // Transfer the specified amount of token to this contract.
                 TransferHelper.safeTransfer(_token, investor, _amount);
                 updateWithdrawInfo(investor, _token, _amount);
             }
         }
 
         emit Withdraw(investor, _token, _amount);
+    }
+
+    //todo change value
+    function addManagerHistory() private {
+        Token memory token;
+        token.tokenAddress = 0xE592427A0AEce92De3Edee1F18E0157C05861564;
+        token.amount = 0;
+
+        ManagerHistory memory _managerHistory;
+        _managerHistory.date = '2022-08-10';
+        //_managerHistory.tokens = token;
+        _managerHistory.fundPrincipalUSD = 0;
+        _managerHistory.totalValueUSD = 0;
+        _managerHistory.totalValueETH = 0;
+        _managerHistory.profitRate = 0;
+
+        return managerHistory.push(_managerHistory);
+    }
+
+    function getManagerHistory() override external {
+        return managerHistory;
     }
 
     address public constant DAI = 0x6B175474E89094C44Da98b954EedeAC495271d0F;
