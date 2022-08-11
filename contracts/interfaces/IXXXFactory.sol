@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
-pragma solidity =0.7.6;
+pragma solidity =0.8.4;
 
 interface IXXXFactory {
 
@@ -13,5 +13,5 @@ interface IXXXFactory {
     /// @param _owner The new owner of the factory
     function setOwner(address _owner) external;
 
-    function createFund(address manager, address token, uint amount) external returns (address fund);
+    function createFund(address manager, address token, uint256 amount) external returns (address fund);
 }
