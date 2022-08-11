@@ -6,10 +6,24 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/draft-ERC20Permit.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Votes.sol";
 
-contract MyToken is ERC20, ERC20Permit, ERC20Votes, Ownable {
+contract XXXToken is ERC20, ERC20Permit, ERC20Votes, Ownable {
     using SafeMath for uint256;
+    uint256 ONE_MONTH_IN_SECS = 30 * 24 * 60 * 60;
+    uint256 ONE_YEAR_IN_SECS = 365 * 24 * 60 * 60;
+    uint256 ONE_DAY_IN_SECS = 24 * 60 * 60;
+    uint256 birthday;
+    uint256 faucetReward;
+    uint256 faucetDeadline;
+    mapping(address => uint256) faucetReceivedTime;
 
-    constructor() ERC20("MyToken", "MTK") ERC20Permit("MyToken") {}
+    uint256 stakingRewardInterest = 1;
+
+
+    constructor() ERC20("XXXToken", "XXX") ERC20Permit("XXXToken") {
+        birthday = block.timestamp;
+        faucetReward = 1000;
+        faucetDeadline = birthday + ONE_YEAR_IN_SECS/2;
+    }
 
     // The following functions are overrides required by Solidity.
 
@@ -48,6 +62,8 @@ contract MyToken is ERC20, ERC20Permit, ERC20Votes, Ownable {
      * @notice The accumulated rewards for each stakeholder.
      */
     mapping(address => uint256) internal rewards;
+
+    mapping(address => uint256) internal stakeTime;
 
     // ---------- STAKES ----------
 
@@ -187,7 +203,8 @@ contract MyToken is ERC20, ERC20Permit, ERC20Votes, Ownable {
         view
         returns(uint256)
     {
-        return stakes[_stakeholder] / 100;
+        uint _now = block.timestamp;
+        return stakes[_stakeholder] * stakingRewardInterest / 100;
     }
 
     /**
@@ -213,5 +230,14 @@ contract MyToken is ERC20, ERC20Permit, ERC20Votes, Ownable {
         uint256 reward = rewards[msg.sender];
         rewards[msg.sender] = 0;
         _mint(msg.sender, reward);
+    }
+
+    function tokenFaucet() public {
+        uint256 _now = block.timestamp;
+        require(_now < faucetDeadline);
+        uint256 restTime = _now - faucetReceivedTime[msg.sender];
+        require(restTime > ONE_DAY_IN_SECS);
+        faucetReceivedTime[msg.sender] = _now;
+        _mint(msg.sender, faucetReward);
     }
 }
