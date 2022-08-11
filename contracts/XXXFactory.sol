@@ -41,8 +41,4 @@ contract XXXFactory is IXXXFactory {
         emit OwnerChanged(owner, _owner);
         owner = _owner;
     }
-
-    function getFundManagerHistory(address manager) external {
-        return IXXXFund(manager).getManagerHistory();
-    }
 }

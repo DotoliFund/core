@@ -15,23 +15,11 @@ contract XXXFund is IXXXFund {
 
     uint256 MANAGER_FEE = 1; // 1% of investor profit ex) MANAGER_FEE = 10 -> 10% of investor profit
 
-    struct Token {
-        address tokenAddress;
-        uint256 amount;
-    }
-
-    struct ManagerHistory {
-        string date;
-        Token[] tokens;
-        uint256 fundPrincipalUSD;
-        uint256 totalValueUSD;
-        uint256 totalValueETH;
-        uint256 profitRate;
-    }
-
     address public factory;
     address public manager;
 
+    //manager history used for nonfungible trading history
+    ReservedTokenHistory[] reservedTokenHistory;
     ManagerHistory[] managerHistory;
 
     //fund info
@@ -65,16 +53,6 @@ contract XXXFund is IXXXFund {
         unlocked = 0;
         _;
         unlocked = 1;
-    }
-
-    // Modifier to check that the caller is the manager of
-    // the contract.
-    modifier onlyManager() {
-        require(msg.sender == manager, "Not manager");
-        // Underscore is a special character only used inside
-        // a function modifier and it tells Solidity to
-        // execute the rest of the code.
-        _;
     }
 
     constructor() {
@@ -209,7 +187,8 @@ contract XXXFund is IXXXFund {
         investorPrincipalUSD[investor] -= investorPrincipalUSD[investor] * investorWithdrawRatio;
     }
 
-    function updateSwapInfo(address investor, address swapFrom, address swapTo, uint256 swapFromAmount, uint256 swapToAmount) onlyManager private {
+    function updateSwapInfo(address investor, address swapFrom, address swapTo, uint256 swapFromAmount, uint256 swapToAmount) private {
+        require(msg.sender == manager, "Not manager");
         //update fund info
         //decrease part of swap (decrease swapFrom token reduce by swapFromAmount)
         bool isNewFundToken = decreaseFundTokenAmount(swapFrom, swapFromAmount);
@@ -316,14 +295,28 @@ contract XXXFund is IXXXFund {
     }
 
     //todo change value
-    function addManagerHistory() private {
-        Token memory token;
-        token.tokenAddress = 0xE592427A0AEce92De3Edee1F18E0157C05861564;
-        token.amount = 0;
+    function addReservedTokenHistory() override external {
+        ReservedTokenHistory memory _ReservedTokenHistory;
+        _ReservedTokenHistory.date = '2022-08-10';
+        _ReservedTokenHistory.tokenAddress = 0xE592427A0AEce92De3Edee1F18E0157C05861564;
+        _ReservedTokenHistory.amount = 0;
 
+        return reservedTokenHistory.push(_ReservedTokenHistory);
+    }
+
+    function getReservedTokenHistory() override external returns (ReservedTokenHistory[] memory) {
+        uint256 reservedTokenHistoryCount = reservedTokenHistory.length;
+        ReservedTokenHistory[] memory _reservedTokenHistory = new ReservedTokenHistory[](reservedTokenHistoryCount);
+        for (uint256 i; i<reservedTokenHistoryCount; i++) {
+            _reservedTokenHistory[i] = reservedTokenHistory[i];
+        }
+        return _reservedTokenHistory;
+    }
+
+    //todo change value
+    function addManagerHistory() override external {
         ManagerHistory memory _managerHistory;
         _managerHistory.date = '2022-08-10';
-        //_managerHistory.tokens = token;
         _managerHistory.fundPrincipalUSD = 0;
         _managerHistory.totalValueUSD = 0;
         _managerHistory.totalValueETH = 0;
@@ -332,8 +325,13 @@ contract XXXFund is IXXXFund {
         return managerHistory.push(_managerHistory);
     }
 
-    function getManagerHistory() override external {
-        return managerHistory;
+    function getManagerHistory() override external returns (ManagerHistory[] memory) {
+        uint256 managerHistoryCount = managerHistory.length;
+        ManagerHistory[] memory _managerHistory = new ManagerHistory[](managerHistoryCount);
+        for (uint256 i; i<managerHistoryCount; i++) {
+            _managerHistory[i] = managerHistory[i];
+        }
+        return _managerHistory;
     }
 
     address public constant DAI = 0x6B175474E89094C44Da98b954EedeAC495271d0F;
@@ -343,7 +341,8 @@ contract XXXFund is IXXXFund {
     // For this example, we will set the pool fee to 0.3%.
     uint24 public constant poolFee = 3000;
 
-    function swapExactInputSingle(ISwapRouter.ExactInputSingleParams calldata _params, address investor) onlyManager external returns (uint256 amountOut) {
+    function swapExactInputSingle(ISwapRouter.ExactInputSingleParams calldata _params, address investor) override external returns (uint256 amountOut) {
+        require(msg.sender == manager, "Not manager");
         // msg.sender must approve this contract
 
         // Approve the router to spend tokenIn.
@@ -369,7 +368,8 @@ contract XXXFund is IXXXFund {
         updateSwapInfo(investor, _params.tokenIn, _params.tokenOut, _params.amountIn, amountOut);
     }
 
-    function swapExactOutputSingle(ISwapRouter.ExactOutputSingleParams calldata _params, address investor) onlyManager external returns (uint256 amountIn) {
+    function swapExactOutputSingle(ISwapRouter.ExactOutputSingleParams calldata _params, address investor) override external returns (uint256 amountIn) {
+        require(msg.sender == manager, "Not manager");
         // Approve the router to spend the specifed `amountInMaximum` of tokenIn.
         // In production, you should choose the maximum amount to spend based on oracles or other data sources to acheive a better swap.
         TransferHelper.safeApprove(_params.tokenIn, address(swapRouter), _params.amountInMaximum);
@@ -399,7 +399,8 @@ contract XXXFund is IXXXFund {
         updateSwapInfo(investor, _params.tokenIn, _params.tokenOut, amountIn, _params.amountOut);
     }
 
-    // function swapExactInputMultihop(ISwapRouter.ExactInputParams calldata _params, address investor) onlyManager external returns (uint256 amountOut) {
+    // function swapExactInputMultihop(ISwapRouter.ExactInputParams calldata _params, address investor) override external returns (uint256 amountOut) {
+    //     require(msg.sender == manager, "Not manager");
     //     // Approve the router to spend DAI.
     //     TransferHelper.safeApprove(DAI, address(swapRouter), _params.amountIn);
 
@@ -421,7 +422,8 @@ contract XXXFund is IXXXFund {
     //     //updateSwapInfo(investor, _params.tokenIn, _params.tokenOut, _params.amountIn, amountOut);
     // }
 
-    // function swapExactOutputMultihop(ISwapRouter.ExactOutputParams calldata _params, address investor) onlyManager external returns (uint256 amountIn) {
+    // function swapExactOutputMultihop(ISwapRouter.ExactOutputParams calldata _params, address investor) override external returns (uint256 amountIn) {
+    //     require(msg.sender == manager, "Not manager");
     //     // Approve the router to spend  `amountInMaximum`.
     //     TransferHelper.safeApprove(DAI, address(swapRouter), _params.amountInMaximum);
 
