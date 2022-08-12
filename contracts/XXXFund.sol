@@ -80,7 +80,6 @@ contract XXXFund is IXXXFund {
         Token memory token;
         token.tokenAddress = _token;
         token.amount = _amount;
-        string memory _date = getDate();
         uint256 depositValue = getPriceUSD(_token) * _amount;
 
         investorTokens[_manager][0] = token;
