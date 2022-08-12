@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-// Inspired by https://solidity-by-example.org/defi/staking-rewards/
+// Inspired by https://github.com/smartcontractkit/defi-minimal
 pragma solidity =0.8.4;
 
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
