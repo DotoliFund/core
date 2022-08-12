@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
+// Inspired by Uniswap
 pragma solidity =0.8.4;
 pragma abicoder v2;
 
@@ -80,24 +81,25 @@ contract XXXFund is IXXXFund {
     // called once by the factory at time of deployment
     function initialize(address _manager, address _token, uint256 _amount) override external {
         require(msg.sender == factory, 'XXXFund: FORBIDDEN'); // sufficient check
+        require(_amount > 0, 'initialize: token amount is insufficient'); // sufficient check
+        require(_token != address(0), 'initialize: token address is 0'); // sufficient check
+
         manager = _manager;
 
-        if (_token != address(0) && _amount > 0) {
-            Token memory token;
-            token.tokenAddress = _token;
-            token.amount = _amount;
-            string memory _date = getDate();
-            uint256 depositValue = getPriceUSD(_token) * _amount;
+        Token memory token;
+        token.tokenAddress = _token;
+        token.amount = _amount;
+        string memory _date = getDate();
+        uint256 depositValue = getPriceUSD(_token) * _amount;
 
-            investorTokens[_manager][0] = token;
-            investorPrincipalUSD[_manager] += depositValue;
+        investorTokens[_manager][0] = token;
+        investorPrincipalUSD[_manager] += depositValue;
 
-            fundTokens[fundTokenCount] = token;
-            fundTokenCount += 1;
-            fundPrincipalUSD += depositValue;
+        fundTokens[fundTokenCount] = token;
+        fundTokenCount += 1;
+        fundPrincipalUSD += depositValue;
 
-            emit Deposit(manager, _token, _amount);
-        }
+        emit Deposit(manager, _token, _amount);
     }
 
     function increaseFundTokenAmount(address _token, uint256 _amount) private returns (bool){
@@ -333,13 +335,6 @@ contract XXXFund is IXXXFund {
         }
         return _managerHistory;
     }
-
-    address public constant DAI = 0x6B175474E89094C44Da98b954EedeAC495271d0F;
-    address public constant WETH9 = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
-    address public constant USDC = 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
-
-    // For this example, we will set the pool fee to 0.3%.
-    uint24 public constant poolFee = 3000;
 
     function swapExactInputSingle(ISwapRouter.ExactInputSingleParams calldata _params, address investor) override external returns (uint256 amountOut) {
         require(msg.sender == manager, "Not manager");
