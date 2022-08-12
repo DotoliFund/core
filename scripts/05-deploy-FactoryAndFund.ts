@@ -1,50 +1,28 @@
 import { HardhatRuntimeEnvironment } from "hardhat/types"
-import { DeployFunction } from "hardhat-deploy/types"
-import verify from "../helper-functions"
-import { networkConfig, developmentChains } from "../helper-hardhat-config"
-import { ethers } from "hardhat"
+import { ethers } from "hardhat";
 
-const deployBox: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
-  // @ts-ignore
-  const { getNamedAccounts, deployments, network } = hre
-  const { deploy, log } = deployments
-  const { deployer } = await getNamedAccounts()
-  log("----------------------------------------------------")
-  log("Deploying Box and waiting for confirmations...")
-  const box = await deploy("Box", {
-    from: deployer,
-    args: [],
-    log: true,
-    // we need to wait if on a live network so we can verify properly
-    waitConfirmations: networkConfig[network.name].blockConfirmations || 1,
-  })
-  log(`Box at ${box.address}`)
-  if (!developmentChains.includes(network.name) && process.env.ETHERSCAN_API_KEY) {
-    await verify(box.address, [])
-  }
-  const boxContract = await ethers.getContractAt("Box", box.address)
-  const timeLock = await ethers.getContract("TimeLock")
-  const transferTx = await boxContract.transferOwnership(timeLock.address)
+async function main() {
+
+  const XXXFactory = await ethers.getContractFactory("XXXFactory");
+  const Factory = await XXXFactory.deploy();
+  await Factory.deployed();
+  console.log("Factory address : ", Factory.address);
+
+  const XXXFund = await ethers.getContractFactory("XXXFund");
+  const Fund = await XXXFund.deploy();
+  await Fund.deployed();
+  console.log("Fund address : ", Fund.address);
+
+  const factoryContract = await ethers.getContractAt("XXXFactory", Factory.address)
+  const timeLockAddress = ''
+  const transferTx = await factoryContract.setOwner(timeLockAddress)
   await transferTx.wait(1)
 
-
-
-
-
-  // const XXXFactory = await ethers.getContractFactory("XXXFactory");
-  // const Factory = await XXXFactory.deploy();
-
-  // await Factory.deployed();
-
-  // console.log("Factory address : ", Factory.address);
-
-  // const XXXFund = await ethers.getContractFactory("XXXFund");
-  // const Fund = await XXXFund.deploy();
-
-  // await Fund.deployed();
-
-  // console.log("Fund address : ", Fund.address);
 }
 
-export default deployBox
-deployBox.tags = ["all", "box"]
+// We recommend this pattern to be able to use async/await everywhere
+// and properly handle errors.
+main().catch((error) => {
+  console.error(error);
+  process.exitCode = 1;
+});

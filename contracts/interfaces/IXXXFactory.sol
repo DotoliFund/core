@@ -9,10 +9,18 @@ interface IXXXFactory {
     /// @return The address of the factory owner
     function owner() external view returns (address);
 
+    function createFund(address manager, address token, uint256 amount) external returns (address fund);
+
     /// @notice Updates the owner of the factory
     /// @dev Must be called by the current owner
     /// @param _owner The new owner of the factory
     function setOwner(address _owner) external;
 
-    function createFund(address manager, address token, uint256 amount) external returns (address fund);
+    function getSwapRouterAddress() external returns (address);
+
+    function setSwapRouterAddress(address _swapRouterAddress) external;
+
+    function getManagerFee() external returns (uint256);
+
+    function setManagerFee(uint256 _managerFee) external;
 }
