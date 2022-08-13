@@ -17,7 +17,6 @@ if (typeof GOERLI_PRIVATE_KEY === 'undefined') {
 }
 
 const config: HardhatUserConfig = {
-  // solidity: "0.8.4",
   solidity: {
       version: '0.8.4',
       settings: {

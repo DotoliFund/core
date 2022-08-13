@@ -9,9 +9,9 @@ contract XXXToken is ERC20, ERC20Permit, ERC20Votes {
     uint256 birthday;
 
     constructor() ERC20("XXXToken", "XXX") ERC20Permit("XXXToken") {
-        _mint(address(this), 10*1000*1000*1e18);
-        transfer(msg.sender,     100*1000*1e18);
         birthday = block.timestamp;
+        _mint(address(this),  9900000*1e18);
+        _mint(msg.sender,      100000*1e18);
     }
 
     // The following functions are overrides required by Solidity.
@@ -27,7 +27,7 @@ contract XXXToken is ERC20, ERC20Permit, ERC20Votes {
         internal
         override(ERC20, ERC20Votes)
     {
-        // can't mint forever after 1 hours from deploy.
+        // can't mint after 1 hours from deploy.
         require(block.timestamp < birthday + 1 hours); 
         super._mint(to, amount);
     }
