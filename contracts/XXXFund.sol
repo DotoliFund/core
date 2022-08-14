@@ -71,9 +71,10 @@ contract XXXFund is IXXXFund {
 
     // called once by the factory at time of deployment
     function initialize(address _manager, address _token, uint256 _amount) override external {
-        require(msg.sender == factory, 'XXXFund: FORBIDDEN'); // sufficient check
-        require(_amount > 0, 'initialize: token amount is insufficient'); // sufficient check
-        require(_token != address(0), 'initialize: token address is 0'); // sufficient check
+        require(msg.sender == factory, 'XXXFund initialize: FORBIDDEN'); // sufficient check
+        require(_amount > 0, 'XXXFund initialize: token amount is insufficient'); // sufficient check
+        require(_token != address(0), 'XXXFund initialize: token address is 0'); // sufficient check
+        require(IXXXFactory(factory).isWhiteListToken(_token), 'XXXFund initialize: not whitelist token');
 
         manager = _manager;
 
@@ -246,6 +247,7 @@ contract XXXFund is IXXXFund {
     // this low-level function should be called from a contract which performs important safety checks
     function deposit(address investor, address _token, uint256 _amount) override external lock {
         require(msg.sender == investor); // sufficient check
+        require(IXXXFactory(factory).isWhiteListToken(_token), 'XXXFund initialize: not whitelist token');
         // Transfer the specified amount of token to this contract.
         TransferHelper.safeTransferFrom(_token, investor, address(this), _amount);
 
@@ -326,8 +328,9 @@ contract XXXFund is IXXXFund {
         return _managerHistory;
     }
 
-    function swapExactInputSingle(ISwapRouter.ExactInputSingleParams calldata _params, address investor) override external returns (uint256 amountOut) {
+    function swapExactInputSingle(ISwapRouter.ExactInputSingleParams calldata _params, address investor) override external lock returns (uint256 amountOut) {
         require(msg.sender == manager, "Not manager");
+        require(IXXXFactory(factory).isWhiteListToken(_params.tokenOut), 'XXXFund swapExactInputSingle: not whitelist token');
         // msg.sender must approve this contract
 
         address _swapRouterAddress = IXXXFactory(factory).getSwapRouterAddress();
@@ -355,9 +358,9 @@ contract XXXFund is IXXXFund {
         updateSwapInfo(investor, _params.tokenIn, _params.tokenOut, _params.amountIn, amountOut);
     }
 
-    function swapExactOutputSingle(ISwapRouter.ExactOutputSingleParams calldata _params, address investor) override external returns (uint256 amountIn) {
+    function swapExactOutputSingle(ISwapRouter.ExactOutputSingleParams calldata _params, address investor) override external lock returns (uint256 amountIn) {
         require(msg.sender == manager, "Not manager");
-
+        require(IXXXFactory(factory).isWhiteListToken(_params.tokenOut), 'XXXFund swapExactOutputSingle: not whitelist token');
         address _swapRouterAddress = IXXXFactory(factory).getSwapRouterAddress();
 
         // Approve the router to spend the specifed `amountInMaximum` of tokenIn.
@@ -389,8 +392,10 @@ contract XXXFund is IXXXFund {
         updateSwapInfo(investor, _params.tokenIn, _params.tokenOut, amountIn, _params.amountOut);
     }
 
-    // function swapExactInputMultihop(ISwapRouter.ExactInputParams calldata _params, address investor) override external returns (uint256 amountOut) {
+    // function swapExactInputMultihop(ISwapRouter.ExactInputParams calldata _params, address investor) override external lock returns (uint256 amountOut) {
     //     require(msg.sender == manager, "Not manager");
+    //     address tokenOut = getTokenOutFromPath(_params.path);
+    //     require(IXXXFactory(factory).isWhiteListToken(tokenOut), 'XXXFund swapExactInputMultihop: not whitelist token');
 
     //     address _swapRouterAddress = IXXXFactory(factory).getSwapRouterAddress();
 
@@ -415,8 +420,10 @@ contract XXXFund is IXXXFund {
     //     //updateSwapInfo(investor, _params.tokenIn, _params.tokenOut, _params.amountIn, amountOut);
     // }
 
-    // function swapExactOutputMultihop(ISwapRouter.ExactOutputParams calldata _params, address investor) override external returns (uint256 amountIn) {
+    // function swapExactOutputMultihop(ISwapRouter.ExactOutputParams calldata _params, address investor) override external lock returns (uint256 amountIn) {
     //     require(msg.sender == manager, "Not manager");
+    //     address tokenOut = getTokenOutFromPath(_params.path);
+    //     require(IXXXFactory(factory).isWhiteListToken(tokenOut), 'XXXFund swapExactOutputMultihop: not whitelist token');
 
     //     address _swapRouterAddress = IXXXFactory(factory).getSwapRouterAddress();
 
