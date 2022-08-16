@@ -11,6 +11,7 @@ contract XXXFactory is IXXXFactory {
     // Uniswap v3 swapRouter
     address swapRouterAddress = 0xE592427A0AEce92De3Edee1F18E0157C05861564;
     uint256 managerFee = 1; // 1% of investor profit ex) MANAGER_FEE = 10 -> 10% of investor profit
+    address[] whiteListTokens;
 
     /// @notice Emitted when the owner of the factory is changed
     /// @param oldOwner The owner before the owner was changed
@@ -26,6 +27,12 @@ contract XXXFactory is IXXXFactory {
         owner = msg.sender;
         fundCount = 0;
         emit OwnerChanged(address(0), msg.sender);
+
+        whiteListTokens.push(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2); //WETH
+        whiteListTokens.push(0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599); //WBTC
+        whiteListTokens.push(0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48); //USDC
+        whiteListTokens.push(0x6B175474E89094C44Da98b954EedeAC495271d0F); //DAI
+        whiteListTokens.push(0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984); //UNI
     }
 
     function createFund(address manager, address token, uint256 amount) override external returns (address fund) {
@@ -62,5 +69,40 @@ contract XXXFactory is IXXXFactory {
     function setManagerFee(uint256 _managerFee) override external {
         require(msg.sender == owner);
         managerFee = _managerFee;
+    }
+
+    function isWhiteListToken(address _token) override public returns (bool) {
+        for (uint256 i=0; i<whiteListTokens.length; i++) {
+            if (whiteListTokens[i] == _token) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    function getWhiteListTokens() override public returns (address[] memory) {
+        uint256 _whiteListTokenCount = whiteListTokens.length;
+        address[] memory _whiteListTokens = new address[](_whiteListTokenCount);
+        for (uint256 i; i<_whiteListTokenCount; i++) {
+            _whiteListTokens[i] = whiteListTokens[i];
+        }
+        return _whiteListTokens;
+    }
+
+    function addWhiteListToken(address _token) override public {
+        require(msg.sender == owner);
+        if (!isWhiteListToken(_token)) {
+            whiteListTokens.push(_token);
+        }
+    }
+
+    function removeWhiteListToken(address _token) override public {
+        require(msg.sender == owner);
+        for (uint256 i=0; i<whiteListTokens.length; i++) {
+            if (whiteListTokens[i] == _token) {
+                whiteListTokens[i] = whiteListTokens[whiteListTokens.length - 1];
+                whiteListTokens.pop();
+            }
+        }
     }
 }

@@ -1,42 +1,35 @@
 import { HardhatRuntimeEnvironment } from "hardhat/types"
-import { DeployFunction } from "hardhat-deploy/types"
-import verify from "../helper-functions"
-import {
-  networkConfig,
-  developmentChains,
-  QUORUM_PERCENTAGE,
-  VOTING_PERIOD,
-  VOTING_DELAY,
-} from "../helper-hardhat-config"
+import { ethers } from "hardhat"
+require('dotenv').config()
 
-const deployGovernorContract: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
-  // @ts-ignore
-  const { getNamedAccounts, deployments, network } = hre
-  const { deploy, log, get } = deployments
-  const { deployer } = await getNamedAccounts()
-  const governanceToken = await get("GovernanceToken")
-  const timeLock = await get("TimeLock")
+async function main() {
+  const [deployer] = await ethers.getSigners();
+  console.log("Deploying contracts with the account:", deployer.address);
+  console.log("Account balance:", (await deployer.getBalance()).toString());
 
-  log("----------------------------------------------------")
-  log("Deploying GovernorContract and waiting for confirmations...")
-  const governorContract = await deploy("GovernorContract", {
-    from: deployer,
-    args: [
-      governanceToken.address,
-      timeLock.address,
-      QUORUM_PERCENTAGE,
-      VOTING_PERIOD,
-      VOTING_DELAY,
-    ],
-    log: true,
-    // we need to wait if on a live network so we can verify properly
-    waitConfirmations: networkConfig[network.name].blockConfirmations || 1,
-  })
-  log(`GovernorContract at ${governorContract.address}`)
-  if (!developmentChains.includes(network.name) && process.env.ETHERSCAN_API_KEY) {
-    await verify(governorContract.address, [])
-  }
+  const XXXTokenAddress = process.env.TOKEN_ADDRESS;
+  const TimeLockAddress = process.env.TIMELOCK_ADDRESS;
+
+  // Governor Values
+  const QUORUM_PERCENTAGE = 4 // Need 4% of voters to pass
+  // export const VOTING_PERIOD = 45818 // 1 week - how long the vote lasts. This is pretty long even for local tests
+  const VOTING_PERIOD = 5 // blocks
+  const VOTING_DELAY = 1 // 1 Block - How many blocks till a proposal vote becomes active
+
+  const XXXGovernor = await ethers.getContractFactory("XXXGovernor");
+  const governorContract = await XXXGovernor.deploy(
+    XXXTokenAddress,
+    TimeLockAddress,
+    QUORUM_PERCENTAGE,
+    VOTING_PERIOD,
+    VOTING_DELAY);
+  await governorContract.deployed();
+  console.log("XXXGovernor address : ", governorContract.address);
 }
 
-export default deployGovernorContract
-deployGovernorContract.tags = ["all", "governor"]
+// We recommend this pattern to be able to use async/await everywhere
+// and properly handle errors.
+main().catch((error) => {
+  console.error(error);
+  process.exitCode = 1;
+});

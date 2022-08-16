@@ -23,4 +23,12 @@ interface IXXXFactory {
     function getManagerFee() external returns (uint256);
 
     function setManagerFee(uint256 _managerFee) external;
+
+    function isWhiteListToken(address _token) external returns (bool);
+
+    function getWhiteListTokens() external returns (address[] memory);
+
+    function addWhiteListToken(address _token) external;
+
+    function removeWhiteListToken(address _token) external;
 }

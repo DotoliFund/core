@@ -17,7 +17,15 @@ if (typeof GOERLI_PRIVATE_KEY === 'undefined') {
 }
 
 const config: HardhatUserConfig = {
-  solidity: "0.8.4",
+  solidity: {
+      version: '0.8.4',
+      settings: {
+          optimizer: {
+              enabled: true,
+              runs: 1000,
+          },
+      },
+  },
   networks: {
     goerli: {
       url: `https://goerli.infura.io/v3/${INFURA_API_KEY}`,
