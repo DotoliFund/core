@@ -25,6 +25,16 @@ interface IXXXFund {
         uint256 profitRate;
     }
 
+    event Deposit(address indexed sender, address _token, uint256 _amount);
+    event Withdraw(address indexed sender, address _token, uint256 _amount);
+    event Swap(
+        address indexed sender,
+        address tokenIn,
+        address tokenOut,
+        uint256 amountIn,
+        uint256 amountOut
+    );
+
     function initialize(address _manager, address _token, uint256 _amount) external;
     
     function deposit(address sender, address _token, uint256 _amount) external;

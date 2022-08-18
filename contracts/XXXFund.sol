@@ -29,17 +29,6 @@ contract XXXFund is IXXXFund {
     mapping(uint256 => Token) public rewardTokens;
     uint256 public rewardTokenCount = 0;
 
-    event Deposit(address indexed sender, address _token, uint256 _amount);
-    event Withdraw(address indexed sender, address _token, uint256 _amount);
-    event Swap(
-        address indexed sender,
-        uint256 amount0In,
-        uint256 amount1In,
-        uint256 amount0Out,
-        uint256 amount1Out,
-        address indexed to
-    );
-
     uint256 private unlocked = 1;
     modifier lock() {
         require(unlocked == 1, 'XXXFund: LOCKED');
@@ -77,6 +66,9 @@ contract XXXFund is IXXXFund {
         require(IXXXFactory(factory).isWhiteListToken(_token), 'XXXFund initialize: not whitelist token');
 
         manager = _manager;
+
+        TransferHelper.safeTransferFrom(_token, manager, address(this), _amount);
+        //updateDepositInfo(manager, _token, _amount);
 
         Token memory token;
         token.tokenAddress = _token;
@@ -284,7 +276,6 @@ contract XXXFund is IXXXFund {
                 updateWithdrawInfo(investor, _token, _amount);
             }
         }
-
         emit Withdraw(investor, _token, _amount);
     }
 
@@ -356,6 +347,8 @@ contract XXXFund is IXXXFund {
         amountOut = ISwapRouter(_swapRouterAddress).exactInputSingle(params);
 
         updateSwapInfo(investor, _params.tokenIn, _params.tokenOut, _params.amountIn, amountOut);
+
+        emit Swap(investor, _params.tokenIn, _params.tokenOut, _params.amountIn, amountOut);
     }
 
     function swapExactOutputSingle(ISwapRouter.ExactOutputSingleParams calldata _params, address investor) override external lock returns (uint256 amountIn) {
@@ -390,6 +383,8 @@ contract XXXFund is IXXXFund {
         }
 
         updateSwapInfo(investor, _params.tokenIn, _params.tokenOut, amountIn, _params.amountOut);
+
+        emit Swap(investor, _params.tokenIn, _params.tokenOut, amountIn, _params.amountOut);
     }
 
     // function swapExactInputMultihop(ISwapRouter.ExactInputParams calldata _params, address investor) override external lock returns (uint256 amountOut) {
@@ -418,6 +413,8 @@ contract XXXFund is IXXXFund {
     //     amountOut = ISwapRouter(_swapRouterAddress).exactInput(params);
 
     //     //updateSwapInfo(investor, _params.tokenIn, _params.tokenOut, _params.amountIn, amountOut);
+
+           //emit Swap(investor, _params.tokenIn, _params.tokenOut, _params.amountIn, amountOut);
     // }
 
     // function swapExactOutputMultihop(ISwapRouter.ExactOutputParams calldata _params, address investor) override external lock returns (uint256 amountIn) {
@@ -453,5 +450,7 @@ contract XXXFund is IXXXFund {
     //     }
 
     //     //updateSwapInfo(investor, _params.tokenIn, _params.tokenOut, amountIn, _params.amountOut);
+
+           //emit Swap(investor, _params.tokenIn, _params.tokenOut, amountIn, _params.amountOut);
     // }
 }
