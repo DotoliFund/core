@@ -40,7 +40,12 @@ contract XXXFund is IXXXFund {
     constructor() {
         factory = msg.sender;
     }
-    
+
+    function initialize(address _manager) override external {
+        require(msg.sender == factory, 'XXXFund initialize: FORBIDDEN'); // sufficient check
+        manager = _manager;
+    }
+
     function getPriceUSD(address token) private returns (uint256 fiatPrice) {
         fiatPrice = 0; 
     }
@@ -56,33 +61,6 @@ contract XXXFund is IXXXFund {
     function getDate() private returns (string memory){
         string memory date = '';
         return date;
-    }
-
-    // called once by the factory at time of deployment
-    function initialize(address _manager, address _token, uint256 _amount) override external {
-        require(msg.sender == factory, 'XXXFund initialize: FORBIDDEN'); // sufficient check
-        require(_amount > 0, 'XXXFund initialize: token amount is insufficient'); // sufficient check
-        require(_token != address(0), 'XXXFund initialize: token address is 0'); // sufficient check
-        require(IXXXFactory(factory).isWhiteListToken(_token), 'XXXFund initialize: not whitelist token');
-
-        manager = _manager;
-
-        TransferHelper.safeTransferFrom(_token, manager, address(this), _amount);
-        //updateDepositInfo(manager, _token, _amount);
-
-        Token memory token;
-        token.tokenAddress = _token;
-        token.amount = _amount;
-        uint256 depositValue = getPriceUSD(_token) * _amount;
-
-        investorTokens[_manager][0] = token;
-        investorPrincipalUSD[_manager] += depositValue;
-
-        fundTokens[fundTokenCount] = token;
-        fundTokenCount += 1;
-        fundPrincipalUSD += depositValue;
-
-        emit Deposit(manager, _token, _amount);
     }
 
     function increaseFundTokenAmount(address _token, uint256 _amount) private returns (bool){

@@ -35,7 +35,7 @@ interface IXXXFund {
         uint256 amountOut
     );
 
-    function initialize(address _manager, address _token, uint256 _amount) external;
+    function initialize(address _manager) external;
     
     function deposit(address sender, address _token, uint256 _amount) external;
     function withdraw(address _token, address to, uint256 _amount) external;

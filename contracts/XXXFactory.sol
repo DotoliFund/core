@@ -21,8 +21,6 @@ contract XXXFactory is IXXXFactory {
     mapping(address => address) public getFund;
     uint256 public fundCount;
 
-    event FundCreated(address manager, address fund, uint256 fundCount);
-
     constructor() {
         owner = msg.sender;
         fundCount = 0;
@@ -36,16 +34,16 @@ contract XXXFactory is IXXXFactory {
         whiteListTokens.push(0x64f0131a028293d160A172B29f10D8a457406a84); //XXX
     }
 
-    function createFund(address manager, address token, uint256 amount) override external returns (address fund) {
+    function createFund(address manager) override external returns (address fund) {
         require(msg.sender == manager, 'XXXFactory: IDENTICAL_ADDRESSES');
         require(getFund[manager] == address(0), 'XXXFactory: FUND_EXISTS'); // single check is sufficient
 
         fund = address(new XXXFund{salt: keccak256(abi.encode(address(this), manager))}());
         getFund[manager] = fund;
-        IXXXFund(fund).initialize(manager, token, amount);
+        IXXXFund(fund).initialize(manager);
         fundCount += 1;
 
-        emit FundCreated(manager, fund, fundCount);
+        emit Create(fund, manager);
     }
 
     function setOwner(address _owner) override external {
