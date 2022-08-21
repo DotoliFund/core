@@ -5,9 +5,8 @@ pragma abicoder v2;
 
 import './interfaces/IXXXFund.sol';
 import './interfaces/IXXXFactory.sol';
-
-import '@uniswap/v3-periphery/contracts/libraries/TransferHelper.sol';
 import '@uniswap/v3-periphery/contracts/interfaces/ISwapRouter.sol';
+import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
 
 contract XXXFund is IXXXFund {
     address public factory;
@@ -218,8 +217,8 @@ contract XXXFund is IXXXFund {
     function deposit(address investor, address _token, uint256 _amount) override external lock {
         require(msg.sender == investor); // sufficient check
         require(IXXXFactory(factory).isWhiteListToken(_token), 'XXXFund initialize: not whitelist token');
-        // Transfer the specified amount of token to this contract.
-        TransferHelper.safeTransferFrom(_token, investor, address(this), _amount);
+        
+        _token.call(abi.encodeWithSelector(IERC20.transferFrom.selector, investor, address(this), _amount));
 
         updateDepositInfo(investor, _token, _amount);
 
@@ -233,7 +232,7 @@ contract XXXFund is IXXXFund {
         require(isValidTokenAmount(investor, _token, _amount) == true, 'withdraw: Invalid token');
         if (investor == manager) {
             // manager withdraw is no need manager fee
-            TransferHelper.safeTransfer(_token, investor, _amount);
+            _token.call(abi.encodeWithSelector(IERC20.transfer.selector, investor, _amount));
             updateWithdrawInfo(investor, _token, _amount);
         } else {
             //if investor has a profit, send manager reward.
@@ -246,11 +245,11 @@ contract XXXFund is IXXXFund {
                     rewardTokens[rewardTokenCount].amount = rewardTokenAmount;
                     rewardTokenCount += 1;
                 }
-                TransferHelper.safeTransfer(_token, investor, _amount - rewardTokenAmount);
+                _token.call(abi.encodeWithSelector(IERC20.transfer.selector, investor, _amount - rewardTokenAmount));
                 updateWithdrawInfo(investor, _token, _amount);
 
             } else {
-                TransferHelper.safeTransfer(_token, investor, _amount);
+                _token.call(abi.encodeWithSelector(IERC20.transfer.selector, investor, _amount));
                 updateWithdrawInfo(investor, _token, _amount);
             }
         }
@@ -297,7 +296,7 @@ contract XXXFund is IXXXFund {
         return _managerHistory;
     }
 
-    function swapExactInputSingle(ISwapRouter.ExactInputSingleParams calldata _params, address investor) override external lock returns (uint256 amountOut) {
+    function swapExactInputSingle(ISwapRouter.ExactInputSingleParams calldata _params) override external lock returns (uint256 amountOut) {
         require(msg.sender == manager, "Not manager");
         require(IXXXFactory(factory).isWhiteListToken(_params.tokenOut), 'XXXFund swapExactInputSingle: not whitelist token');
         // msg.sender must approve this contract
@@ -305,7 +304,7 @@ contract XXXFund is IXXXFund {
         address _swapRouterAddress = IXXXFactory(factory).getSwapRouterAddress();
 
         // Approve the router to spend tokenIn.
-        TransferHelper.safeApprove(_params.tokenIn, _swapRouterAddress, _params.amountIn);
+        _params.tokenIn.call(abi.encodeWithSelector(IERC20.approve.selector, _swapRouterAddress, _params.amountIn));
 
         // Naively set amountOutMinimum to 0. In production, use an oracle or other data source to choose a safer value for amountOutMinimum.
         // We also set the sqrtPriceLimitx96 to be 0 to ensure we swap our exact input amount.
@@ -324,19 +323,19 @@ contract XXXFund is IXXXFund {
         // The call to `exactInputSingle` executes the swap.
         amountOut = ISwapRouter(_swapRouterAddress).exactInputSingle(params);
 
-        updateSwapInfo(investor, _params.tokenIn, _params.tokenOut, _params.amountIn, amountOut);
+        updateSwapInfo(manager, _params.tokenIn, _params.tokenOut, _params.amountIn, amountOut);
 
-        emit Swap(investor, _params.tokenIn, _params.tokenOut, _params.amountIn, amountOut);
+        emit Swap(manager, _params.tokenIn, _params.tokenOut, _params.amountIn, amountOut);
     }
 
-    function swapExactOutputSingle(ISwapRouter.ExactOutputSingleParams calldata _params, address investor) override external lock returns (uint256 amountIn) {
+    function swapExactOutputSingle(ISwapRouter.ExactOutputSingleParams calldata _params) override external lock returns (uint256 amountIn) {
         require(msg.sender == manager, "Not manager");
         require(IXXXFactory(factory).isWhiteListToken(_params.tokenOut), 'XXXFund swapExactOutputSingle: not whitelist token');
         address _swapRouterAddress = IXXXFactory(factory).getSwapRouterAddress();
 
         // Approve the router to spend the specifed `amountInMaximum` of tokenIn.
         // In production, you should choose the maximum amount to spend based on oracles or other data sources to acheive a better swap.
-        TransferHelper.safeApprove(_params.tokenIn, _swapRouterAddress, _params.amountInMaximum);
+        _params.tokenIn.call(abi.encodeWithSelector(IERC20.approve.selector, _swapRouterAddress, _params.amountInMaximum));
 
         ISwapRouter.ExactOutputSingleParams memory params =
             ISwapRouter.ExactOutputSingleParams({
@@ -356,16 +355,16 @@ contract XXXFund is IXXXFund {
         // For exact output swaps, the amountInMaximum may not have all been spent.
         // If the actual amount spent (amountIn) is less than the specified maximum amount, we must refund the msg.sender and approve the swapRouter to spend 0.
         if (amountIn < _params.amountInMaximum) {
-            TransferHelper.safeApprove(_params.tokenIn, _swapRouterAddress, 0);
-            TransferHelper.safeTransfer(_params.tokenIn, msg.sender, _params.amountInMaximum - amountIn);
+            _params.tokenIn.call(abi.encodeWithSelector(IERC20.approve.selector, _swapRouterAddress, 0));
+            _params.tokenIn.call(abi.encodeWithSelector(IERC20.transfer.selector, msg.sender, _params.amountInMaximum - amountIn));
         }
 
-        updateSwapInfo(investor, _params.tokenIn, _params.tokenOut, amountIn, _params.amountOut);
+        updateSwapInfo(manager, _params.tokenIn, _params.tokenOut, amountIn, _params.amountOut);
 
-        emit Swap(investor, _params.tokenIn, _params.tokenOut, amountIn, _params.amountOut);
+        emit Swap(manager, _params.tokenIn, _params.tokenOut, amountIn, _params.amountOut);
     }
 
-    // function swapExactInputMultihop(ISwapRouter.ExactInputParams calldata _params, address investor) override external lock returns (uint256 amountOut) {
+    // function swapExactInputMultihop(ISwapRouter.ExactInputParams calldata _params) override external lock returns (uint256 amountOut) {
     //     require(msg.sender == manager, "Not manager");
     //     address tokenOut = getTokenOutFromPath(_params.path);
     //     require(IXXXFactory(factory).isWhiteListToken(tokenOut), 'XXXFund swapExactInputMultihop: not whitelist token');
@@ -373,7 +372,7 @@ contract XXXFund is IXXXFund {
     //     address _swapRouterAddress = IXXXFactory(factory).getSwapRouterAddress();
 
     //     // Approve the router to spend DAI.
-    //     TransferHelper.safeApprove(DAI, _swapRouterAddress, _params.amountIn);
+    //     DAI.call(abi.encodeWithSelector(IERC20.approve.selector, _swapRouterAddress, _params.amountIn));
 
     //     // Multiple pool swaps are encoded through bytes called a `path`. A path is a sequence of token addresses and poolFees that define the pools used in the swaps.
     //     // The format for pool encoding is (tokenIn, fee, tokenOut/tokenIn, fee, tokenOut) where tokenIn/tokenOut parameter is the shared token across the pools.
@@ -390,12 +389,12 @@ contract XXXFund is IXXXFund {
     //     // Executes the swap.
     //     amountOut = ISwapRouter(_swapRouterAddress).exactInput(params);
 
-    //     //updateSwapInfo(investor, _params.tokenIn, _params.tokenOut, _params.amountIn, amountOut);
+    //     //updateSwapInfo(manager, _params.tokenIn, _params.tokenOut, _params.amountIn, amountOut);
 
-           //emit Swap(investor, _params.tokenIn, _params.tokenOut, _params.amountIn, amountOut);
+           //emit Swap(manager, _params.tokenIn, _params.tokenOut, _params.amountIn, amountOut);
     // }
 
-    // function swapExactOutputMultihop(ISwapRouter.ExactOutputParams calldata _params, address investor) override external lock returns (uint256 amountIn) {
+    // function swapExactOutputMultihop(ISwapRouter.ExactOutputParams calldata _params) override external lock returns (uint256 amountIn) {
     //     require(msg.sender == manager, "Not manager");
     //     address tokenOut = getTokenOutFromPath(_params.path);
     //     require(IXXXFactory(factory).isWhiteListToken(tokenOut), 'XXXFund swapExactOutputMultihop: not whitelist token');
@@ -403,7 +402,7 @@ contract XXXFund is IXXXFund {
     //     address _swapRouterAddress = IXXXFactory(factory).getSwapRouterAddress();
 
     //     // Approve the router to spend  `amountInMaximum`.
-    //     TransferHelper.safeApprove(DAI, _swapRouterAddress, _params.amountInMaximum);
+    //     DAI.call(abi.encodeWithSelector(IERC20.approve.selector, _swapRouterAddress, _params.amountInMaximum));
 
     //     // The parameter path is encoded as (tokenOut, fee, tokenIn/tokenOut, fee, tokenIn)
     //     // The tokenIn/tokenOut field is the shared token between the two pools used in the multiple pool swap. In this case USDC is the "shared" token.
@@ -423,12 +422,12 @@ contract XXXFund is IXXXFund {
 
     //     // If the swap did not require the full amountInMaximum to achieve the exact amountOut then we refund msg.sender and approve the router to spend 0.
     //     if (amountIn < _params.amountInMaximum) {
-    //         TransferHelper.safeApprove(DAI, _swapRouterAddress, 0);
-    //         TransferHelper.safeTransferFrom(DAI, address(this), msg.sender, _params.amountInMaximum - amountIn);
+    //         DAI.call(abi.encodeWithSelector(IERC20.approve.selector, _swapRouterAddress, 0)); 
+    //         DAI.call(abi.encodeWithSelector(IERC20.transferFrom.selector, address(this), msg.sender, _params.amountInMaximum - amountIn));
     //     }
 
-    //     //updateSwapInfo(investor, _params.tokenIn, _params.tokenOut, amountIn, _params.amountOut);
+    //     //updateSwapInfo(manager, _params.tokenIn, _params.tokenOut, amountIn, _params.amountOut);
 
-           //emit Swap(investor, _params.tokenIn, _params.tokenOut, amountIn, _params.amountOut);
+           //emit Swap(manager, _params.tokenIn, _params.tokenOut, amountIn, _params.amountOut);
     // }
 }

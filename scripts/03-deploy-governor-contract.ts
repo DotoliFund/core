@@ -7,8 +7,10 @@ async function main() {
   console.log("Deploying contracts with the account:", deployer.address);
   console.log("Account balance:", (await deployer.getBalance()).toString());
 
-  const XXXTokenAddress = process.env.TOKEN_ADDRESS;
-  const TimeLockAddress = process.env.TIMELOCK_ADDRESS;
+  //const XXXTokenAddress = process.env.TOKEN_ADDRESS;
+  //const TimeLockAddress = process.env.TIMELOCK_ADDRESS;
+  const XXXTokenAddress = '0xEAE906dC299ccd9Cd94584377d0F96Ce144c942f';
+  const TimeLockAddress = '0x6c406e2328117BD8ca63F83EAeD7696801f87472';
 
   // Governor Values
   const QUORUM_PERCENTAGE = 4 // Need 4% of voters to pass

@@ -25,10 +25,10 @@ interface IXXXFund {
         uint256 profitRate;
     }
 
-    event Deposit(address indexed sender, address _token, uint256 _amount);
-    event Withdraw(address indexed sender, address _token, uint256 _amount);
+    event Deposit(address indexed investor, address _token, uint256 _amount);
+    event Withdraw(address indexed investor, address _token, uint256 _amount);
     event Swap(
-        address indexed sender,
+        address indexed manager,
         address tokenIn,
         address tokenOut,
         uint256 amountIn,
@@ -37,13 +37,13 @@ interface IXXXFund {
 
     function initialize(address _manager) external;
     
-    function deposit(address sender, address _token, uint256 _amount) external;
+    function deposit(address investor, address _token, uint256 _amount) external;
     function withdraw(address _token, address to, uint256 _amount) external;
 
-    function swapExactInputSingle(ISwapRouter.ExactInputSingleParams calldata _params, address investor) external returns (uint256 amountOut);
-    function swapExactOutputSingle(ISwapRouter.ExactOutputSingleParams calldata _params, address investor) external returns (uint256 amountIn);
-    //function swapExactInputMultihop(address _token, address to, uint256 _amount) external;
-    //function swapExactOutputMultihop(address _token, address to, uint256 _amount) external;
+    function swapExactInputSingle(ISwapRouter.ExactInputSingleParams calldata _params) external returns (uint256 amountOut);
+    function swapExactOutputSingle(ISwapRouter.ExactOutputSingleParams calldata _params) external returns (uint256 amountIn);
+    //function swapExactInputMultihop(address _token, address to) external;
+    //function swapExactOutputMultihop(address _token, address to) external;
 
     function addReservedTokenHistory() external;
     function getReservedTokenHistory() external returns (ReservedTokenHistory[] calldata);

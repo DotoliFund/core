@@ -18,8 +18,8 @@ async function main() {
   console.log("Fund address : ", Fund.address);
 
   const factoryContract = await ethers.getContractAt("XXXFactory", Factory.address)
-  const TimeLockAddress = process.env.TIMELOCK_ADDRESS;
-  const transferTx = await factoryContract.setOwner('0xE1C3B345ffacB241CB203e8454FFe8F49fFCc728')
+  const TimeLockAddress = '0x6c406e2328117BD8ca63F83EAeD7696801f87472';
+  const transferTx = await factoryContract.setOwner(TimeLockAddress)
   await transferTx.wait(1)
 }
 

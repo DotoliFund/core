@@ -31,7 +31,7 @@ contract XXXFactory is IXXXFactory {
         whiteListTokens.push(0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48); //USDC
         whiteListTokens.push(0x6B175474E89094C44Da98b954EedeAC495271d0F); //DAI
         whiteListTokens.push(0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984); //UNI
-        whiteListTokens.push(0x64f0131a028293d160A172B29f10D8a457406a84); //XXX
+        whiteListTokens.push(0xEAE906dC299ccd9Cd94584377d0F96Ce144c942f); //XXX
     }
 
     function createFund(address manager) override external returns (address fund) {
