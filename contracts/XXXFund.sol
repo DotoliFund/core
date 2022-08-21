@@ -230,29 +230,32 @@ contract XXXFund is IXXXFund {
         require(msg.sender == investor); // sufficient check
         //check if investor has valid token amount
         require(isValidTokenAmount(investor, _token, _amount) == true, 'withdraw: Invalid token');
-        if (investor == manager) {
-            // manager withdraw is no need manager fee
-            _token.call(abi.encodeWithSelector(IERC20.transfer.selector, investor, _amount));
-            updateWithdrawInfo(investor, _token, _amount);
-        } else {
-            //if investor has a profit, send manager reward.
-            uint256 managerReward = getManagerReward(investor, _token, _amount);
-            if (managerReward > 0) {
-                uint256 rewardTokenAmount = managerReward / getPriceUSD(_token);
-                bool isNewRewardToken = increaseManagerRewardTokenAmount(_token, rewardTokenAmount);
-                if (isNewRewardToken) {
-                    rewardTokens[rewardTokenCount].tokenAddress = _token;
-                    rewardTokens[rewardTokenCount].amount = rewardTokenAmount;
-                    rewardTokenCount += 1;
-                }
-                _token.call(abi.encodeWithSelector(IERC20.transfer.selector, investor, _amount - rewardTokenAmount));
-                updateWithdrawInfo(investor, _token, _amount);
 
-            } else {
-                _token.call(abi.encodeWithSelector(IERC20.transfer.selector, investor, _amount));
-                updateWithdrawInfo(investor, _token, _amount);
-            }
-        }
+        _token.call(abi.encodeWithSelector(IERC20.transfer.selector, investor, _amount));
+
+        // if (investor == manager) {
+        //     // manager withdraw is no need manager fee
+        //     _token.call(abi.encodeWithSelector(IERC20.transfer.selector, investor, _amount));
+        //     updateWithdrawInfo(investor, _token, _amount);
+        // } else {
+        //     //if investor has a profit, send manager reward.
+        //     uint256 managerReward = getManagerReward(investor, _token, _amount);
+        //     if (managerReward > 0) {
+        //         uint256 rewardTokenAmount = managerReward / getPriceUSD(_token);
+        //         bool isNewRewardToken = increaseManagerRewardTokenAmount(_token, rewardTokenAmount);
+        //         if (isNewRewardToken) {
+        //             rewardTokens[rewardTokenCount].tokenAddress = _token;
+        //             rewardTokens[rewardTokenCount].amount = rewardTokenAmount;
+        //             rewardTokenCount += 1;
+        //         }
+        //         _token.call(abi.encodeWithSelector(IERC20.transfer.selector, investor, _amount - rewardTokenAmount));
+        //         updateWithdrawInfo(investor, _token, _amount);
+
+        //     } else {
+        //         _token.call(abi.encodeWithSelector(IERC20.transfer.selector, investor, _amount));
+        //         updateWithdrawInfo(investor, _token, _amount);
+        //     }
+        // }
         emit Withdraw(investor, _token, _amount);
     }
 
