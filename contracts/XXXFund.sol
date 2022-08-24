@@ -359,7 +359,7 @@ contract XXXFund is IXXXFund {
         // If the actual amount spent (amountIn) is less than the specified maximum amount, we must refund the msg.sender and approve the swapRouter to spend 0.
         if (amountIn < _params.amountInMaximum) {
             _params.tokenIn.call(abi.encodeWithSelector(IERC20.approve.selector, _swapRouterAddress, 0));
-            _params.tokenIn.call(abi.encodeWithSelector(IERC20.transfer.selector, msg.sender, _params.amountInMaximum - amountIn));
+            _params.tokenIn.call(abi.encodeWithSelector(IERC20.transfer.selector, address(this), _params.amountInMaximum - amountIn));
         }
 
         updateSwapInfo(manager, _params.tokenIn, _params.tokenOut, amountIn, _params.amountOut);
