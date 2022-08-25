@@ -41,8 +41,8 @@ interface IXXXFund {
     function deposit(address investor, address _token, uint256 _amount) external;
     function withdraw(address _token, address to, uint256 _amount) external;
 
-    function swapExactInputSingle(ISwapRouter.ExactInputSingleParams calldata _params) external returns (uint256 amountOut);
-    function swapExactOutputSingle(ISwapRouter.ExactOutputSingleParams calldata _params) external returns (uint256 amountIn);
+    function uniswapV3ExactInputSingle(ISwapRouter.ExactInputSingleParams calldata _params) external returns (uint256 amountOut);
+    function uniswapV3ExactOutputSingle(ISwapRouter.ExactOutputSingleParams calldata _params) external returns (uint256 amountIn);
     //function swapExactInputMultihop(address _token, address to) external;
     //function swapExactOutputMultihop(address _token, address to) external;
 
