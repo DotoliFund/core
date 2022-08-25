@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 // Inspired by Uniswap
-pragma solidity =0.8.4;
+pragma solidity =0.7.6;
 pragma abicoder v2;
 
 import './interfaces/IXXXFund.sol';
 import './interfaces/IXXXFactory.sol';
-import '@uniswap/v3-periphery/contracts/interfaces/ISwapRouter.sol';
-import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
+import './interfaces/IERC20.sol';
+import './libraries/SwapRouter.sol';
 
 contract XXXFund is IXXXFund {
     address public factory;
