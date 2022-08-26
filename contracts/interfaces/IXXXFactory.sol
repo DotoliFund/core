@@ -13,7 +13,9 @@ interface IXXXFactory {
     function owner() external view returns (address);
 
     function createFund(address manager) external returns (address fund);
-    
+
+    function getFund(address manager) external returns (address);
+
     /// @notice Updates the owner of the factory
     /// @dev Must be called by the current owner
     /// @param _owner The new owner of the factory

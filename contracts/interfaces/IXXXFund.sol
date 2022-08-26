@@ -42,21 +42,21 @@ interface IXXXFund {
     function withdraw(address _token, address to, uint256 _amount) external;
 
 
-    function uniswapV2_swapExactTokensForTokens(
-        uint256 amountIn,
-        uint256 amountOutMin,
-        address[] calldata path,
-        address to
-    ) external payable returns (uint256 amountOut);
-    function uniswapV2_swapTokensForExactTokens(
-        uint256 amountOut,
-        uint256 amountInMax,
-        address[] calldata path,
-        address to
-    ) external payable returns (uint256 amountIn);
+    // function uniswapV2_swapExactTokensForTokens(
+    //     uint256 amountIn,
+    //     uint256 amountOutMin,
+    //     address[] calldata path,
+    //     address to
+    // ) external payable returns (uint256 amountOut);
+    // function uniswapV2_swapTokensForExactTokens(
+    //     uint256 amountOut,
+    //     uint256 amountInMax,
+    //     address[] calldata path,
+    //     address to
+    // ) external payable returns (uint256 amountIn);
 
-    function uniswapV3_exactInputSingle(ISwapRouter02.ExactInputSingleParams calldata _params) external returns (uint256 amountOut);
-    function uniswapV3_exactOutputSingle(ISwapRouter02.ExactOutputSingleParams calldata _params) external returns (uint256 amountIn);
+    // function uniswapV3_exactInputSingle(ISwapRouter02.ExactInputSingleParams calldata _params) external returns (uint256 amountOut);
+    // function uniswapV3_exactOutputSingle(ISwapRouter02.ExactOutputSingleParams calldata _params) external returns (uint256 amountIn);
     //function uniswapV3_exactInputMultihop(address _token, address to) external;
     //function uniswapV3_exactOutputMultihop(address _token, address to) external;
 
