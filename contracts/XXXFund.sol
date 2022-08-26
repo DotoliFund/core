@@ -8,6 +8,9 @@ import './interfaces/IXXXFactory.sol';
 import './interfaces/IERC20.sol';
 import '@uniswap/swap-router-contracts/contracts/interfaces/ISwapRouter02.sol';
 import '@uniswap/swap-router-contracts/contracts/interfaces/IV3SwapRouter.sol';
+import '@uniswap/v3-periphery/contracts/interfaces/ISelfPermit.sol';
+
+
 
 contract XXXFund is IXXXFund {
     address public factory;
@@ -309,6 +312,20 @@ contract XXXFund is IXXXFund {
 
 
 
+    function unwrapWETH9WithFee(address _swapRouterAddress, ISwapRouter02.ExactInputSingleParams calldata params) internal lock {
+        
+    }
+
+    function unwrapWETH9(address _swapRouterAddress, ISwapRouter02.ExactInputSingleParams calldata params) internal lock {
+        
+    }
+
+    function refundETH(address _swapRouterAddress, ISwapRouter02.ExactInputSingleParams calldata params) internal lock {
+        
+    }
+
+
+
 
 //////////////////////////////////////////        Uniswap V2 swap router Interface from ISwapRouter02       ////////////////////////////////////////////
 
@@ -494,16 +511,37 @@ contract XXXFund is IXXXFund {
 
 
 
-//////////////////////////////////////////         Interface from ISwapRouter02       ////////////////////////////////////////////
+//////////////////////////////////////////    multicall, selfPermit Interface from ISwapRouter02       ////////////////////////////////////////////
 
 
+    function multicall(uint256 deadline, bytes[] calldata data) internal lock {
+        router.multicall(deadline, data);
+    }
 
+    function multicall(bytes32 previousBlockhash, bytes[] calldata data) internal lock {
+        router.multicall(previousBlockhash, data);
+    }
 
-
-
-    // function swapRouter(address _swapRouterAddress, ISwapRouter02.ExactInputSingleParams calldata params) internal lock {
-    //     router.exactInputSingle(params);
-    //     router.selfPermit();
-    //     router.selfPermitAllowed();
+    // function selfPermitAllowed(address _swapRouterAddress, ISwapRouter02.ExactInputSingleParams calldata params) internal lock {
+    //     router.selfPermitAllowed(
+    //         token,
+    //         nonce,
+    //         expiry,
+    //         v,
+    //         r,
+    //         s
+    //     );
     // }
+
+    // function selfPermit(address _swapRouterAddress, ISwapRouter02.ExactInputSingleParams calldata params) internal lock {
+    //     router.selfPermit(
+    //         token,
+    //         value,
+    //         deadline,
+    //         v,
+    //         r,
+    //         s
+    //     );
+    // }
+
 }
