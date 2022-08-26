@@ -6,8 +6,8 @@ pragma abicoder v2;
 import './interfaces/IXXXFund.sol';
 import './interfaces/IXXXFactory.sol';
 import './interfaces/IERC20.sol';
-import './libraries/SwapRouter.sol';
 import '@uniswap/swap-router-contracts/contracts/interfaces/ISwapRouter02.sol';
+import '@uniswap/swap-router-contracts/contracts/interfaces/IV3SwapRouter.sol';
 
 contract XXXFund is IXXXFund {
     address public factory;
@@ -64,6 +64,10 @@ contract XXXFund is IXXXFund {
     function getDate() private returns (string memory){
         string memory date = '';
         return date;
+    }
+
+    function getTokenOutFromPath() private returns (address){
+        return 0xE592427A0AEce92De3Edee1F18E0157C05861564;
     }
 
     function increaseFundTokenAmount(address _token, uint256 _amount) private returns (bool){
@@ -233,7 +237,7 @@ contract XXXFund is IXXXFund {
     function withdraw(address investor, address _token, uint256 _amount) override external lock {
         require(msg.sender == investor); // sufficient check
         //check if investor has valid token amount
-        require(isValidTokenAmount(investor, _token, _amount) == true, 'withdraw: Invalid token');
+        require(isValidTokenAmount(investor, _token, _amount) == true, 'withdraw: invalid token amount');
 
         _token.call(abi.encodeWithSelector(IERC20.transfer.selector, investor, _amount));
 
@@ -303,99 +307,203 @@ contract XXXFund is IXXXFund {
         return _managerHistory;
     }
 
-    function uniswapV3ExactInputSingle(ISwapRouter.ExactInputSingleParams calldata _params) override external lock returns (uint256 amountOut) {
+
+
+
+//////////////////////////////////////////        Uniswap V2 swap router Interface from ISwapRouter02       ////////////////////////////////////////////
+
+
+
+
+    function uniswapV2_swapExactTokensForTokens(
+        uint256 amountIn,
+        uint256 amountOutMin,
+        address[] calldata path,
+        address to
+    ) external payable override returns (uint256 amountOut) {
+        require(msg.sender == manager, "Not manager");
+        //require(IXXXFactory(factory).isWhiteListToken(_params.tokenOut), 'XXXFund swapExactInputSingle: not whitelist token');
+        // msg.sender must approve this contract
+        address _swapRouterAddress = IXXXFactory(factory).getSwapRouterAddress();
+
+
+
+
+        //updateSwapInfo(manager, _params.tokenIn, _params.tokenOut, _params.amountIn, amountOut);
+        //emit Swap(manager, _params.tokenIn, _params.tokenOut, _params.amountIn, amountOut);
+    }
+
+    function uniswapV2_swapTokensForExactTokens(
+        uint256 amountOut,
+        uint256 amountInMax,
+        address[] calldata path,
+        address to
+    ) external payable override returns (uint256 amountIn) {
+        require(msg.sender == manager, "Not manager");
+        //require(IXXXFactory(factory).isWhiteListToken(_params.tokenOut), 'XXXFund swapExactInputSingle: not whitelist token');
+        // msg.sender must approve this contract
+        address _swapRouterAddress = IXXXFactory(factory).getSwapRouterAddress();
+
+
+
+
+
+        //updateSwapInfo(manager, _params.tokenIn, _params.tokenOut, _params.amountIn, amountOut);
+        //emit Swap(manager, _params.tokenIn, _params.tokenOut, _params.amountIn, amountOut);
+    }
+
+
+
+
+
+//////////////////////////////////////////        Uniswap V3 swap router Interface from ISwapRouter02       ////////////////////////////////////////////
+
+
+
+
+    function uniswapV3_exactInputSingle(ISwapRouter02.ExactInputSingleParams calldata _params) override external lock returns (uint256 amountOut) {
         require(msg.sender == manager, "Not manager");
         require(IXXXFactory(factory).isWhiteListToken(_params.tokenOut), 'XXXFund swapExactInputSingle: not whitelist token');
         // msg.sender must approve this contract
+        address _swapRouterAddress = IXXXFactory(factory).getSwapRouterAddress();
 
-        address _uniswapRouterAddress = IXXXFactory(factory).getSwapRouterAddress();
-        SwapRouter.V3ExactInputSingle(_params, _uniswapRouterAddress);
+        // msg.sender must approve this contract
+        // Approve the router to spend tokenIn.
+        _params.tokenIn.call(abi.encodeWithSelector(IERC20.approve.selector, _swapRouterAddress, _params.amountIn));
+
+        // Naively set amountOutMinimum to 0. In production, use an oracle or other data source to choose a safer value for amountOutMinimum.
+        // We also set the sqrtPriceLimitx96 to be 0 to ensure we swap our exact input amount.
+        ISwapRouter02.ExactInputSingleParams memory params =
+            IV3SwapRouter.ExactInputSingleParams({
+                tokenIn: _params.tokenIn,
+                tokenOut: _params.tokenOut,
+                fee: _params.fee,
+                recipient: msg.sender,
+                //deadline: _params.deadline,
+                amountIn: _params.amountIn,
+                amountOutMinimum: 0,
+                sqrtPriceLimitX96: 0
+            });
+
+        // The call to `exactInputSingle` executes the swap.
+        amountOut = ISwapRouter02(_swapRouterAddress).exactInputSingle(params);
+
         updateSwapInfo(manager, _params.tokenIn, _params.tokenOut, _params.amountIn, amountOut);
-
         emit Swap(manager, _params.tokenIn, _params.tokenOut, _params.amountIn, amountOut);
     }
 
-    function uniswapV3ExactOutputSingle(ISwapRouter.ExactOutputSingleParams calldata _params) override external lock returns (uint256 amountIn) {
+    function uniswapV3_exactOutputSingle(ISwapRouter02.ExactOutputSingleParams calldata _params) override external lock returns (uint256 amountIn) {
         require(msg.sender == manager, "Not manager");
         require(IXXXFactory(factory).isWhiteListToken(_params.tokenOut), 'XXXFund swapExactOutputSingle: not whitelist token');
-        
-        address _uniswapRouterAddress = IXXXFactory(factory).getSwapRouterAddress();
-        SwapRouter.V3ExactOutputSingle(_params, _uniswapRouterAddress);
-        updateSwapInfo(manager, _params.tokenIn, _params.tokenOut, amountIn, _params.amountOut);
+        address _swapRouterAddress = IXXXFactory(factory).getSwapRouterAddress();
 
+        // Approve the router to spend the specifed `amountInMaximum` of tokenIn.
+        // In production, you should choose the maximum amount to spend based on oracles or other data sources to acheive a better swap.
+        _params.tokenIn.call(abi.encodeWithSelector(IERC20.approve.selector, _swapRouterAddress, _params.amountInMaximum));
+
+        ISwapRouter02.ExactOutputSingleParams memory params =
+            IV3SwapRouter.ExactOutputSingleParams({
+                tokenIn: _params.tokenIn,
+                tokenOut: _params.tokenOut,
+                fee: _params.fee,
+                recipient: msg.sender,
+                //deadline: _params.deadline,
+                amountOut: _params.amountOut,
+                amountInMaximum: _params.amountInMaximum,
+                sqrtPriceLimitX96: 0
+            });
+
+        // Executes the swap returning the amountIn needed to spend to receive the desired amountOut.
+        amountIn = ISwapRouter02(_swapRouterAddress).exactOutputSingle(params);
+
+        // For exact output swaps, the amountInMaximum may not have all been spent.
+        // If the actual amount spent (amountIn) is less than the specified maximum amount, we must refund the msg.sender and approve the swapRouter to spend 0.
+        if (amountIn < _params.amountInMaximum) {
+            _params.tokenIn.call(abi.encodeWithSelector(IERC20.approve.selector, _swapRouterAddress, 0));
+            _params.tokenIn.call(abi.encodeWithSelector(IERC20.transfer.selector, msg.sender, _params.amountInMaximum - amountIn));
+        }
+
+        updateSwapInfo(manager, _params.tokenIn, _params.tokenOut, amountIn, _params.amountOut);
         emit Swap(manager, _params.tokenIn, _params.tokenOut, amountIn, _params.amountOut);
     }
 
-    // function swapExactInputMultihop(ISwapRouter.ExactInputParams calldata _params) override external lock returns (uint256 amountOut) {
+    // function uniswapV3_exactInputMultihop(ISwapRouter02.ExactInputParams calldata _params) override external lock returns (uint256 amountOut) {
     //     require(msg.sender == manager, "Not manager");
     //     address tokenOut = getTokenOutFromPath(_params.path);
     //     require(IXXXFactory(factory).isWhiteListToken(tokenOut), 'XXXFund swapExactInputMultihop: not whitelist token');
 
-    //     address _uniswapRouterAddress = IXXXFactory(factory).getSwapRouterAddress();
+    //     address _swapRouterAddress = IXXXFactory(factory).getSwapRouterAddress();
 
     //     // Approve the router to spend DAI.
-    //     DAI.call(abi.encodeWithSelector(IERC20.approve.selector, _uniswapRouterAddress, _params.amountIn));
+    //     DAI.call(abi.encodeWithSelector(IERC20.approve.selector, _swapRouterAddress, _params.amountIn));
 
     //     // Multiple pool swaps are encoded through bytes called a `path`. A path is a sequence of token addresses and poolFees that define the pools used in the swaps.
     //     // The format for pool encoding is (tokenIn, fee, tokenOut/tokenIn, fee, tokenOut) where tokenIn/tokenOut parameter is the shared token across the pools.
     //     // Since we are swapping DAI to USDC and then USDC to WETH9 the path encoding is (DAI, 0.3%, USDC, 0.3%, WETH9).
-    //     ISwapRouter.ExactInputParams memory params =
-    //         ISwapRouter.ExactInputParams({
+    //     ISwapRouter02.ExactInputParams memory params =
+    //         IV3SwapRouter.ExactInputParams({
     //             path: _params.path, //abi.encodePacked(DAI, poolFee, USDC, poolFee, WETH9),
     //             recipient: address(this),
-    //             deadline: _params.deadline,
+    //             //deadline: _params.deadline,
     //             amountIn: _params.amountIn,
     //             amountOutMinimum: 0
     //         });
 
     //     // Executes the swap.
-    //     amountOut = ISwapRouter(_uniswapRouterAddress).exactInput(params);
+    //     amountOut = ISwapRouter02(_swapRouterAddress).exactInput(params);
 
-    //     //updateSwapInfo(manager, _params.tokenIn, _params.tokenOut, _params.amountIn, amountOut);
-
-           //emit Swap(manager, _params.tokenIn, _params.tokenOut, _params.amountIn, amountOut);
+    //     updateSwapInfo(manager, _params.tokenIn, _params.tokenOut, _params.amountIn, amountOut);
+    //     emit Swap(manager, _params.tokenIn, _params.tokenOut, _params.amountIn, amountOut);
     // }
 
-    // function swapExactOutputMultihop(ISwapRouter.ExactOutputParams calldata _params) override external lock returns (uint256 amountIn) {
+    // function uniswapV3_exactOutputMultihop(ISwapRouter02.ExactOutputParams calldata _params) override external lock returns (uint256 amountIn) {
     //     require(msg.sender == manager, "Not manager");
     //     address tokenOut = getTokenOutFromPath(_params.path);
     //     require(IXXXFactory(factory).isWhiteListToken(tokenOut), 'XXXFund swapExactOutputMultihop: not whitelist token');
 
-    //     address _uniswapRouterAddress = IXXXFactory(factory).getSwapRouterAddress();
+    //     address _swapRouterAddress = IXXXFactory(factory).getSwapRouterAddress();
 
     //     // Approve the router to spend  `amountInMaximum`.
-    //     DAI.call(abi.encodeWithSelector(IERC20.approve.selector, _uniswapRouterAddress, _params.amountInMaximum));
+    //     DAI.call(abi.encodeWithSelector(IERC20.approve.selector, _swapRouterAddress, _params.amountInMaximum));
 
     //     // The parameter path is encoded as (tokenOut, fee, tokenIn/tokenOut, fee, tokenIn)
     //     // The tokenIn/tokenOut field is the shared token between the two pools used in the multiple pool swap. In this case USDC is the "shared" token.
     //     // For an exactOutput swap, the first swap that occurs is the swap which returns the eventual desired token.
     //     // In this case, our desired output token is WETH9 so that swap happpens first, and is encoded in the path accordingly.
-    //     ISwapRouter.ExactOutputParams memory params =
-    //         ISwapRouter.ExactOutputParams({
+    //     ISwapRouter02.ExactOutputParams memory params =
+    //         IV3SwapRouter.ExactOutputParams({
     //             path: _params.path, //abi.encodePacked(WETH9, poolFee, USDC, poolFee, DAI),
     //             recipient: address(this),
-    //             deadline: block.timestamp,
+    //             //deadline: block.timestamp,
     //             amountOut: _params.amountOut,
     //             amountInMaximum: _params.amountInMaximum
     //         });
 
     //     // Executes the swap, returning the amountIn actually spent.
-    //     amountIn = ISwapRouter(_uniswapRouterAddress).exactOutput(params);
+    //     amountIn = ISwapRouter02(_swapRouterAddress).exactOutput(params);
 
     //     // If the swap did not require the full amountInMaximum to achieve the exact amountOut then we refund msg.sender and approve the router to spend 0.
     //     if (amountIn < _params.amountInMaximum) {
-    //         DAI.call(abi.encodeWithSelector(IERC20.approve.selector, _uniswapRouterAddress, 0)); 
+    //         DAI.call(abi.encodeWithSelector(IERC20.approve.selector, _swapRouterAddress, 0)); 
     //         DAI.call(abi.encodeWithSelector(IERC20.transferFrom.selector, address(this), msg.sender, _params.amountInMaximum - amountIn));
     //     }
 
-    //     //updateSwapInfo(manager, _params.tokenIn, _params.tokenOut, amountIn, _params.amountOut);
-
-           //emit Swap(manager, _params.tokenIn, _params.tokenOut, amountIn, _params.amountOut);
+    //     updateSwapInfo(manager, _params.tokenIn, _params.tokenOut, amountIn, _params.amountOut);
+    //     emit Swap(manager, _params.tokenIn, _params.tokenOut, amountIn, _params.amountOut);
     // }
 
-    function swapRouterRefundETH(address _uniswapRouterAddress, ISwapRouter02.ExactInputSingleParams calldata params) internal lock {
-        router.exactInputSingle(params);
-        router.selfPermit();
-        router.selfPermitAllowed();
-    }
+
+
+//////////////////////////////////////////         Interface from ISwapRouter02       ////////////////////////////////////////////
+
+
+
+
+
+
+    // function swapRouter(address _swapRouterAddress, ISwapRouter02.ExactInputSingleParams calldata params) internal lock {
+    //     router.exactInputSingle(params);
+    //     router.selfPermit();
+    //     router.selfPermitAllowed();
+    // }
 }

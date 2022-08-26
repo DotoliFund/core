@@ -3,7 +3,7 @@
 pragma solidity =0.7.6;
 pragma abicoder v2;
 
-import '@uniswap/v3-periphery/contracts/interfaces/ISwapRouter.sol';
+import '@uniswap/swap-router-contracts/contracts/interfaces/ISwapRouter02.sol';
 
 interface IXXXFund {
 
@@ -41,10 +41,24 @@ interface IXXXFund {
     function deposit(address investor, address _token, uint256 _amount) external;
     function withdraw(address _token, address to, uint256 _amount) external;
 
-    function uniswapV3ExactInputSingle(ISwapRouter.ExactInputSingleParams calldata _params) external returns (uint256 amountOut);
-    function uniswapV3ExactOutputSingle(ISwapRouter.ExactOutputSingleParams calldata _params) external returns (uint256 amountIn);
-    //function swapExactInputMultihop(address _token, address to) external;
-    //function swapExactOutputMultihop(address _token, address to) external;
+
+    function uniswapV2_swapExactTokensForTokens(
+        uint256 amountIn,
+        uint256 amountOutMin,
+        address[] calldata path,
+        address to
+    ) external payable returns (uint256 amountOut);
+    function uniswapV2_swapTokensForExactTokens(
+        uint256 amountOut,
+        uint256 amountInMax,
+        address[] calldata path,
+        address to
+    ) external payable returns (uint256 amountIn);
+
+    function uniswapV3_exactInputSingle(ISwapRouter02.ExactInputSingleParams calldata _params) external returns (uint256 amountOut);
+    function uniswapV3_exactOutputSingle(ISwapRouter02.ExactOutputSingleParams calldata _params) external returns (uint256 amountIn);
+    //function uniswapV3_exactInputMultihop(address _token, address to) external;
+    //function uniswapV3_exactOutputMultihop(address _token, address to) external;
 
     function addReservedTokenHistory() external;
     function getReservedTokenHistory() external returns (ReservedTokenHistory[] calldata);
