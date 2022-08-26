@@ -153,7 +153,7 @@ contract XXXFund is IXXXFund {
         investorPrincipalUSD[investor] -= investorPrincipalUSD[investor] * investorWithdrawRatio;
     }
 
-    function updateSwapInfo(address investor, address swapFrom, address swapTo, uint256 swapFromAmount, uint256 swapToAmount) external {
+    function updateSwapInfo(address investor, address swapFrom, address swapTo, uint256 swapFromAmount, uint256 swapToAmount) override external {
         require(msg.sender == IXXXFactory(factory).getSwapRouterAddress(), "updateSwapInfo: invalid swapRouter");
         //update fund info
         //decrease part of swap (decrease swapFrom token reduce by swapFromAmount)

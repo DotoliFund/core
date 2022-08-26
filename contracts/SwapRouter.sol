@@ -30,7 +30,32 @@ contract SwapRouter is ISwapRouter {
 
             results[i] = result;
         }
+
+        //updateSwapInfo(msg.sender, _params.tokenIn, _params.tokenOut, _params.amountIn, amountOut);
+        //emit Swap(msg.sender, _params.tokenIn, _params.tokenOut, _params.amountIn, amountOut);
     }
+
+  //   struct SwapInfo{
+  //       address tokenIn, 
+  //       address tokenOut, 
+  //       uint256 amountIn, 
+  //       uint256 amountOut
+  //   }
+
+  //   function swapInfo(
+  //   	address tokenIn, 
+  //   	address tokenOut, 
+  //   	uint256 amountIn, 
+  //   	uint256 amountOut
+  //   ) external returns(
+  //   	address,
+  //   	address, 
+  //   	uint256, 
+  //   	uint256) {
+
+		// return [tokenIn, tokenOut, amountIn, amountOut];
+
+  //   }
 
 
 

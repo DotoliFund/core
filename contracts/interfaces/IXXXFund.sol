@@ -28,19 +28,12 @@ interface IXXXFund {
 
     event Deposit(address indexed investor, address _token, uint256 _amount);
     event Withdraw(address indexed investor, address _token, uint256 _amount);
-    event Swap(
-        address indexed manager,
-        address tokenIn,
-        address tokenOut,
-        uint256 amountIn,
-        uint256 amountOut
-    );
 
     function initialize(address _manager) external;
     
     function deposit(address investor, address _token, uint256 _amount) external;
     function withdraw(address _token, address to, uint256 _amount) external;
-
+    function updateSwapInfo(address investor, address swapFrom, address swapTo, uint256 swapFromAmount, uint256 swapToAmount) external;
 
     // function uniswapV2_swapExactTokensForTokens(
     //     uint256 amountIn,
