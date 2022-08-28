@@ -12,28 +12,46 @@ interface IXXXFund {
         uint256 amount;
     }
 
-    struct ReservedTokenHistory {
-    	string date;
-        address tokenAddress;
-        uint256 amount;
-    }
+    // struct ReservedTokenHistory {
+    // 	string date;
+    //     address tokenAddress;
+    //     uint256 amount;
+    // }
 
-    struct ManagerHistory {
-        string date;
-        uint256 fundPrincipalUSD;
-        uint256 totalValueUSD;
-        uint256 totalValueETH;
-        uint256 profitRate;
-    }
+    // struct ManagerHistory {
+    //     string date;
+    //     uint256 fundPrincipalUSD;
+    //     uint256 totalValueUSD;
+    //     uint256 totalValueETH;
+    //     uint256 profitRate;
+    // }
 
     event Deposit(address indexed investor, address _token, uint256 _amount);
     event Withdraw(address indexed investor, address _token, uint256 _amount);
+    event Swap(
+        address indexed manager,
+        address tokenIn,
+        address tokenOut,
+        uint256 amountIn,
+        uint256 amountOut
+    );
+
+    /// @notice Call multiple functions in the current contract and return the data from all of them if they all succeed
+    /// @dev The `msg.value` should not be trusted for any method callable from multicall.
+    /// @param data The encoded function data for each of the calls to make to this contract
+    function swapMullticall(
+        bytes[] calldata data,
+        address invester,
+        address tokenIn, 
+        address tokenOut, 
+        uint256 amountIn, 
+        uint256 amountOut
+    ) external payable returns (bytes memory);
 
     function initialize(address _manager) external;
     
     function deposit(address investor, address _token, uint256 _amount) external;
     function withdraw(address _token, address to, uint256 _amount) external;
-    function updateSwapInfo(address investor, address swapFrom, address swapTo, uint256 swapFromAmount, uint256 swapToAmount) external;
 
     // function uniswapV2_swapExactTokensForTokens(
     //     uint256 amountIn,
@@ -53,8 +71,8 @@ interface IXXXFund {
     //function uniswapV3_exactInputMultihop(address _token, address to) external;
     //function uniswapV3_exactOutputMultihop(address _token, address to) external;
 
-    function addReservedTokenHistory() external;
-    function getReservedTokenHistory() external returns (ReservedTokenHistory[] calldata);
-    function addManagerHistory() external;
-    function getManagerHistory() external returns (ManagerHistory[] calldata);
+    // function addReservedTokenHistory() external;
+    // function getReservedTokenHistory() external returns (ReservedTokenHistory[] calldata);
+    // function addManagerHistory() external;
+    // function getManagerHistory() external returns (ManagerHistory[] calldata);
 }

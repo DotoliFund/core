@@ -5,35 +5,47 @@ pragma abicoder v2;
 
 import '@uniswap/swap-router-contracts/contracts/interfaces/ISwapRouter02.sol';
 import './interfaces/ISwapRouter.sol';
-import './interfaces/IXXXFund.sol';
 import './interfaces/IXXXFactory.sol';
 
 contract SwapRouter is ISwapRouter {
-    address public factory;
+    address factory;
+    address SWAP_ROUTER_ADDRESS;
 
-    function multicall(bytes[] calldata data) external payable override returns (bytes[] memory results) {
-		address fund = IXXXFactory(factory).getFund(msg.sender);
-		require(fund != address(0), 'multicall: sender is not manager');
-
-        results = new bytes[](data.length);
-        for (uint256 i = 0; i < data.length; i++) {
-            (bool success, bytes memory result) = address(this).delegatecall(data[i]);
-
-            if (!success) {
-                // Next 5 lines from https://ethereum.stackexchange.com/a/83577
-                if (result.length < 68) revert();
-                assembly {
-                    result := add(result, 0x04)
-                }
-                revert(abi.decode(result, (string)));
-            }
-
-            results[i] = result;
-        }
-
-        //updateSwapInfo(msg.sender, _params.tokenIn, _params.tokenOut, _params.amountIn, amountOut);
-        //emit Swap(msg.sender, _params.tokenIn, _params.tokenOut, _params.amountIn, amountOut);
+    constructor(address _factory, address router) {
+        factory = _factory;
+        SWAP_ROUTER_ADDRESS = router;
     }
+
+    function swap(bytes[] calldata data) override external payable returns (bytes[] memory results) {
+        address fund = IXXXFactory(factory).getFund(msg.sender);
+        require(fund != address(0), 'multicall: sender is not manager');
+
+        bytes[] memory results = ISwapRouter02(0xE592427A0AEce92De3Edee1F18E0157C05861564).multicall(data);
+
+        return results;
+    }
+
+
+  //   function multicall(bytes[] calldata data) external payable override returns (bytes[] memory results) {
+        // address fund = IXXXFactory(factory).getFund(msg.sender);
+        // require(fund != address(0), 'multicall: sender is not manager');
+
+  //       results = new bytes[](data.length);
+  //       for (uint256 i = 0; i < data.length; i++) {
+  //           (bool success, bytes memory result) = address(this).delegatecall(data[i]);
+
+  //           if (!success) {
+  //               // Next 5 lines from https://ethereum.stackexchange.com/a/83577
+  //               if (result.length < 68) revert();
+  //               assembly {
+  //                   result := add(result, 0x04)
+  //               }
+  //               revert(abi.decode(result, (string)));
+  //           }
+
+  //           results[i] = result;
+  //       }
+  //   }
 
   //   struct SwapInfo{
   //       address tokenIn, 
