@@ -197,7 +197,7 @@ contract XXXFund is IXXXFund {
         emit Withdraw(investor, _token, _amount);
     }
 
-    function swapRouter(
+    function swap(
         address invester,
         V3Trade[] calldata trades,
         SwapOptions calldata options

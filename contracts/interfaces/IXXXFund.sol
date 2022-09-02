@@ -56,8 +56,8 @@ interface IXXXFund {
         uint256 amountOutMinimum;
         uint160 sqrtPriceLimitX96;
     }
-    
-    function swapRouter(
+
+    function swap(
         address invester,
         V3Trade[] calldata trades,
         SwapOptions calldata options

@@ -3,9 +3,11 @@
 pragma solidity =0.7.6;
 pragma abicoder v2;
 
-import '@uniswap/swap-router-contracts/contracts/interfaces/ISwapRouter02.sol';
 import './interfaces/ISwapRouter.sol';
 import './interfaces/IXXXFactory.sol';
+import './interfaces/IERC20.sol';
+import '@uniswap/swap-router-contracts/contracts/interfaces/ISwapRouter02.sol';
+import '@uniswap/v3-periphery/contracts/interfaces/IPeripheryPayments.sol';
 
 contract SwapRouter is ISwapRouter {
     address factory;
@@ -17,26 +19,105 @@ contract SwapRouter is ISwapRouter {
     }
 
 
-    function swap(
+
+    // TODO : use this function
+    // function swapRouter(
+    //     address invester,
+    //     V3Trade[] calldata trades,
+    //     SwapOptions calldata options
+    // ) external payable override returns (uint256) {
+    //     require(IXXXFactory(factory).isWhiteListToken(trades[0].output), 
+    //         'XXXFund swapExactOutputSingle: not whitelist token');
+    //     address _swapRouterAddress = IXXXFactory(factory).getSwapRouterAddress();
+
+    //     // Approve the router to spend the specifed `amountInMaximum` of tokenIn.
+    //     // In production, you should choose the maximum amount to spend based on oracles or other data sources to acheive a better swap.
+    //     trades[0].input.call(abi.encodeWithSelector(IERC20.approve.selector, _swapRouterAddress, trades[0].amountInMaximum));
+
+    //     uint256 investerAmount = getInvestorTokenAmount(invester, trades[0].input);
+    //     uint256 swapInputAmount = 0;
+    //     for (uint256 i=0; i<trades.length; i++) {
+    //         swapInputAmount += trades[i].inputAmount;
+    //     }
+    //     require(investerAmount > swapInputAmount, 'swapRouter: invalid inputAmount');
+
+    //     uint256 amountIn = 0;
+    //     uint256 amountOut = 0;
+    //     for(uint256 i=0; i<trades.length; i++) {
+
+    //         // Naively set amountOutMinimum to 0. In production, use an oracle or other data source to choose a safer value for amountOutMinimum.
+    //         // We also set the sqrtPriceLimitx96 to be 0 to ensure we swap our exact input amount.
+    //         ISwapRouter02.ExactInputSingleParams memory params =
+    //             IV3SwapRouter.ExactInputSingleParams({
+    //                 tokenIn: trades[i].input,
+    //                 tokenOut: trades[i].output,
+    //                 fee: options.fee,
+    //                 recipient: msg.sender,
+    //                 //deadline: _params.deadline,
+    //                 amountIn: trades[i].inputAmount,
+    //                 amountOutMinimum: trades[i].amountOutMinimum,
+    //                 sqrtPriceLimitX96: 0
+    //             });
+
+    //         // The call to `exactInputSingle` executes the swap.
+    //         amountIn += trades[i].inputAmount;
+    //         amountOut += ISwapRouter02(_swapRouterAddress).exactInputSingle(params);
+    //     }
+
+    //     //updateSwapInfo(invester, tokenIn, tokenOut, amountIn, amountOut);
+    //     //emit Swap(invester, tokenIn, tokenOut, amountIn, amountOut);
+
+    //     return 1;
+    // }
+
+
+    function swapRouter(
+        address invester,
         V3Trade[] calldata trades,
         SwapOptions calldata options
-    ) 
-        override
-        external 
-        payable 
-        returns (bytes[] memory) 
-    {
+    ) external payable override returns (uint256) {
+        require(IXXXFactory(factory).isWhiteListToken(trades[0].output), 
+            'XXXFund swapExactOutputSingle: not whitelist token');
+        // address _swapRouterAddress = IXXXFactory(factory).getSwapRouterAddress();
 
-        bytes[] memory calldatas = new bytes[](1);
+        // // Approve the router to spend the specifed `amountInMaximum` of tokenIn.
+        // // In production, you should choose the maximum amount to spend based on oracles or other data sources to acheive a better swap.
+        // trades[0].input.call(abi.encodeWithSelector(IERC20.approve.selector, _swapRouterAddress, trades[0].amountInMaximum));
 
+        // uint256 investerAmount = getInvestorTokenAmount(invester, trades[0].input);
+        // uint256 swapInputAmount = 0;
+        // for (uint256 i=0; i<trades.length; i++) {
+        //     swapInputAmount += trades[i].inputAmount;
+        // }
+        // require(investerAmount > swapInputAmount, 'swapRouter: invalid inputAmount');
 
+        // uint256 amountIn = 0;
+        // uint256 amountOut = 0;
+        // for(uint256 i=0; i<trades.length; i++) {
 
-        address fund = IXXXFactory(factory).getFund(msg.sender);
-        require(fund != address(0), 'multicall: sender is not manager');
+        //     // Naively set amountOutMinimum to 0. In production, use an oracle or other data source to choose a safer value for amountOutMinimum.
+        //     // We also set the sqrtPriceLimitx96 to be 0 to ensure we swap our exact input amount.
+        //     ISwapRouter02.ExactInputSingleParams memory params =
+        //         IV3SwapRouter.ExactInputSingleParams({
+        //             tokenIn: trades[i].input,
+        //             tokenOut: trades[i].output,
+        //             fee: options.fee,
+        //             recipient: msg.sender,
+        //             //deadline: _params.deadline,
+        //             amountIn: trades[i].inputAmount,
+        //             amountOutMinimum: trades[i].amountOutMinimum,
+        //             sqrtPriceLimitX96: 0
+        //         });
 
-        bytes[] memory results = ISwapRouter02(0xE592427A0AEce92De3Edee1F18E0157C05861564).multicall(calldatas);
+        //     // The call to `exactInputSingle` executes the swap.
+        //     amountIn += trades[i].inputAmount;
+        //     amountOut += ISwapRouter02(_swapRouterAddress).exactInputSingle(params);
+        // }
 
-        return results;
+        //updateSwapInfo(invester, tokenIn, tokenOut, amountIn, amountOut);
+        //emit Swap(invester, tokenIn, tokenOut, amountIn, amountOut);
+
+        return 1;
     }
 
     // function multiCall(address[] calldata targets, bytes[] calldata encodedFunctions) 

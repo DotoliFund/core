@@ -29,10 +29,11 @@ interface ISwapRouter {
         uint256 fee;
     }
 
-    function swap(      
+    function swapRouter(
+        address invester,
         V3Trade[] calldata trades,
         SwapOptions calldata options
-    ) external payable returns (bytes[] memory);
+    ) external payable returns (uint256);
 
 
     /// @notice Call multiple functions in the current contract and return the data from all of them if they all succeed
