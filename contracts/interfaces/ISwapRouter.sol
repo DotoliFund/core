@@ -6,7 +6,33 @@ pragma abicoder v2;
 /// @notice Enables calling multiple methods in a single call to the contract
 interface ISwapRouter {
 
-    function swap(bytes[] calldata data) external payable returns (bytes[] memory results);
+
+    // /**
+    //  * V3Trade for producing the arguments to send calls to the router.
+    //  */
+    struct V3Trade {
+        string tradeType;
+        address input;
+        address output;
+        uint256 inputAmount;
+        uint256 outputAmount;
+    }
+
+    // /**
+    //  * SwapOptions for producing the arguments to send calls to the router.
+    //  */
+    struct SwapOptions {
+        uint256 slippageTolerance;
+        address recipient;
+        uint256 deadlineOrPreviousBlockhash;
+        uint256 inputTokenPermit;
+        uint256 fee;
+    }
+
+    function swap(      
+        V3Trade[] calldata trades,
+        SwapOptions calldata options
+    ) external payable returns (bytes[] memory);
 
 
     /// @notice Call multiple functions in the current contract and return the data from all of them if they all succeed

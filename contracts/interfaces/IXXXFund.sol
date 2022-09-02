@@ -4,6 +4,7 @@ pragma solidity =0.7.6;
 pragma abicoder v2;
 
 import '@uniswap/swap-router-contracts/contracts/interfaces/ISwapRouter02.sol';
+import './ISwapRouter.sol';
 
 interface IXXXFund {
 
@@ -11,20 +12,6 @@ interface IXXXFund {
         address tokenAddress;
         uint256 amount;
     }
-
-    // struct ReservedTokenHistory {
-    // 	string date;
-    //     address tokenAddress;
-    //     uint256 amount;
-    // }
-
-    // struct ManagerHistory {
-    //     string date;
-    //     uint256 fundPrincipalUSD;
-    //     uint256 totalValueUSD;
-    //     uint256 totalValueETH;
-    //     uint256 profitRate;
-    // }
 
     event Deposit(address indexed investor, address _token, uint256 _amount);
     event Withdraw(address indexed investor, address _token, uint256 _amount);
@@ -36,43 +23,48 @@ interface IXXXFund {
         uint256 amountOut
     );
 
-    /// @notice Call multiple functions in the current contract and return the data from all of them if they all succeed
-    /// @dev The `msg.value` should not be trusted for any method callable from multicall.
-    /// @param data The encoded function data for each of the calls to make to this contract
-    function swapMullticall(
-        bytes[] calldata data,
+    // /**
+    //  * V3Trade for producing the arguments to send calls to the router.
+    //  */
+    struct V3Trade {
+        string tradeType;
+        address input;
+        address output;
+        uint256 inputAmount;
+        uint256 outputAmount;
+        uint256 amountInMaximum;
+        uint256 amountOutMinimum;
+    }
+
+    // /**
+    //  * SwapOptions for producing the arguments to send calls to the router.
+    //  */
+    struct SwapOptions {
+        uint256 slippageTolerance;
+        address recipient;
+        uint256 deadlineOrPreviousBlockhash;
+        uint256 inputTokenPermit;
+        uint24 fee;
+    }
+
+    struct ExactInputSingleParams {
+        address tokenIn;
+        address tokenOut;
+        uint24 fee;
+        address recipient;
+        uint256 amountIn;
+        uint256 amountOutMinimum;
+        uint160 sqrtPriceLimitX96;
+    }
+    
+    function swapRouter(
         address invester,
-        address tokenIn, 
-        address tokenOut, 
-        uint256 amountIn, 
-        uint256 amountOut
-    ) external payable returns (bytes memory);
+        V3Trade[] calldata trades,
+        SwapOptions calldata options
+    ) external payable returns (uint256);
 
     function initialize(address _manager) external;
     
     function deposit(address investor, address _token, uint256 _amount) external;
     function withdraw(address _token, address to, uint256 _amount) external;
-
-    // function uniswapV2_swapExactTokensForTokens(
-    //     uint256 amountIn,
-    //     uint256 amountOutMin,
-    //     address[] calldata path,
-    //     address to
-    // ) external payable returns (uint256 amountOut);
-    // function uniswapV2_swapTokensForExactTokens(
-    //     uint256 amountOut,
-    //     uint256 amountInMax,
-    //     address[] calldata path,
-    //     address to
-    // ) external payable returns (uint256 amountIn);
-
-    // function uniswapV3_exactInputSingle(ISwapRouter02.ExactInputSingleParams calldata _params) external returns (uint256 amountOut);
-    // function uniswapV3_exactOutputSingle(ISwapRouter02.ExactOutputSingleParams calldata _params) external returns (uint256 amountIn);
-    //function uniswapV3_exactInputMultihop(address _token, address to) external;
-    //function uniswapV3_exactOutputMultihop(address _token, address to) external;
-
-    // function addReservedTokenHistory() external;
-    // function getReservedTokenHistory() external returns (ReservedTokenHistory[] calldata);
-    // function addManagerHistory() external;
-    // function getManagerHistory() external returns (ManagerHistory[] calldata);
 }

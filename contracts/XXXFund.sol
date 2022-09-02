@@ -6,25 +6,14 @@ pragma abicoder v2;
 import './interfaces/IXXXFund.sol';
 import './interfaces/IXXXFactory.sol';
 import './interfaces/IERC20.sol';
-import './interfaces/ISwapRouter.sol';
 import '@uniswap/swap-router-contracts/contracts/interfaces/ISwapRouter02.sol';
-
+import '@uniswap/v3-periphery/contracts/interfaces/IPeripheryPayments.sol';
 
 contract XXXFund is IXXXFund {
     address public factory;
     address public manager;
 
-    //manager history used for trading history
-    //ReservedTokenHistory[] reservedTokenHistory;
-    //ManagerHistory[] managerHistory;
-
-    //fund info
-    //uint256 fundPrincipalUSD = 0;
-    //mapping(uint256 => Token) public fundTokens;
-    //uint256 public fundTokenCount = 0;
-
     //investor info
-    //mapping(address => uint256) public investorPrincipalUSD;
     mapping(address => mapping(uint256 => Token)) public investorTokens;
     mapping(address => uint256) public investorTokenCount;
 
@@ -49,18 +38,6 @@ contract XXXFund is IXXXFund {
         manager = _manager;
     }
 
-    function getPriceUSD(address token) private returns (uint256 fiatPrice) {
-        fiatPrice = 0; 
-    }
-
-    function getFundTotalValueUSD() private returns (uint256 totalFiatValue) {
-        totalFiatValue = 0;
-    }
-
-    function getInvestorTotalValueUSD(address investor) private returns (uint256 totalFiatValue) {
-        totalFiatValue = 0;
-    }
-
     function getDate() private returns (string memory){
         string memory date = '';
         return date;
@@ -70,17 +47,14 @@ contract XXXFund is IXXXFund {
         return 0xE592427A0AEce92De3Edee1F18E0157C05861564;
     }
 
-    // function increaseFundTokenAmount(address _token, uint256 _amount) private returns (bool){
-    //     bool isNewToken = true;
-    //     for (uint256 i=0; i<fundTokenCount; i++) {
-    //         if (fundTokens[i].tokenAddress == _token) {
-    //             isNewToken = false;
-    //             fundTokens[i].amount += _amount;
-    //             break;
-    //         }
-    //     }
-    //     return isNewToken;
-    // }
+    function getInvestorTokenAmount(address investor, address token) private returns (uint256){
+        for (uint256 i=0; i<investorTokenCount[investor]; i++) {
+            if (investorTokens[investor][i].tokenAddress == token) {
+                return investorTokens[investor][i].amount;
+            }
+        }
+        return 0;
+    }
 
     function increaseInvestorTokenAmount(address investor, address _token, uint256 _amount) private returns (bool){
         bool isNewToken = true;
@@ -93,19 +67,6 @@ contract XXXFund is IXXXFund {
         }
         return isNewToken;
     }
-
-    // function decreaseFundTokenAmount(address _token, uint256 _amount) private returns (bool){
-    //     bool isNewToken = true;
-    //     for (uint256 i=0; i<fundTokenCount; i++) {
-    //         if (fundTokens[i].tokenAddress == _token) {
-    //             isNewToken = false;
-    //             require(fundTokens[i].amount >= _amount, 'decreaseTokenAmount: decrease token amount is more than you have');
-    //             fundTokens[i].amount -= _amount;
-    //             break;
-    //         }
-    //     }
-    //     return isNewToken;
-    // }
 
     function decreaseInvestorTokenAmount(address investor, address _token, uint256 _amount) private returns (bool){
         bool isNewToken = true;
@@ -121,16 +82,6 @@ contract XXXFund is IXXXFund {
     }
 
     function updateDepositInfo(address investor, address _token, uint256 _amount) private {
-        //update fund info
-        //bool isNewFundToken = increaseFundTokenAmount(_token, _amount);
-        // if (isNewFundToken) {
-        //     fundTokens[fundTokenCount].tokenAddress = _token;
-        //     fundTokens[fundTokenCount].amount = _amount;
-        //     fundTokenCount += 1;
-        // }
-        // uint256 depositValue = getPriceUSD(_token) * _amount;
-        //fundPrincipalUSD += depositValue;
-
         //update investor info
         bool isNewInvestorToken = increaseInvestorTokenAmount(investor, _token, _amount);
         if (isNewInvestorToken) {
@@ -139,37 +90,16 @@ contract XXXFund is IXXXFund {
             investorTokens[investor][newTokenIndex].amount = _amount;
             investorTokenCount[investor] += 1;
         }
-        //investorPrincipalUSD[investor] += depositValue;
     }
 
     function updateWithdrawInfo(address investor, address _token, uint256 _amount) private {
-        //update fund info
-        // bool isNewFundToken = decreaseFundTokenAmount(_token, _amount);
-        // require(isNewFundToken == false, 'updateWithdrawInfo: invalid fund token withdraw attempt');
-        // uint256 withdrawValue = getPriceUSD(_token) * _amount;
-        // uint256 fundWithdrawRatio = withdrawValue / getFundTotalValueUSD();
-        //fundPrincipalUSD -= fundPrincipalUSD * fundWithdrawRatio;
-
         //update investor info
         bool isNewInvestorToken = decreaseInvestorTokenAmount(investor, _token, _amount);
         require(isNewInvestorToken == false, 'updateWithdrawInfo: Invalid investor token withdraw attempt');
-        //uint256 investorWithdrawRatio = withdrawValue / getInvestorTotalValueUSD(investor);
-        //investorPrincipalUSD[investor] -= investorPrincipalUSD[investor] * investorWithdrawRatio;
     }
 
     function updateSwapInfo(address investor, address swapFrom, address swapTo, uint256 swapFromAmount, uint256 swapToAmount) private {
         require(address(this) == IXXXFactory(factory).getFund(msg.sender), "updateSwapInfo: invalid swapRouter");
-        //update fund info
-        //decrease part of swap (decrease swapFrom token reduce by swapFromAmount)
-        //bool isNewFundToken = decreaseFundTokenAmount(swapFrom, swapFromAmount);
-        //require(isNewFundToken == false, 'updateSwapInfo: Invalid fund token swap attempt');
-        //increase part of swap (increase swapTo token increase by swapToAmount)
-        // isNewFundToken = increaseFundTokenAmount(swapTo, swapToAmount);
-        // if (isNewFundToken) {
-        //     fundTokens[fundTokenCount].tokenAddress = swapTo;
-        //     fundTokens[fundTokenCount].amount = swapToAmount;
-        //     fundTokenCount += 1;
-        // }
 
         //update investor info
         //decrease part of swap (decrease swapFrom token reduce by swapFromAmount)
@@ -267,101 +197,53 @@ contract XXXFund is IXXXFund {
         emit Withdraw(investor, _token, _amount);
     }
 
-    // //todo change value
-    // function addReservedTokenHistory() override external {
-    //     ReservedTokenHistory memory _ReservedTokenHistory;
-    //     _ReservedTokenHistory.date = '2022-08-10';
-    //     _ReservedTokenHistory.tokenAddress = 0xE592427A0AEce92De3Edee1F18E0157C05861564;
-    //     _ReservedTokenHistory.amount = 0;
-
-    //     return reservedTokenHistory.push(_ReservedTokenHistory);
-    // }
-
-    // function getReservedTokenHistory() override external returns (ReservedTokenHistory[] memory) {
-    //     uint256 reservedTokenHistoryCount = reservedTokenHistory.length;
-    //     ReservedTokenHistory[] memory _reservedTokenHistory = new ReservedTokenHistory[](reservedTokenHistoryCount);
-    //     for (uint256 i; i<reservedTokenHistoryCount; i++) {
-    //         _reservedTokenHistory[i] = reservedTokenHistory[i];
-    //     }
-    //     return _reservedTokenHistory;
-    // }
-
-    // //todo change value
-    // function addManagerHistory() override external {
-    //     ManagerHistory memory _managerHistory;
-    //     _managerHistory.date = '2022-08-10';
-    //     _managerHistory.fundPrincipalUSD = 0;
-    //     _managerHistory.totalValueUSD = 0;
-    //     _managerHistory.totalValueETH = 0;
-    //     _managerHistory.profitRate = 0;
-
-    //     return managerHistory.push(_managerHistory);
-    // }
-
-    // function getManagerHistory() override external returns (ManagerHistory[] memory) {
-    //     uint256 managerHistoryCount = managerHistory.length;
-    //     ManagerHistory[] memory _managerHistory = new ManagerHistory[](managerHistoryCount);
-    //     for (uint256 i; i<managerHistoryCount; i++) {
-    //         _managerHistory[i] = managerHistory[i];
-    //     }
-    //     return _managerHistory;
-    // }
-
-    function swapMullticall(
-        bytes[] calldata data,
+    function swapRouter(
         address invester,
-        address tokenIn, 
-        address tokenOut, 
-        uint256 amountIn, 
-        uint256 amountOut
-    ) external payable override returns (bytes memory) {
+        V3Trade[] calldata trades,
+        SwapOptions calldata options
+    ) external payable override returns (uint256) {
         require(msg.sender == manager, 'swapRouter: invalid sender');
-        address swapRouter = IXXXFactory(factory).getSwapRouterAddress();
-        (bool success, bytes memory returnData) = address(swapRouter).delegatecall(
-            abi.encodeWithSelector(ISwapRouter(swapRouter).swap.selector, data));
-        require(success == true, 'swapRouter fail');
-        updateSwapInfo(invester, tokenIn, tokenOut, amountIn, amountOut);
-        emit Swap(invester, tokenIn, tokenOut, amountIn, amountOut);
+        require(IXXXFactory(factory).isWhiteListToken(trades[0].output), 
+            'XXXFund swapExactOutputSingle: not whitelist token');
+        address _swapRouterAddress = IXXXFactory(factory).getSwapRouterAddress();
 
-        return returnData;
+        // Approve the router to spend the specifed `amountInMaximum` of tokenIn.
+        // In production, you should choose the maximum amount to spend based on oracles or other data sources to acheive a better swap.
+        trades[0].input.call(abi.encodeWithSelector(IERC20.approve.selector, _swapRouterAddress, trades[0].amountInMaximum));
+
+        uint256 investerAmount = getInvestorTokenAmount(invester, trades[0].input);
+        uint256 swapInputAmount = 0;
+        for (uint256 i=0; i<trades.length; i++) {
+            swapInputAmount += trades[i].inputAmount;
+        }
+        require(investerAmount > swapInputAmount, 'swapRouter: invalid inputAmount');
+
+        uint256 amountIn = 0;
+        uint256 amountOut = 0;
+        for(uint256 i=0; i<trades.length; i++) {
+
+            // Naively set amountOutMinimum to 0. In production, use an oracle or other data source to choose a safer value for amountOutMinimum.
+            // We also set the sqrtPriceLimitx96 to be 0 to ensure we swap our exact input amount.
+            ISwapRouter02.ExactInputSingleParams memory params =
+                IV3SwapRouter.ExactInputSingleParams({
+                    tokenIn: trades[i].input,
+                    tokenOut: trades[i].output,
+                    fee: options.fee,
+                    recipient: msg.sender,
+                    //deadline: _params.deadline,
+                    amountIn: trades[i].inputAmount,
+                    amountOutMinimum: trades[i].amountOutMinimum,
+                    sqrtPriceLimitX96: 0
+                });
+
+            // The call to `exactInputSingle` executes the swap.
+            amountIn += trades[i].inputAmount;
+            amountOut += ISwapRouter02(_swapRouterAddress).exactInputSingle(params);
+        }
+
+        //updateSwapInfo(invester, tokenIn, tokenOut, amountIn, amountOut);
+        //emit Swap(invester, tokenIn, tokenOut, amountIn, amountOut);
+
+        return 1;
     }
-
-    // function swapMulticall(bytes[] calldata data) external payable override returns (bytes[] memory results) {
-    //     address fund = IXXXFactory(factory).getFund(msg.sender);
-    //     require(fund != address(0), 'multicall: sender is not manager');
-    //     require(data.length >= 2);
-
-    //     bytes[] memory datas = new bytes[](data.length-1);
-    //     for (uint256 i = 0; i < data.length-1; i++) {
-    //         datas[i] = data[i];
-    //     }
-    //     bytes[] memory result = ISwapRouter02(0xE592427A0AEce92De3Edee1F18E0157C05861564).multicall(datas);
-
-    //     bytes memory lastData = data[data.length-1];
-    //     (bool success, bytes memory result2) = address(this).delegatecall(lastData);
-
-    //     results = new bytes[](data.length);
-    //     for (uint256 i = 0; i < data.length-1; i++) {
-    //         results[i] = result[i];
-    //     }
-    //     results[data.length-1] = result2;
-
-    //     return results;
-    // }
-
-    function unwrapWETH9WithFee(address _swapRouterAddress, ISwapRouter02.ExactInputSingleParams calldata params) internal lock {
-        
-    }
-
-    function unwrapWETH9(address _swapRouterAddress, ISwapRouter02.ExactInputSingleParams calldata params) internal lock {
-        
-    }
-
-    function refundETH(address _swapRouterAddress, ISwapRouter02.ExactInputSingleParams calldata params) internal lock {
-        
-    }
-
-
-
-
 }

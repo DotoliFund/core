@@ -16,15 +16,42 @@ contract SwapRouter is ISwapRouter {
         SWAP_ROUTER_ADDRESS = router;
     }
 
-    function swap(bytes[] calldata data) override external payable returns (bytes[] memory results) {
+
+    function swap(
+        V3Trade[] calldata trades,
+        SwapOptions calldata options
+    ) 
+        override
+        external 
+        payable 
+        returns (bytes[] memory) 
+    {
+
+        bytes[] memory calldatas = new bytes[](1);
+
+
+
         address fund = IXXXFactory(factory).getFund(msg.sender);
         require(fund != address(0), 'multicall: sender is not manager');
 
-        bytes[] memory results = ISwapRouter02(0xE592427A0AEce92De3Edee1F18E0157C05861564).multicall(data);
+        bytes[] memory results = ISwapRouter02(0xE592427A0AEce92De3Edee1F18E0157C05861564).multicall(calldatas);
 
         return results;
     }
 
+    // function multiCall(address[] calldata targets, bytes[] calldata encodedFunctions) 
+    //     external 
+    //     returns (bytes[] memory) 
+    // {
+    //     for (uint256 i; i < targets.length; i++) {
+    //         (bool success, bytes memory result) = address(targets[i]).call(
+    //             encodedFunctions[i]
+    //         );
+    //         require(success, 'multi call failed');
+    //         results[i] = result;
+    //     }
+    //     return results;
+    // }
 
   //   function multicall(bytes[] calldata data) external payable override returns (bytes[] memory results) {
         // address fund = IXXXFactory(factory).getFund(msg.sender);
