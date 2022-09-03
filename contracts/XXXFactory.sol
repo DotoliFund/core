@@ -36,7 +36,7 @@ contract XXXFactory is IXXXFactory {
 
     function createFund(address manager) override external returns (address fund) {
         require(msg.sender == manager, 'XXXFactory: IDENTICAL_ADDRESSES');
-        require(allFund[manager] == address(0), 'XXXFactory: FUND_EXISTS'); // single check is sufficient
+        require(allFund[manager] == address(0), 'XXXFactory: FUND_EXISTS');
 
         fund = address(new XXXFund{salt: keccak256(abi.encode(address(this), manager))}());
         allFund[manager] = fund;

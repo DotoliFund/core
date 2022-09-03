@@ -276,8 +276,8 @@ contract XXXFund is IXXXFund {
                     amountOut = trades[i].outputAmount;
                 }
             }
-            updateSwapInfo(invester, tokenIn, tokenOut, amountIn, amountOut);
-            emit Swap(invester, tokenIn, tokenOut, amountIn, amountOut);
+            updateSwapInfo(invester, trades[0].input, trades[0].output, amountIn, amountOut);
+            emit Swap(invester, trades[0].input, trades[0].output, amountIn, amountOut);
         }
         return 1;
     }
