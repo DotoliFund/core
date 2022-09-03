@@ -23,13 +23,25 @@ interface IXXXFund {
         uint256 amountOut
     );
 
+    enum V3TradeType{
+        EXACT_INPUT,
+        EXACT_OUTPUT
+    }
+
+    enum V3SwapType{
+        SINGLE_HOP,
+        MULTI_HOP
+    }
+
     // /**
     //  * V3Trade for producing the arguments to send calls to the router.
     //  */
     struct V3Trade {
-        string tradeType;
+        V3TradeType tradeType;
+        V3SwapType swapType;
         address input;
         address output;
+        bytes path;
         uint256 inputAmount;
         uint256 outputAmount;
         uint256 amountInMaximum;

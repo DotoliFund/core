@@ -73,7 +73,7 @@ contract SwapRouter is ISwapRouter {
 
     function swapRouter(
         address invester,
-        V3Trade[] calldata trades,
+        Trade[] calldata trades,
         SwapOptions calldata options
     ) external payable override returns (uint256) {
         require(IXXXFactory(factory).isWhiteListToken(trades[0].output), 

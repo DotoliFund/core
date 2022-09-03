@@ -218,32 +218,67 @@ contract XXXFund is IXXXFund {
         }
         require(investerAmount > swapInputAmount, 'swapRouter: invalid inputAmount');
 
-        uint256 amountIn = 0;
-        uint256 amountOut = 0;
+        uint256 amountIn;
+        uint256 amountOut;
         for(uint256 i=0; i<trades.length; i++) {
-
-            // Naively set amountOutMinimum to 0. In production, use an oracle or other data source to choose a safer value for amountOutMinimum.
-            // We also set the sqrtPriceLimitx96 to be 0 to ensure we swap our exact input amount.
-            ISwapRouter02.ExactInputSingleParams memory params =
-                IV3SwapRouter.ExactInputSingleParams({
-                    tokenIn: trades[i].input,
-                    tokenOut: trades[i].output,
-                    fee: options.fee,
-                    recipient: msg.sender,
-                    //deadline: _params.deadline,
-                    amountIn: trades[i].inputAmount,
-                    amountOutMinimum: trades[i].amountOutMinimum,
-                    sqrtPriceLimitX96: 0
-                });
-
-            // The call to `exactInputSingle` executes the swap.
-            amountIn += trades[i].inputAmount;
-            amountOut += ISwapRouter02(_swapRouterAddress).exactInputSingle(params);
+            if (trades[i].swapType == V3SwapType.SINGLE_HOP) {
+                if (trades[i].tradeType == V3TradeType.EXACT_INPUT) {
+                    // Naively set amountOutMinimum to 0. In production, use an oracle or other data source to choose a safer value for amountOutMinimum.
+                    // We also set the sqrtPriceLimitx96 to be 0 to ensure we swap our exact input amount.
+                    ISwapRouter02.ExactInputSingleParams memory params =
+                        IV3SwapRouter.ExactInputSingleParams({
+                            tokenIn: trades[i].input,
+                            tokenOut: trades[i].output,
+                            fee: options.fee,
+                            recipient: msg.sender,
+                            //deadline: _params.deadline,
+                            amountIn: trades[i].inputAmount,
+                            amountOutMinimum: trades[i].amountOutMinimum,
+                            sqrtPriceLimitX96: 0
+                        });
+                    amountIn = trades[i].inputAmount;
+                    amountOut = ISwapRouter02(_swapRouterAddress).exactInputSingle(params);
+                } else {
+                    ISwapRouter02.ExactOutputSingleParams memory params =
+                        IV3SwapRouter.ExactOutputSingleParams({
+                            tokenIn: trades[i].input,
+                            tokenOut: trades[i].output,
+                            fee: options.fee,
+                            recipient: msg.sender,
+                            //deadline: _params.deadline,
+                            amountOut: trades[i].outputAmount,
+                            amountInMaximum: trades[i].amountInMaximum,
+                            sqrtPriceLimitX96: 0
+                        });
+                    amountIn = ISwapRouter02(_swapRouterAddress).exactOutputSingle(params);
+                    amountOut = trades[i].outputAmount;
+                }
+            } else {
+                if (trades[i].tradeType == V3TradeType.EXACT_INPUT) {
+                    ISwapRouter02.ExactInputParams memory params =
+                        IV3SwapRouter.ExactInputParams({
+                            path: trades[i].path,
+                            recipient: msg.sender,
+                            amountIn: trades[i].inputAmount,
+                            amountOutMinimum: trades[i].outputAmount
+                        });
+                    amountIn = trades[i].inputAmount;
+                    amountOut = ISwapRouter02(_swapRouterAddress).exactInput(params);
+                } else {
+                    ISwapRouter02.ExactOutputParams memory params =
+                        IV3SwapRouter.ExactOutputParams({
+                            path: trades[i].path,
+                            recipient: msg.sender,
+                            amountOut: trades[i].outputAmount,
+                            amountInMaximum: trades[i].inputAmount
+                        });
+                    amountIn = ISwapRouter02(_swapRouterAddress).exactOutput(params);
+                    amountOut = trades[i].outputAmount;
+                }
+            }
+            updateSwapInfo(invester, tokenIn, tokenOut, amountIn, amountOut);
+            emit Swap(invester, tokenIn, tokenOut, amountIn, amountOut);
         }
-
-        //updateSwapInfo(invester, tokenIn, tokenOut, amountIn, amountOut);
-        //emit Swap(invester, tokenIn, tokenOut, amountIn, amountOut);
-
         return 1;
     }
 }
