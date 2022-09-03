@@ -1,29 +1,22 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 // Inspired by Uniswap
-pragma solidity =0.8.4;
+pragma solidity =0.7.6;
 pragma abicoder v2;
 
 import './interfaces/IXXXFund.sol';
 import './interfaces/IXXXFactory.sol';
-import '@uniswap/v3-periphery/contracts/interfaces/ISwapRouter.sol';
-import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
+import './interfaces/IERC20.sol';
+import '@uniswap/swap-router-contracts/contracts/interfaces/ISwapRouter02.sol';
+import '@uniswap/v3-periphery/contracts/interfaces/IPeripheryPayments.sol';
 
 contract XXXFund is IXXXFund {
     address public factory;
     address public manager;
 
-    //manager history used for nonfungible trading history
-    ReservedTokenHistory[] reservedTokenHistory;
-    ManagerHistory[] managerHistory;
-
-    //fund info
-    uint256 fundPrincipalUSD = 0;
-    mapping(uint256 => Token) public fundTokens;
-    uint256 public fundTokenCount = 0;
     //investor info
-    mapping(address => uint256) public investorPrincipalUSD;
     mapping(address => mapping(uint256 => Token)) public investorTokens;
     mapping(address => uint256) public investorTokenCount;
+
     //fund manager profit rewards added, only if the investor receives a profit.
     mapping(uint256 => Token) public rewardTokens;
     uint256 public rewardTokenCount = 0;
@@ -45,33 +38,22 @@ contract XXXFund is IXXXFund {
         manager = _manager;
     }
 
-    function getPriceUSD(address token) private returns (uint256 fiatPrice) {
-        fiatPrice = 0; 
-    }
-
-    function getFundTotalValueUSD() private returns (uint256 totalFiatValue) {
-        totalFiatValue = 0;
-    }
-
-    function getInvestorTotalValueUSD(address investor) private returns (uint256 totalFiatValue) {
-        totalFiatValue = 0;
-    }
-
     function getDate() private returns (string memory){
         string memory date = '';
         return date;
     }
 
-    function increaseFundTokenAmount(address _token, uint256 _amount) private returns (bool){
-        bool isNewToken = true;
-        for (uint256 i=0; i<fundTokenCount; i++) {
-            if (fundTokens[i].tokenAddress == _token) {
-                isNewToken = false;
-                fundTokens[i].amount += _amount;
-                break;
+    function getTokenOutFromPath() private returns (address){
+        return 0xE592427A0AEce92De3Edee1F18E0157C05861564;
+    }
+
+    function getInvestorTokenAmount(address investor, address token) private returns (uint256){
+        for (uint256 i=0; i<investorTokenCount[investor]; i++) {
+            if (investorTokens[investor][i].tokenAddress == token) {
+                return investorTokens[investor][i].amount;
             }
         }
-        return isNewToken;
+        return 0;
     }
 
     function increaseInvestorTokenAmount(address investor, address _token, uint256 _amount) private returns (bool){
@@ -80,19 +62,6 @@ contract XXXFund is IXXXFund {
             if (investorTokens[investor][i].tokenAddress == _token) {
                 isNewToken = false;
                 investorTokens[investor][i].amount += _amount;
-                break;
-            }
-        }
-        return isNewToken;
-    }
-
-    function decreaseFundTokenAmount(address _token, uint256 _amount) private returns (bool){
-        bool isNewToken = true;
-        for (uint256 i=0; i<fundTokenCount; i++) {
-            if (fundTokens[i].tokenAddress == _token) {
-                isNewToken = false;
-                require(fundTokens[i].amount >= _amount, 'decreaseTokenAmount: decrease token amount is more than you have');
-                fundTokens[i].amount -= _amount;
                 break;
             }
         }
@@ -113,16 +82,6 @@ contract XXXFund is IXXXFund {
     }
 
     function updateDepositInfo(address investor, address _token, uint256 _amount) private {
-        //update fund info
-        bool isNewFundToken = increaseFundTokenAmount(_token, _amount);
-        if (isNewFundToken) {
-            fundTokens[fundTokenCount].tokenAddress = _token;
-            fundTokens[fundTokenCount].amount = _amount;
-            fundTokenCount += 1;
-        }
-        uint256 depositValue = getPriceUSD(_token) * _amount;
-        fundPrincipalUSD += depositValue;
-
         //update investor info
         bool isNewInvestorToken = increaseInvestorTokenAmount(investor, _token, _amount);
         if (isNewInvestorToken) {
@@ -131,37 +90,16 @@ contract XXXFund is IXXXFund {
             investorTokens[investor][newTokenIndex].amount = _amount;
             investorTokenCount[investor] += 1;
         }
-        investorPrincipalUSD[investor] += depositValue;
     }
 
     function updateWithdrawInfo(address investor, address _token, uint256 _amount) private {
-        //update fund info
-        bool isNewFundToken = decreaseFundTokenAmount(_token, _amount);
-        require(isNewFundToken == false, 'updateWithdrawInfo: Invalid fund token withdraw attempt');
-        uint256 withdrawValue = getPriceUSD(_token) * _amount;
-        uint256 fundWithdrawRatio = withdrawValue / getFundTotalValueUSD();
-        fundPrincipalUSD -= fundPrincipalUSD * fundWithdrawRatio;
-
         //update investor info
         bool isNewInvestorToken = decreaseInvestorTokenAmount(investor, _token, _amount);
         require(isNewInvestorToken == false, 'updateWithdrawInfo: Invalid investor token withdraw attempt');
-        uint256 investorWithdrawRatio = withdrawValue / getInvestorTotalValueUSD(investor);
-        investorPrincipalUSD[investor] -= investorPrincipalUSD[investor] * investorWithdrawRatio;
     }
 
     function updateSwapInfo(address investor, address swapFrom, address swapTo, uint256 swapFromAmount, uint256 swapToAmount) private {
-        require(msg.sender == manager, "Not manager");
-        //update fund info
-        //decrease part of swap (decrease swapFrom token reduce by swapFromAmount)
-        bool isNewFundToken = decreaseFundTokenAmount(swapFrom, swapFromAmount);
-        require(isNewFundToken == false, 'updateSwapInfo: Invalid fund token swap attempt');
-        //increase part of swap (increase swapTo token increase by swapToAmount)
-        isNewFundToken = increaseFundTokenAmount(swapTo, swapToAmount);
-        if (isNewFundToken) {
-            fundTokens[fundTokenCount].tokenAddress = swapTo;
-            fundTokens[fundTokenCount].amount = swapToAmount;
-            fundTokenCount += 1;
-        }
+        require(address(this) == IXXXFactory(factory).getFund(msg.sender), "updateSwapInfo: invalid swapRouter");
 
         //update investor info
         //decrease part of swap (decrease swapFrom token reduce by swapFromAmount)
@@ -189,17 +127,17 @@ contract XXXFund is IXXXFund {
         return _isValidTokenAmount;
     }
 
-    function getManagerReward(address investor, address _token, uint256 _amount) private returns (uint256) {
-        uint256 withdrawValue = getPriceUSD(_token) * _amount;
-        require(address(investor) != address(0), 'getManagerReward: Invalid investor address');
-        uint256 managerReward = 0;
-        uint256 investorTotalValue = getInvestorTotalValueUSD(investor);
-        uint256 investorProfit = investorTotalValue - investorPrincipalUSD[investor];
-        if (investorProfit > 0) {
-            managerReward = investorProfit * IXXXFactory(factory).getManagerFee() * withdrawValue / investorTotalValue;
-        }
-        return managerReward;
-    }
+    // function getManagerReward(address investor, address _token, uint256 _amount) private returns (uint256) {
+    //     uint256 withdrawValue = getPriceUSD(_token) * _amount;
+    //     require(address(investor) != address(0), 'getManagerReward: Invalid investor address');
+    //     uint256 managerReward = 0;
+    //     uint256 investorTotalValue = getInvestorTotalValueUSD(investor);
+    //     uint256 investorProfit = investorTotalValue - investorPrincipalUSD[investor];
+    //     if (investorProfit > 0) {
+    //         managerReward = investorProfit * IXXXFactory(factory).getManagerFee() * withdrawValue / investorTotalValue;
+    //     }
+    //     return managerReward;
+    // }
 
     function increaseManagerRewardTokenAmount(address _token, uint256 _amount) private returns (bool){
         bool isNewToken = true;
@@ -229,7 +167,7 @@ contract XXXFund is IXXXFund {
     function withdraw(address investor, address _token, uint256 _amount) override external lock {
         require(msg.sender == investor); // sufficient check
         //check if investor has valid token amount
-        require(isValidTokenAmount(investor, _token, _amount) == true, 'withdraw: Invalid token');
+        require(isValidTokenAmount(investor, _token, _amount) == true, 'withdraw: invalid token amount');
 
         _token.call(abi.encodeWithSelector(IERC20.transfer.selector, investor, _amount));
 
@@ -259,178 +197,88 @@ contract XXXFund is IXXXFund {
         emit Withdraw(investor, _token, _amount);
     }
 
-    //todo change value
-    function addReservedTokenHistory() override external {
-        ReservedTokenHistory memory _ReservedTokenHistory;
-        _ReservedTokenHistory.date = '2022-08-10';
-        _ReservedTokenHistory.tokenAddress = 0xE592427A0AEce92De3Edee1F18E0157C05861564;
-        _ReservedTokenHistory.amount = 0;
-
-        return reservedTokenHistory.push(_ReservedTokenHistory);
-    }
-
-    function getReservedTokenHistory() override external returns (ReservedTokenHistory[] memory) {
-        uint256 reservedTokenHistoryCount = reservedTokenHistory.length;
-        ReservedTokenHistory[] memory _reservedTokenHistory = new ReservedTokenHistory[](reservedTokenHistoryCount);
-        for (uint256 i; i<reservedTokenHistoryCount; i++) {
-            _reservedTokenHistory[i] = reservedTokenHistory[i];
-        }
-        return _reservedTokenHistory;
-    }
-
-    //todo change value
-    function addManagerHistory() override external {
-        ManagerHistory memory _managerHistory;
-        _managerHistory.date = '2022-08-10';
-        _managerHistory.fundPrincipalUSD = 0;
-        _managerHistory.totalValueUSD = 0;
-        _managerHistory.totalValueETH = 0;
-        _managerHistory.profitRate = 0;
-
-        return managerHistory.push(_managerHistory);
-    }
-
-    function getManagerHistory() override external returns (ManagerHistory[] memory) {
-        uint256 managerHistoryCount = managerHistory.length;
-        ManagerHistory[] memory _managerHistory = new ManagerHistory[](managerHistoryCount);
-        for (uint256 i; i<managerHistoryCount; i++) {
-            _managerHistory[i] = managerHistory[i];
-        }
-        return _managerHistory;
-    }
-
-    function swapExactInputSingle(ISwapRouter.ExactInputSingleParams calldata _params) override external lock returns (uint256 amountOut) {
-        require(msg.sender == manager, "Not manager");
-        require(IXXXFactory(factory).isWhiteListToken(_params.tokenOut), 'XXXFund swapExactInputSingle: not whitelist token');
-        // msg.sender must approve this contract
-
-        address _swapRouterAddress = IXXXFactory(factory).getSwapRouterAddress();
-
-        // Approve the router to spend tokenIn.
-        _params.tokenIn.call(abi.encodeWithSelector(IERC20.approve.selector, _swapRouterAddress, _params.amountIn));
-
-        // Naively set amountOutMinimum to 0. In production, use an oracle or other data source to choose a safer value for amountOutMinimum.
-        // We also set the sqrtPriceLimitx96 to be 0 to ensure we swap our exact input amount.
-        ISwapRouter.ExactInputSingleParams memory params =
-            ISwapRouter.ExactInputSingleParams({
-                tokenIn: _params.tokenIn,
-                tokenOut: _params.tokenOut,
-                fee: _params.fee,
-                recipient: address(this),
-                deadline: _params.deadline,
-                amountIn: _params.amountIn,
-                amountOutMinimum: 0,
-                sqrtPriceLimitX96: 0
-            });
-
-        // The call to `exactInputSingle` executes the swap.
-        amountOut = ISwapRouter(_swapRouterAddress).exactInputSingle(params);
-
-        updateSwapInfo(manager, _params.tokenIn, _params.tokenOut, _params.amountIn, amountOut);
-
-        emit Swap(manager, _params.tokenIn, _params.tokenOut, _params.amountIn, amountOut);
-    }
-
-    function swapExactOutputSingle(ISwapRouter.ExactOutputSingleParams calldata _params) override external lock returns (uint256 amountIn) {
-        require(msg.sender == manager, "Not manager");
-        require(IXXXFactory(factory).isWhiteListToken(_params.tokenOut), 'XXXFund swapExactOutputSingle: not whitelist token');
+    function swap(
+        address invester,
+        V3Trade[] calldata trades,
+        SwapOptions calldata options
+    ) external payable override returns (uint256) {
+        require(msg.sender == manager, 'swapRouter: invalid sender');
+        require(IXXXFactory(factory).isWhiteListToken(trades[0].output), 
+            'XXXFund swapExactOutputSingle: not whitelist token');
         address _swapRouterAddress = IXXXFactory(factory).getSwapRouterAddress();
 
         // Approve the router to spend the specifed `amountInMaximum` of tokenIn.
         // In production, you should choose the maximum amount to spend based on oracles or other data sources to acheive a better swap.
-        _params.tokenIn.call(abi.encodeWithSelector(IERC20.approve.selector, _swapRouterAddress, _params.amountInMaximum));
+        trades[0].input.call(abi.encodeWithSelector(IERC20.approve.selector, _swapRouterAddress, trades[0].amountInMaximum));
 
-        ISwapRouter.ExactOutputSingleParams memory params =
-            ISwapRouter.ExactOutputSingleParams({
-                tokenIn: _params.tokenIn,
-                tokenOut: _params.tokenOut,
-                fee: _params.fee,
-                recipient: address(this),
-                deadline: _params.deadline,
-                amountOut: _params.amountOut,
-                amountInMaximum: _params.amountInMaximum,
-                sqrtPriceLimitX96: 0
-            });
-
-        // Executes the swap returning the amountIn needed to spend to receive the desired amountOut.
-        amountIn = ISwapRouter(_swapRouterAddress).exactOutputSingle(params);
-
-        // For exact output swaps, the amountInMaximum may not have all been spent.
-        // If the actual amount spent (amountIn) is less than the specified maximum amount, we must refund the msg.sender and approve the swapRouter to spend 0.
-        if (amountIn < _params.amountInMaximum) {
-            _params.tokenIn.call(abi.encodeWithSelector(IERC20.approve.selector, _swapRouterAddress, 0));
-            _params.tokenIn.call(abi.encodeWithSelector(IERC20.transfer.selector, msg.sender, _params.amountInMaximum - amountIn));
+        uint256 investerAmount = getInvestorTokenAmount(invester, trades[0].input);
+        uint256 swapInputAmount = 0;
+        for (uint256 i=0; i<trades.length; i++) {
+            swapInputAmount += trades[i].inputAmount;
         }
+        require(investerAmount > swapInputAmount, 'swapRouter: invalid inputAmount');
 
-        updateSwapInfo(manager, _params.tokenIn, _params.tokenOut, amountIn, _params.amountOut);
-
-        emit Swap(manager, _params.tokenIn, _params.tokenOut, amountIn, _params.amountOut);
+        uint256 amountIn;
+        uint256 amountOut;
+        for(uint256 i=0; i<trades.length; i++) {
+            if (trades[i].swapType == V3SwapType.SINGLE_HOP) {
+                if (trades[i].tradeType == V3TradeType.EXACT_INPUT) {
+                    // Naively set amountOutMinimum to 0. In production, use an oracle or other data source to choose a safer value for amountOutMinimum.
+                    // We also set the sqrtPriceLimitx96 to be 0 to ensure we swap our exact input amount.
+                    ISwapRouter02.ExactInputSingleParams memory params =
+                        IV3SwapRouter.ExactInputSingleParams({
+                            tokenIn: trades[i].input,
+                            tokenOut: trades[i].output,
+                            fee: options.fee,
+                            recipient: msg.sender,
+                            //deadline: _params.deadline,
+                            amountIn: trades[i].inputAmount,
+                            amountOutMinimum: trades[i].amountOutMinimum,
+                            sqrtPriceLimitX96: 0
+                        });
+                    amountIn = trades[i].inputAmount;
+                    amountOut = ISwapRouter02(_swapRouterAddress).exactInputSingle(params);
+                } else {
+                    ISwapRouter02.ExactOutputSingleParams memory params =
+                        IV3SwapRouter.ExactOutputSingleParams({
+                            tokenIn: trades[i].input,
+                            tokenOut: trades[i].output,
+                            fee: options.fee,
+                            recipient: msg.sender,
+                            //deadline: _params.deadline,
+                            amountOut: trades[i].outputAmount,
+                            amountInMaximum: trades[i].amountInMaximum,
+                            sqrtPriceLimitX96: 0
+                        });
+                    amountIn = ISwapRouter02(_swapRouterAddress).exactOutputSingle(params);
+                    amountOut = trades[i].outputAmount;
+                }
+            } else {
+                if (trades[i].tradeType == V3TradeType.EXACT_INPUT) {
+                    ISwapRouter02.ExactInputParams memory params =
+                        IV3SwapRouter.ExactInputParams({
+                            path: trades[i].path,
+                            recipient: msg.sender,
+                            amountIn: trades[i].inputAmount,
+                            amountOutMinimum: trades[i].outputAmount
+                        });
+                    amountIn = trades[i].inputAmount;
+                    amountOut = ISwapRouter02(_swapRouterAddress).exactInput(params);
+                } else {
+                    ISwapRouter02.ExactOutputParams memory params =
+                        IV3SwapRouter.ExactOutputParams({
+                            path: trades[i].path,
+                            recipient: msg.sender,
+                            amountOut: trades[i].outputAmount,
+                            amountInMaximum: trades[i].inputAmount
+                        });
+                    amountIn = ISwapRouter02(_swapRouterAddress).exactOutput(params);
+                    amountOut = trades[i].outputAmount;
+                }
+            }
+            updateSwapInfo(invester, trades[0].input, trades[0].output, amountIn, amountOut);
+            emit Swap(invester, trades[0].input, trades[0].output, amountIn, amountOut);
+        }
+        return 1;
     }
-
-    // function swapExactInputMultihop(ISwapRouter.ExactInputParams calldata _params) override external lock returns (uint256 amountOut) {
-    //     require(msg.sender == manager, "Not manager");
-    //     address tokenOut = getTokenOutFromPath(_params.path);
-    //     require(IXXXFactory(factory).isWhiteListToken(tokenOut), 'XXXFund swapExactInputMultihop: not whitelist token');
-
-    //     address _swapRouterAddress = IXXXFactory(factory).getSwapRouterAddress();
-
-    //     // Approve the router to spend DAI.
-    //     DAI.call(abi.encodeWithSelector(IERC20.approve.selector, _swapRouterAddress, _params.amountIn));
-
-    //     // Multiple pool swaps are encoded through bytes called a `path`. A path is a sequence of token addresses and poolFees that define the pools used in the swaps.
-    //     // The format for pool encoding is (tokenIn, fee, tokenOut/tokenIn, fee, tokenOut) where tokenIn/tokenOut parameter is the shared token across the pools.
-    //     // Since we are swapping DAI to USDC and then USDC to WETH9 the path encoding is (DAI, 0.3%, USDC, 0.3%, WETH9).
-    //     ISwapRouter.ExactInputParams memory params =
-    //         ISwapRouter.ExactInputParams({
-    //             path: _params.path, //abi.encodePacked(DAI, poolFee, USDC, poolFee, WETH9),
-    //             recipient: address(this),
-    //             deadline: _params.deadline,
-    //             amountIn: _params.amountIn,
-    //             amountOutMinimum: 0
-    //         });
-
-    //     // Executes the swap.
-    //     amountOut = ISwapRouter(_swapRouterAddress).exactInput(params);
-
-    //     //updateSwapInfo(manager, _params.tokenIn, _params.tokenOut, _params.amountIn, amountOut);
-
-           //emit Swap(manager, _params.tokenIn, _params.tokenOut, _params.amountIn, amountOut);
-    // }
-
-    // function swapExactOutputMultihop(ISwapRouter.ExactOutputParams calldata _params) override external lock returns (uint256 amountIn) {
-    //     require(msg.sender == manager, "Not manager");
-    //     address tokenOut = getTokenOutFromPath(_params.path);
-    //     require(IXXXFactory(factory).isWhiteListToken(tokenOut), 'XXXFund swapExactOutputMultihop: not whitelist token');
-
-    //     address _swapRouterAddress = IXXXFactory(factory).getSwapRouterAddress();
-
-    //     // Approve the router to spend  `amountInMaximum`.
-    //     DAI.call(abi.encodeWithSelector(IERC20.approve.selector, _swapRouterAddress, _params.amountInMaximum));
-
-    //     // The parameter path is encoded as (tokenOut, fee, tokenIn/tokenOut, fee, tokenIn)
-    //     // The tokenIn/tokenOut field is the shared token between the two pools used in the multiple pool swap. In this case USDC is the "shared" token.
-    //     // For an exactOutput swap, the first swap that occurs is the swap which returns the eventual desired token.
-    //     // In this case, our desired output token is WETH9 so that swap happpens first, and is encoded in the path accordingly.
-    //     ISwapRouter.ExactOutputParams memory params =
-    //         ISwapRouter.ExactOutputParams({
-    //             path: _params.path, //abi.encodePacked(WETH9, poolFee, USDC, poolFee, DAI),
-    //             recipient: address(this),
-    //             deadline: block.timestamp,
-    //             amountOut: _params.amountOut,
-    //             amountInMaximum: _params.amountInMaximum
-    //         });
-
-    //     // Executes the swap, returning the amountIn actually spent.
-    //     amountIn = ISwapRouter(_swapRouterAddress).exactOutput(params);
-
-    //     // If the swap did not require the full amountInMaximum to achieve the exact amountOut then we refund msg.sender and approve the router to spend 0.
-    //     if (amountIn < _params.amountInMaximum) {
-    //         DAI.call(abi.encodeWithSelector(IERC20.approve.selector, _swapRouterAddress, 0)); 
-    //         DAI.call(abi.encodeWithSelector(IERC20.transferFrom.selector, address(this), msg.sender, _params.amountInMaximum - amountIn));
-    //     }
-
-    //     //updateSwapInfo(manager, _params.tokenIn, _params.tokenOut, amountIn, _params.amountOut);
-
-           //emit Swap(manager, _params.tokenIn, _params.tokenOut, amountIn, _params.amountOut);
-    // }
 }

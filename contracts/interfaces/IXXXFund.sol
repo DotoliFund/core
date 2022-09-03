@@ -1,28 +1,16 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 // Inspired by Uniswap
-pragma solidity =0.8.4;
+pragma solidity =0.7.6;
+pragma abicoder v2;
 
-import '@uniswap/v3-periphery/contracts/interfaces/ISwapRouter.sol';
+import '@uniswap/swap-router-contracts/contracts/interfaces/ISwapRouter02.sol';
+import './ISwapRouter.sol';
 
 interface IXXXFund {
 
     struct Token {
         address tokenAddress;
         uint256 amount;
-    }
-
-    struct ReservedTokenHistory {
-    	string date;
-        address tokenAddress;
-        uint256 amount;
-    }
-
-    struct ManagerHistory {
-        string date;
-        uint256 fundPrincipalUSD;
-        uint256 totalValueUSD;
-        uint256 totalValueETH;
-        uint256 profitRate;
     }
 
     event Deposit(address indexed investor, address _token, uint256 _amount);
@@ -35,18 +23,60 @@ interface IXXXFund {
         uint256 amountOut
     );
 
+    enum V3TradeType{
+        EXACT_INPUT,
+        EXACT_OUTPUT
+    }
+
+    enum V3SwapType{
+        SINGLE_HOP,
+        MULTI_HOP
+    }
+
+    // /**
+    //  * V3Trade for producing the arguments to send calls to the router.
+    //  */
+    struct V3Trade {
+        V3TradeType tradeType;
+        V3SwapType swapType;
+        address input;
+        address output;
+        bytes path;
+        uint256 inputAmount;
+        uint256 outputAmount;
+        uint256 amountInMaximum;
+        uint256 amountOutMinimum;
+    }
+
+    // /**
+    //  * SwapOptions for producing the arguments to send calls to the router.
+    //  */
+    struct SwapOptions {
+        uint256 slippageTolerance;
+        address recipient;
+        uint256 deadlineOrPreviousBlockhash;
+        uint256 inputTokenPermit;
+        uint24 fee;
+    }
+
+    struct ExactInputSingleParams {
+        address tokenIn;
+        address tokenOut;
+        uint24 fee;
+        address recipient;
+        uint256 amountIn;
+        uint256 amountOutMinimum;
+        uint160 sqrtPriceLimitX96;
+    }
+
+    function swap(
+        address invester,
+        V3Trade[] calldata trades,
+        SwapOptions calldata options
+    ) external payable returns (uint256);
+
     function initialize(address _manager) external;
     
     function deposit(address investor, address _token, uint256 _amount) external;
     function withdraw(address _token, address to, uint256 _amount) external;
-
-    function swapExactInputSingle(ISwapRouter.ExactInputSingleParams calldata _params) external returns (uint256 amountOut);
-    function swapExactOutputSingle(ISwapRouter.ExactOutputSingleParams calldata _params) external returns (uint256 amountIn);
-    //function swapExactInputMultihop(address _token, address to) external;
-    //function swapExactOutputMultihop(address _token, address to) external;
-
-    function addReservedTokenHistory() external;
-    function getReservedTokenHistory() external returns (ReservedTokenHistory[] calldata);
-    function addManagerHistory() external;
-    function getManagerHistory() external returns (ManagerHistory[] calldata);
 }

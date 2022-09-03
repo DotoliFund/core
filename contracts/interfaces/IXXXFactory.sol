@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 // Inspired by Uniswap
-pragma solidity =0.8.4;
+pragma solidity =0.7.6;
+pragma abicoder v2;
 
 interface IXXXFactory {
 
@@ -12,7 +13,9 @@ interface IXXXFactory {
     function owner() external view returns (address);
 
     function createFund(address manager) external returns (address fund);
-    
+
+    function getFund(address manager) external returns (address);
+
     /// @notice Updates the owner of the factory
     /// @dev Must be called by the current owner
     /// @param _owner The new owner of the factory

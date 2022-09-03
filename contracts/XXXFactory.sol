@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 // Inspired by Uniswap
-pragma solidity =0.8.4;
+pragma solidity =0.7.6;
 pragma abicoder v2;
 
 import './interfaces/IXXXFactory.sol';
@@ -18,8 +18,8 @@ contract XXXFactory is IXXXFactory {
     /// @param newOwner The owner after the owner was changed
     event OwnerChanged(address indexed oldOwner, address indexed newOwner);
 
-    mapping(address => address) public getFund;
-    uint256 public fundCount;
+    mapping(address => address) allFund;
+    uint256 fundCount;
 
     constructor() {
         owner = msg.sender;
@@ -36,14 +36,18 @@ contract XXXFactory is IXXXFactory {
 
     function createFund(address manager) override external returns (address fund) {
         require(msg.sender == manager, 'XXXFactory: IDENTICAL_ADDRESSES');
-        require(getFund[manager] == address(0), 'XXXFactory: FUND_EXISTS'); // single check is sufficient
+        require(allFund[manager] == address(0), 'XXXFactory: FUND_EXISTS');
 
         fund = address(new XXXFund{salt: keccak256(abi.encode(address(this), manager))}());
-        getFund[manager] = fund;
+        allFund[manager] = fund;
         IXXXFund(fund).initialize(manager);
         fundCount += 1;
 
         emit Create(fund, manager);
+    }
+
+    function getFund(address manager) override external returns (address){
+        return allFund[manager];
     }
 
     function setOwner(address _owner) override external {
