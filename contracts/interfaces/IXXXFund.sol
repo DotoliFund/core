@@ -34,9 +34,10 @@ interface IXXXFund {
     }
 
     // /**
-    //  * V3Trade for producing the arguments to send calls to the router.
+    //  * V3TradeParams for producing the arguments to send calls to the router.
     //  */
-    struct V3Trade {
+    struct V3TradeParams {
+        address investor;
         V3TradeType tradeType;
         V3SwapType swapType;
         address input;
@@ -46,17 +47,8 @@ interface IXXXFund {
         uint256 outputAmount;
         uint256 amountInMaximum;
         uint256 amountOutMinimum;
-    }
-
-    // /**
-    //  * SwapOptions for producing the arguments to send calls to the router.
-    //  */
-    struct SwapOptions {
+        uint256 fee;
         uint256 slippageTolerance;
-        address recipient;
-        uint256 deadlineOrPreviousBlockhash;
-        uint256 inputTokenPermit;
-        uint24 fee;
     }
 
     struct ExactInputSingleParams {
@@ -70,9 +62,7 @@ interface IXXXFund {
     }
 
     function swap(
-        address invester,
-        V3Trade[] calldata trades,
-        SwapOptions calldata options
+        V3TradeParams[] calldata trades
     ) external payable returns (uint256);
 
     function initialize(address _manager) external;

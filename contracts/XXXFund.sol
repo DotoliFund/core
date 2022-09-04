@@ -198,10 +198,9 @@ contract XXXFund is IXXXFund {
     }
 
     function swap(
-        address invester,
-        V3Trade[] calldata trades,
-        SwapOptions calldata options
+        V3TradeParams[] calldata trades
     ) external payable override returns (uint256) {
+        address investor = trades[0].investor;
         require(msg.sender == manager, 'swapRouter: invalid sender');
         require(IXXXFactory(factory).isWhiteListToken(trades[0].output), 
             'XXXFund swapExactOutputSingle: not whitelist token');
@@ -211,12 +210,12 @@ contract XXXFund is IXXXFund {
         // In production, you should choose the maximum amount to spend based on oracles or other data sources to acheive a better swap.
         trades[0].input.call(abi.encodeWithSelector(IERC20.approve.selector, _swapRouterAddress, trades[0].amountInMaximum));
 
-        uint256 investerAmount = getInvestorTokenAmount(invester, trades[0].input);
+        uint256 investorAmount = getInvestorTokenAmount(investor, trades[0].input);
         uint256 swapInputAmount = 0;
         for (uint256 i=0; i<trades.length; i++) {
             swapInputAmount += trades[i].inputAmount;
         }
-        require(investerAmount > swapInputAmount, 'swapRouter: invalid inputAmount');
+        require(investorAmount > swapInputAmount, 'swapRouter: invalid inputAmount');
 
         uint256 amountIn;
         uint256 amountOut;
@@ -229,7 +228,7 @@ contract XXXFund is IXXXFund {
                         IV3SwapRouter.ExactInputSingleParams({
                             tokenIn: trades[i].input,
                             tokenOut: trades[i].output,
-                            fee: options.fee,
+                            fee: trades.fee,
                             recipient: msg.sender,
                             //deadline: _params.deadline,
                             amountIn: trades[i].inputAmount,
@@ -243,7 +242,7 @@ contract XXXFund is IXXXFund {
                         IV3SwapRouter.ExactOutputSingleParams({
                             tokenIn: trades[i].input,
                             tokenOut: trades[i].output,
-                            fee: options.fee,
+                            fee: trades.fee,
                             recipient: msg.sender,
                             //deadline: _params.deadline,
                             amountOut: trades[i].outputAmount,
@@ -276,8 +275,8 @@ contract XXXFund is IXXXFund {
                     amountOut = trades[i].outputAmount;
                 }
             }
-            updateSwapInfo(invester, trades[0].input, trades[0].output, amountIn, amountOut);
-            emit Swap(invester, trades[0].input, trades[0].output, amountIn, amountOut);
+            updateSwapInfo(investor, trades[0].input, trades[0].output, amountIn, amountOut);
+            emit Swap(investor, trades[0].input, trades[0].output, amountIn, amountOut);
         }
         return 1;
     }
