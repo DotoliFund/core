@@ -228,7 +228,7 @@ contract XXXFund is IXXXFund {
                         IV3SwapRouter.ExactInputSingleParams({
                             tokenIn: trades[i].input,
                             tokenOut: trades[i].output,
-                            fee: trades.fee,
+                            fee: trades[i].fee,
                             recipient: msg.sender,
                             //deadline: _params.deadline,
                             amountIn: trades[i].inputAmount,
@@ -242,7 +242,7 @@ contract XXXFund is IXXXFund {
                         IV3SwapRouter.ExactOutputSingleParams({
                             tokenIn: trades[i].input,
                             tokenOut: trades[i].output,
-                            fee: trades.fee,
+                            fee: trades[i].fee,
                             recipient: msg.sender,
                             //deadline: _params.deadline,
                             amountOut: trades[i].outputAmount,

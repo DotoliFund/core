@@ -47,7 +47,7 @@ interface IXXXFund {
         uint256 outputAmount;
         uint256 amountInMaximum;
         uint256 amountOutMinimum;
-        uint256 fee;
+        uint24 fee;
         uint256 slippageTolerance;
     }
 
