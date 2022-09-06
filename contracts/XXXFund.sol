@@ -156,7 +156,8 @@ contract XXXFund is IXXXFund {
         require(msg.sender == investor); // sufficient check
         require(IXXXFactory(factory).isWhiteListToken(_token), 'XXXFund initialize: not whitelist token');
         
-        _token.call(abi.encodeWithSelector(IERC20.transferFrom.selector, investor, address(this), _amount));
+        //_token.call(abi.encodeWithSelector(IERC20.transferFrom.selector, investor, address(this), _amount));
+        IERC20(_token).transferFrom(investor, address(this), _amount);
 
         updateDepositInfo(investor, _token, _amount);
 
