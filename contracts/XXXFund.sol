@@ -36,6 +36,8 @@ contract XXXFund is IXXXFund {
     function initialize(address _manager) override external {
         require(msg.sender == factory, 'XXXFund initialize: FORBIDDEN'); // sufficient check
         manager = _manager;
+
+        emit Create(address(this), manager);
     }
 
     function getDate() private returns (string memory){
@@ -217,7 +219,7 @@ contract XXXFund is IXXXFund {
         for (uint256 i=0; i<trades.length; i++) {
             swapInputAmount += trades[i].amountIn;
         }
-        require(investorAmount > swapInputAmount, 'swapRouter: invalid inputAmount');
+        require(investorAmount > swapInputAmount, 'swap: invalid inputAmount');
 
         uint256 amountIn;
         uint256 amountOut;

@@ -5,8 +5,6 @@ pragma abicoder v2;
 
 interface IXXXFactory {
 
-    event Create(address fund, address manager);
-
     /// @notice Returns the current owner of the factory
     /// @dev Can be changed by the current owner via setOwner
     /// @return The address of the factory owner

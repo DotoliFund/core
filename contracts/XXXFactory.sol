@@ -43,8 +43,6 @@ contract XXXFactory is IXXXFactory {
         allFund[manager] = fund;
         IXXXFund(fund).initialize(manager);
         fundCount += 1;
-
-        emit Create(fund, manager);
     }
 
     function getFund(address manager) override external returns (address){
