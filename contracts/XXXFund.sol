@@ -203,9 +203,9 @@ contract XXXFund is IXXXFund {
         V3TradeParams[] calldata trades
     ) external payable override returns (uint256) {
         address investor = trades[0].investor;
-        require(msg.sender == manager, 'swapRouter: invalid sender');
+        require(msg.sender == manager, 'swap: invalid sender');
         require(IXXXFactory(factory).isWhiteListToken(trades[0].tokenOut), 
-            'XXXFund swapExactOutputSingle: not whitelist token');
+            'swap: not whitelist token');
         address _swapRouterAddress = IXXXFactory(factory).getSwapRouterAddress();
 
         // Approve the router to spend the specifed `amountInMaximum` of tokenIn.
