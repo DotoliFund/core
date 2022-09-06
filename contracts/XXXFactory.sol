@@ -26,8 +26,8 @@ contract XXXFactory is IXXXFactory {
         fundCount = 0;
         emit OwnerChanged(address(0), msg.sender);
 
-        whiteListTokens.push(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2); //WETH
-        whiteListTokens.push(0xc778417E063141139Fce010982780140Aa0cD5Ab); //WETH9
+        whiteListTokens.push(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2); //WETH mainnet
+        whiteListTokens.push(0xc778417E063141139Fce010982780140Aa0cD5Ab); //WETH rinkeby
         whiteListTokens.push(0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599); //WBTC
         whiteListTokens.push(0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48); //USDC
         whiteListTokens.push(0x6B175474E89094C44Da98b954EedeAC495271d0F); //DAI

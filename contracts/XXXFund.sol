@@ -170,7 +170,8 @@ contract XXXFund is IXXXFund {
         //check if investor has valid token amount
         require(isValidTokenAmount(investor, _token, _amount) == true, 'withdraw: invalid token amount');
 
-        _token.call(abi.encodeWithSelector(IERC20.transfer.selector, investor, _amount));
+        //_token.call(abi.encodeWithSelector(IERC20.transfer.selector, investor, _amount));
+        IERC20(_token).transfer(investor, _amount);
 
         // if (investor == manager) {
         //     // manager withdraw is no need manager fee
