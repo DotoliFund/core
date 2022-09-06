@@ -37,18 +37,19 @@ interface IXXXFund {
     //  * V3TradeParams for producing the arguments to send calls to the router.
     //  */
     struct V3TradeParams {
-        address investor;
         V3TradeType tradeType;
         V3SwapType swapType;
-        address input;
-        address output;
-        bytes path;
-        uint256 inputAmount;
-        uint256 outputAmount;
+        address investor;
+        address tokenIn;
+        address tokenOut;
+        address recipient;
+        uint24 fee;
+        uint256 amountIn;
+        uint256 amountOut;
         uint256 amountInMaximum;
         uint256 amountOutMinimum;
-        uint24 fee;
-        uint256 slippageTolerance;
+        uint160 sqrtPriceLimitX96;
+        bytes path;
     }
 
     struct ExactInputSingleParams {
