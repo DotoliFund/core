@@ -9,7 +9,7 @@ import './XXXFund.sol';
 contract XXXFactory is IXXXFactory {
     address public override owner;
     // Uniswap v3 swapRouter
-    address swapRouterAddress = 0xE592427A0AEce92De3Edee1F18E0157C05861564;
+    address swapRouterAddress = 0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45;
     uint256 managerFee = 1; // 1% of investor profit ex) MANAGER_FEE = 10 -> 10% of investor profit
     address[] whiteListTokens;
 

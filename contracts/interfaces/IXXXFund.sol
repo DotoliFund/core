@@ -4,7 +4,6 @@ pragma solidity =0.7.6;
 pragma abicoder v2;
 
 import '@uniswap/swap-router-contracts/contracts/interfaces/ISwapRouter02.sol';
-import './ISwapRouter.sol';
 
 interface IXXXFund {
 
@@ -51,16 +50,6 @@ interface IXXXFund {
         uint256 amountOutMinimum;
         uint160 sqrtPriceLimitX96;
         bytes path;
-    }
-
-    struct ExactInputSingleParams {
-        address tokenIn;
-        address tokenOut;
-        uint24 fee;
-        address recipient;
-        uint256 amountIn;
-        uint256 amountOutMinimum;
-        uint160 sqrtPriceLimitX96;
     }
 
     function swap(

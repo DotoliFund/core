@@ -22,19 +22,19 @@ const config: HardhatUserConfig = {
       {
         version: "0.8.4",
         settings: {
-            optimizer: {
-                enabled: true,
-                runs: 1000,
-            },
+          optimizer: {
+              enabled: true,
+              runs: 1000,
+          },
         },
       },
       {
         version: "0.7.6",
         settings: {
-            optimizer: {
-                enabled: true,
-                runs: 1000,
-            },
+          optimizer: {
+              enabled: true,
+              runs: 1000,
+          },
         },
       },
     ],
@@ -47,7 +47,13 @@ const config: HardhatUserConfig = {
     rinkeby: {
       url: `https://rinkeby.infura.io/v3/${INFURA_API_KEY}`,
       accounts: [GOERLI_PRIVATE_KEY]
-    }
+    },
+    hardhat: {
+      chainId: 31337,
+      forking: {
+        url: `https://mainnet.infura.io/v3/${INFURA_API_KEY}`
+      },
+    },
   },
   namedAccounts: {
     deployer: {

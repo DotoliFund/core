@@ -7,7 +7,6 @@ import './interfaces/IXXXFund.sol';
 import './interfaces/IXXXFactory.sol';
 import './interfaces/IERC20.sol';
 import '@uniswap/swap-router-contracts/contracts/interfaces/ISwapRouter02.sol';
-import '@uniswap/v3-periphery/contracts/interfaces/IPeripheryPayments.sol';
 
 contract XXXFund is IXXXFund {
     address public factory;
