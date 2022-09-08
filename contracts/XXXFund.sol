@@ -8,6 +8,8 @@ import './interfaces/IXXXFactory.sol';
 import './interfaces/IERC20.sol';
 import '@uniswap/swap-router-contracts/contracts/interfaces/ISwapRouter02.sol';
 
+import "hardhat/console.sol";
+
 contract XXXFund is IXXXFund {
     address public factory;
     address public manager;
@@ -153,7 +155,7 @@ contract XXXFund is IXXXFund {
     }
 
     // this low-level function should be called from a contract which performs important safety checks
-    function deposit(address investor, address _token, uint256 _amount) override external lock {
+    function deposit(address investor, address _token, uint256 _amount) external payable override lock {
         require(msg.sender == investor); // sufficient check
         require(IXXXFactory(factory).isWhiteListToken(_token), 'XXXFund initialize: not whitelist token');
         
@@ -162,11 +164,15 @@ contract XXXFund is IXXXFund {
 
         updateDepositInfo(investor, _token, _amount);
 
+        console.log("deposit() => ");
+        console.log("    investor : ", investor);
+        console.log("    _token : ", _token);
+        console.log("    _amount : ", _amount);
         emit Deposit(investor, _token, _amount);
     }
 
     // this low-level function should be called from a contract which performs important safety checks
-    function withdraw(address investor, address _token, uint256 _amount) override external lock {
+    function withdraw(address investor, address _token, uint256 _amount) external payable override lock {
         require(msg.sender == investor); // sufficient check
         //check if investor has valid token amount
         require(isValidTokenAmount(investor, _token, _amount) == true, 'withdraw: invalid token amount');
@@ -197,12 +203,33 @@ contract XXXFund is IXXXFund {
         //         updateWithdrawInfo(investor, _token, _amount);
         //     }
         // }
-        emit Withdraw(investor, _token, _amount);
+
+        console.log("withdraw() => ");
+        console.log("    investor : ", investor);
+        console.log("    _token : ", _token);
+        console.log("    _amount : ", _amount);
     }
 
     function swap(
         V3TradeParams[] calldata trades
-    ) external payable override returns (uint256) {
+    ) external payable override lock returns (uint256) {
+        console.log("swap() parameter => ");
+        console.log("    tradeType : ", uint(trades[0].tradeType));
+        console.log("    swapType : ", uint(trades[0].swapType));
+        console.log("    investor : ", trades[0].investor);
+        console.log("    tokenIn : ", trades[0].tokenIn);
+        console.log("    tokenOut : ", trades[0].tokenOut);
+        console.log("    recipient : ", trades[0].recipient);
+        console.log("    fee : ", trades[0].fee);
+        console.log("    amountIn : ", trades[0].amountIn);
+        console.log("    amountOut : ", trades[0].amountOut);
+        console.log("    amountInMaximum : ", trades[0].amountOutMinimum);
+        console.log("    amountOutMinimum : ", trades[0].amountOutMinimum);
+        console.log("    sqrtPriceLimitX96 : ", trades[0].sqrtPriceLimitX96);
+        console.log("    path : ");
+        console.logBytes(trades[0].path);
+
+
         address investor = trades[0].investor;
         require(msg.sender == manager, 'swap: invalid sender');
         require(IXXXFactory(factory).isWhiteListToken(trades[0].tokenOut), 
