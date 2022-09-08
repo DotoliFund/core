@@ -1,0 +1,1 @@
+export const NEW_FUND_ADDRESS = '0x41d8be2571e793f7a24a9d55e6f4bdd1c34b88f6'

@@ -10,8 +10,21 @@ async function main() {
   const [owner, otherAccount] = await ethers.getSigners();
   console.log(NEW_FUND_ADDRESS);
 
+  // swap call parameter (array length 1)
+
+  // swap WETH -> UNI
+
+
+  // swap call parameter (array length >1)
+
+  // swap WETH -> UNI
+
+
+
+
+
   console.log("\n------------------------------------------------------------------------\n");  
-  // ETH -> WETH9
+  // swap ETH -> WETH9
   const WETH9 = await ethers.getContractAt("IWETH", WETH9_mainnet);
   await WETH9.deposit({
             from: owner.address,
