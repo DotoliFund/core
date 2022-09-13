@@ -36,7 +36,7 @@ contract XXXFactory is IXXXFactory {
         whiteListTokens.push(0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984); //UNI
         whiteListTokens.push(0xEAE906dC299ccd9Cd94584377d0F96Ce144c942f); //XXX
 
-        console.log("msg.sender : ", msg.sender);
+        //console.log("msg.sender : ", msg.sender);
     }
 
     function createFund(address manager) override external returns (address fund) {
