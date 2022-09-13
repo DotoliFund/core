@@ -5,6 +5,11 @@ pragma abicoder v2;
 
 interface IXXXFactory {
 
+    /// @notice Emitted when the owner of the factory is changed
+    /// @param oldOwner The owner before the owner was changed
+    /// @param newOwner The owner after the owner was changed
+    event OwnerChanged(address indexed oldOwner, address indexed newOwner);
+
     /// @notice Returns the current owner of the factory
     /// @dev Can be changed by the current owner via setOwner
     /// @return The address of the factory owner
@@ -12,7 +17,12 @@ interface IXXXFactory {
 
     function createFund(address manager) external returns (address fund);
 
-    function getFund(address manager) external returns (address);
+    function getFundByManager(address manager) external returns (address);
+    
+    function isInvestorFundList(address investor) external returns (bool);
+    function getInvestorFundList(address investor) external returns (address[] memory);
+    function addInvestorFundList(address investor) external;
+    function removeInvestorFundList(address investor) external;
 
     /// @notice Updates the owner of the factory
     /// @dev Must be called by the current owner

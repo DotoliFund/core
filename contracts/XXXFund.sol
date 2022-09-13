@@ -102,7 +102,7 @@ contract XXXFund is IXXXFund {
     }
 
     function updateSwapInfo(address investor, address swapFrom, address swapTo, uint256 swapFromAmount, uint256 swapToAmount) private {
-        require(address(this) == IXXXFactory(factory).getFund(msg.sender), "updateSwapInfo: invalid swapRouter");
+        require(address(this) == IXXXFactory(factory).getFundByManager(msg.sender), "updateSwapInfo: invalid swapRouter");
 
         //update investor info
         //decrease part of swap (decrease swapFrom token reduce by swapFromAmount)

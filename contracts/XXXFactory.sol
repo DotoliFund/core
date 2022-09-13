@@ -15,17 +15,15 @@ contract XXXFactory is IXXXFactory {
     uint256 managerFee = 1; // 1% of investor profit ex) MANAGER_FEE = 10 -> 10% of investor profit
     address[] whiteListTokens;
 
-    /// @notice Emitted when the owner of the factory is changed
-    /// @param oldOwner The owner before the owner was changed
-    /// @param newOwner The owner after the owner was changed
-    event OwnerChanged(address indexed oldOwner, address indexed newOwner);
+    mapping(address => address) override public getFundByManager;
+    mapping(address => mapping(uint256 => address)) public _getFundByInvestor;
+    mapping(address => uint256) public _getFundCountByInvestor;
 
-    mapping(address => address) allFund;
-    uint256 fundCount;
+    uint256 totalFundCount;
 
     constructor() {
         owner = msg.sender;
-        fundCount = 0;
+        totalFundCount = 0;
         emit OwnerChanged(address(0), msg.sender);
 
         whiteListTokens.push(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2); //WETH mainnet
@@ -41,19 +39,37 @@ contract XXXFactory is IXXXFactory {
 
     function createFund(address manager) override external returns (address fund) {
         require(msg.sender == manager, 'XXXFactory: IDENTICAL_ADDRESSES');
-        require(allFund[manager] == address(0), 'XXXFactory: FUND_EXISTS');
+        require(getFundByManager[manager] == address(0), 'XXXFactory: FUND_EXISTS');
 
         fund = address(new XXXFund{salt: keccak256(abi.encode(address(this), manager))}());
-        allFund[manager] = fund;
+        getFundByManager[manager] = fund;
         IXXXFund(fund).initialize(manager);
-        fundCount += 1;
+        totalFundCount += 1;
 
         console.log("createFund() => fund address : ", fund);
         return fund;
     }
 
-    function getFund(address manager) override external returns (address){
-        return allFund[manager];
+    function isInvestorFundList(address investor) override external returns (bool) {
+
+    }
+
+    function getInvestorFundList(address investor) override external returns (address[] memory){
+        uint256 fundCount = _getFundCountByInvestor[investor];
+        address[] memory funds;
+        funds = new address[](fundCount);
+        for (uint256 i=0; i<fundCount; i++) {
+            funds[i] = _getFundByInvestor[investor][i];
+        }
+        return funds;
+    }
+
+    function addInvestorFundList(address investor) override external {
+
+    }
+
+    function removeInvestorFundList(address investor) override external {
+
     }
 
     function setOwner(address _owner) override external {
