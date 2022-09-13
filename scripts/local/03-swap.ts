@@ -4,15 +4,19 @@ import {
   WETH9_MAINNET,
   UNI_ADDRESS,
   DEPOSIT_AMOUNT,
+  AmountOutMinimum,
   V3TradeParamsStruct,
   V3_SWAP_ROUTER_ADDRESS,
   ExactInputSingleParams
 } from "./constants";
+import chai from "chai";
+import { solidity } from "ethereum-waffle";
+
+chai.use(solidity);
 
 async function main() {
 
   const [owner, otherAccount] = await ethers.getSigners();
-
 
   console.log("\n------------------------------------------------------------------------\n");
   // swap WETH -> UNI
@@ -24,15 +28,27 @@ async function main() {
     investor: owner.address,
     tokenIn: WETH9_MAINNET,
     tokenOut: UNI_ADDRESS,
-    recipient: owner.address,
-    fee: 1000,
-    amountIn: DEPOSIT_AMOUNT,
-    amountOut: 0,
-    amountInMaximum: 0,
-    amountOutMinimum: 0,
-    sqrtPriceLimitX96: 0,
+    recipient: NEW_FUND_ADDRESS,
+    fee: 500,
+    amountIn: ethers.BigNumber.from(DEPOSIT_AMOUNT),
+    amountOut: ethers.BigNumber.from(0),
+    amountInMaximum: ethers.BigNumber.from(0),
+    amountOutMinimum: ethers.BigNumber.from(AmountOutMinimum),
+    sqrtPriceLimitX96: ethers.BigNumber.from(0),
     path: "0x1231"
   };
+
+        //     IV3SwapRouter.ExactInputSingleParams({
+        //         tokenIn: 0xc778417E063141139Fce010982780140Aa0cD5Ab,
+        //         tokenOut: 0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984,
+        //         fee: 500,
+        //         recipient: address(this),
+        //         //deadline: _params.deadline,
+        //         //amountIn: 0x02c68af0bb140000,  //0.2
+        //         amountIn: 0x011c37937e080000,   //0.08
+        //         amountOutMinimum: 0x01802d909beab40d,
+        //         sqrtPriceLimitX96: 0
+        //     });
   const swapCallParameters = [swapCallParameter]
   const newFund = await ethers.getContractAt("XXXFund", NEW_FUND_ADDRESS);
   await newFund.swap(swapCallParameters);
