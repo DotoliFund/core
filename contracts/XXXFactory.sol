@@ -6,10 +6,12 @@ pragma abicoder v2;
 import './interfaces/IXXXFactory.sol';
 import './XXXFund.sol';
 
+import "hardhat/console.sol";
+
 contract XXXFactory is IXXXFactory {
     address public override owner;
     // Uniswap v3 swapRouter
-    address swapRouterAddress = 0xE592427A0AEce92De3Edee1F18E0157C05861564;
+    address swapRouterAddress = 0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45;
     uint256 managerFee = 1; // 1% of investor profit ex) MANAGER_FEE = 10 -> 10% of investor profit
     address[] whiteListTokens;
 
@@ -33,6 +35,8 @@ contract XXXFactory is IXXXFactory {
         whiteListTokens.push(0x6B175474E89094C44Da98b954EedeAC495271d0F); //DAI
         whiteListTokens.push(0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984); //UNI
         whiteListTokens.push(0xEAE906dC299ccd9Cd94584377d0F96Ce144c942f); //XXX
+
+        //console.log("msg.sender : ", msg.sender);
     }
 
     function createFund(address manager) override external returns (address fund) {
@@ -43,6 +47,9 @@ contract XXXFactory is IXXXFactory {
         allFund[manager] = fund;
         IXXXFund(fund).initialize(manager);
         fundCount += 1;
+
+        console.log("createFund() => fund address : ", fund);
+        return fund;
     }
 
     function getFund(address manager) override external returns (address){

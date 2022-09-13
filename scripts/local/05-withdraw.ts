@@ -14,15 +14,19 @@ async function main() {
 
   // console.log("Lock with 1 ETH deployed to:", lock.address);
 
+  const [owner, otherAccount] = await ethers.getSigners();
+
   const XXXFactory = await ethers.getContractFactory("XXXFactory");
   const Factory = await XXXFactory.deploy();
   await Factory.deployed();
   console.log("Factory address : ", Factory.address);
 
-  // const XXXFund = await ethers.getContractFactory("XXXFund");
-  // const Fund = await XXXFund.deploy();
-  // await Fund.deployed();
-  // console.log("Fund address : ", Fund.address);
+  const XXXFund = await ethers.getContractFactory("XXXFund");
+  const Fund = await XXXFund.deploy();
+  await Fund.deployed();
+  console.log("Fund address : ", Fund.address);
+
+  const createdFundAddress = await Factory.createFund(owner.address);
 }
 
 // We recommend this pattern to be able to use async/await everywhere
