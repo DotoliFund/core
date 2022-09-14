@@ -5,7 +5,7 @@ pragma abicoder v2;
 
 import '@uniswap/swap-router-contracts/contracts/interfaces/ISwapRouter02.sol';
 
-interface IXXXFund {
+interface IXXXFund2 {
 
     struct Token {
         address tokenAddress;

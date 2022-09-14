@@ -4,7 +4,7 @@ pragma solidity =0.7.6;
 pragma abicoder v2;
 
 import './interfaces/IXXXFactory.sol';
-import './XXXFund.sol';
+import './XXXFund2.sol';
 
 import "hardhat/console.sol";
 
@@ -49,9 +49,9 @@ contract XXXFactory is IXXXFactory {
         require(msg.sender == manager, 'XXXFactory: IDENTICAL_ADDRESSES');
         require(getFundByManager[manager] == address(0), 'XXXFactory: FUND_EXISTS');
 
-        fund = address(new XXXFund{salt: keccak256(abi.encode(address(this), manager))}());
+        fund = address(new XXXFund2{salt: keccak256(abi.encode(address(this), manager))}());
         getFundByManager[manager] = fund;
-        IXXXFund(fund).initialize(manager);
+        IXXXFund2(fund).initialize(manager);
         totalFundCount += 1;
 
         console.log("createFund() => fund address : ", fund);

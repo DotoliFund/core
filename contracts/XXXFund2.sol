@@ -3,14 +3,14 @@
 pragma solidity =0.7.6;
 pragma abicoder v2;
 
-import './interfaces/IXXXFund.sol';
+import './interfaces/IXXXFund2.sol';
 import './interfaces/IXXXFactory.sol';
 import './interfaces/IERC20.sol';
 import '@uniswap/swap-router-contracts/contracts/interfaces/ISwapRouter02.sol';
 
 import "hardhat/console.sol";
 
-contract XXXFund is IXXXFund {
+contract XXXFund2 is IXXXFund2 {
     address public factory;
     address public manager;
 
