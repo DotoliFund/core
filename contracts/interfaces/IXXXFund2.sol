@@ -60,4 +60,5 @@ interface IXXXFund2 {
         V3TradeParams[] calldata trades
     ) external payable returns (uint256);
 
+    function getInvestorTokens(address investor) external returns (Token[] memory);
 }

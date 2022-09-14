@@ -45,6 +45,15 @@ contract XXXFund2 is IXXXFund2 {
         return 0xE592427A0AEce92De3Edee1F18E0157C05861564;
     }
 
+    function getInvestorTokens(address investor) external override view returns (Token[] memory){
+        uint256 tokenCount = investorTokenCount[investor];
+        Token[] memory _investorTokens = new Token[](tokenCount);
+        for (uint256 i; i<tokenCount; i++) {
+            _investorTokens[i] = investorTokens[investor][i];
+        }
+        return _investorTokens;
+    }
+
     function getInvestorTokenAmount(address investor, address token) private view returns (uint256){
         for (uint256 i=0; i<investorTokenCount[investor]; i++) {
             if (investorTokens[investor][i].tokenAddress == token) {
