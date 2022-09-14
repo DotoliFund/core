@@ -16,10 +16,18 @@ contract XXXFactory is IXXXFactory {
     address[] whiteListTokens;
 
     mapping(address => address) override public getFundByManager;
-    mapping(address => mapping(uint256 => address)) public _getFundByInvestor;
-    mapping(address => uint256) public _getFundCountByInvestor;
+    mapping(address => mapping(uint256 => address)) public getFundByInvestor;
+    mapping(address => uint256) public getFundCountByInvestor;
 
     uint256 totalFundCount;
+
+    uint256 private unlocked = 1;
+    modifier lock() {
+        require(unlocked == 1, 'XXXFund: LOCKED');
+        unlocked = 0;
+        _;
+        unlocked = 1;
+    }
 
     constructor() {
         owner = msg.sender;
@@ -50,53 +58,29 @@ contract XXXFactory is IXXXFactory {
         return fund;
     }
 
-    function isInvestorFundList(address investor) override external returns (bool) {
-
-    }
-
-    function getInvestorFundList(address investor) override external returns (address[] memory){
-        uint256 fundCount = _getFundCountByInvestor[investor];
-        address[] memory funds;
-        funds = new address[](fundCount);
-        for (uint256 i=0; i<fundCount; i++) {
-            funds[i] = _getFundByInvestor[investor][i];
-        }
-        return funds;
-    }
-
-    function addInvestorFundList(address investor) override external {
-
-    }
-
-    function removeInvestorFundList(address investor) override external {
-
-    }
-
     function setOwner(address _owner) override external {
         require(msg.sender == owner);
         emit OwnerChanged(owner, _owner);
         owner = _owner;
     }
 
-    function getSwapRouterAddress() override external returns (address) {
+    function getSwapRouterAddress() override external view returns (address) {
         return swapRouterAddress;
     }
-
     function setSwapRouterAddress(address _swapRouterAddress) override external {
         require(msg.sender == owner);
         swapRouterAddress = _swapRouterAddress;
     }
 
-    function getManagerFee() override external returns (uint256) {
+    function getManagerFee() override external view returns (uint256) {
         return managerFee;
     }
-
     function setManagerFee(uint256 _managerFee) override external {
         require(msg.sender == owner);
         managerFee = _managerFee;
     }
 
-    function isWhiteListToken(address _token) override public returns (bool) {
+    function isWhiteListToken(address _token) override public view returns (bool) {
         for (uint256 i=0; i<whiteListTokens.length; i++) {
             if (whiteListTokens[i] == _token) {
                 return true;
@@ -104,8 +88,7 @@ contract XXXFactory is IXXXFactory {
         }
         return false;
     }
-
-    function getWhiteListTokens() override public returns (address[] memory) {
+    function getWhiteListTokens() override public view returns (address[] memory) {
         uint256 _whiteListTokenCount = whiteListTokens.length;
         address[] memory _whiteListTokens = new address[](_whiteListTokenCount);
         for (uint256 i; i<_whiteListTokenCount; i++) {
@@ -113,14 +96,12 @@ contract XXXFactory is IXXXFactory {
         }
         return _whiteListTokens;
     }
-
     function addWhiteListToken(address _token) override public {
         require(msg.sender == owner);
         if (!isWhiteListToken(_token)) {
             whiteListTokens.push(_token);
         }
     }
-
     function removeWhiteListToken(address _token) override public {
         require(msg.sender == owner);
         for (uint256 i=0; i<whiteListTokens.length; i++) {
@@ -129,5 +110,29 @@ contract XXXFactory is IXXXFactory {
                 whiteListTokens.pop();
             }
         }
+    }
+
+    function isInvestorFundExist(address investor, address fund) override external view returns (bool) {
+        uint256 fundCount = getFundCountByInvestor[investor];
+        for (uint256 i=0; i<fundCount; i++) {
+            if (fund == getFundByInvestor[investor][i]) {
+                return true;
+            }
+        }
+        return false;
+    }
+    function getInvestorFundList(address investor) override external view returns (address[] memory){
+        uint256 fundCount = getFundCountByInvestor[investor];
+        address[] memory funds;
+        funds = new address[](fundCount);
+        for (uint256 i=0; i<fundCount; i++) {
+            funds[i] = getFundByInvestor[investor][i];
+        }
+        return funds;
+    }
+    function addInvestorFundList(address fund) override external lock {
+        uint256 fundCount = getFundCountByInvestor[msg.sender];
+        getFundByInvestor[msg.sender][fundCount] = fund;
+        getFundCountByInvestor[msg.sender] += 1;
     }
 }

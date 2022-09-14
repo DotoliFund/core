@@ -41,16 +41,11 @@ contract XXXFund is IXXXFund {
         emit Create(address(this), manager);
     }
 
-    function getDate() private returns (string memory){
-        string memory date = '';
-        return date;
-    }
-
     function getTokenOutFromPath() private returns (address){
         return 0xE592427A0AEce92De3Edee1F18E0157C05861564;
     }
 
-    function getInvestorTokenAmount(address investor, address token) private returns (uint256){
+    function getInvestorTokenAmount(address investor, address token) private view returns (uint256){
         for (uint256 i=0; i<investorTokenCount[investor]; i++) {
             if (investorTokens[investor][i].tokenAddress == token) {
                 return investorTokens[investor][i].amount;
@@ -118,7 +113,7 @@ contract XXXFund is IXXXFund {
         }
     }
 
-    function isValidTokenAmount(address investor, address _token, uint256 _amount) private returns (bool) {
+    function isValidTokenAmount(address investor, address _token, uint256 _amount) private view returns (bool) {
         bool _isValidTokenAmount = false;
         for (uint256 i=0; i<investorTokenCount[investor]; i++) {
             if (investorTokens[investor][i].tokenAddress == _token) {
