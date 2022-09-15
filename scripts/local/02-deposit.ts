@@ -34,7 +34,7 @@ async function main() {
   console.log("\n------------------------------------------------------------------------\n");
   // (WETH) wallet -> new fund contract
 
-  const newFund = await ethers.getContractAt("XXXFund", NEW_FUND_ADDRESS);
+  const newFund = await ethers.getContractAt("XXXFund2", NEW_FUND_ADDRESS);
   await newFund.deposit(owner.address, WETH9_mainnet, depositAmount);
 
   console.log("deposit()\n");
@@ -47,6 +47,15 @@ async function main() {
 
   console.log("\n------------------------------------------------------------------------\n");
 
+  console.log("<<< Check Data >>>\n")
+  console.log("investorTokens : mapping(address => mapping(uint256 => Token))\n");
+
+  const investorTokenCount = await newFund.investorTokenCount(owner.address);
+  console.log('investorTokenCount :', investorTokenCount);
+  for (let i=0; i<investorTokenCount.toNumber(); i++) {
+    const investorToken = await newFund.investorTokens(owner.address, i);
+    console.log('investorToken :', investorToken);
+  }
 }
 
 // We recommend this pattern to be able to use async/await everywhere
