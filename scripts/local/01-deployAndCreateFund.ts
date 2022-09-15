@@ -21,8 +21,8 @@ async function main() {
   await Factory.deployed();
   console.log("Factory address : ", Factory.address);
 
-  const XXXFund = await ethers.getContractFactory("XXXFund");
-  const Fund = await XXXFund.deploy();
+  const XXXFund2 = await ethers.getContractFactory("XXXFund2");
+  const Fund = await XXXFund2.deploy();
   await Fund.deployed();
   console.log("Fund address : ", Fund.address);
 

@@ -234,7 +234,7 @@ contract XXXFund2 is IXXXFund2 {
         return IXXXFactory(factory).isWhiteListToken(_tokenOut);
     }
 
-    function exactInputSingle(V3TradeParams memory trade) private lock returns (uint256 amountOut)
+    function exactInputSingle(V3TradeParams memory trade) private returns (uint256 amountOut)
     {
         require(IXXXFactory(factory).isWhiteListToken(trade.tokenOut), 
             'swap: not whitelist token');
@@ -261,7 +261,7 @@ contract XXXFund2 is IXXXFund2 {
         emit Swap(trade.investor, trade.tokenIn, trade.tokenOut, trade.amountIn, amountOut);
     }
 
-    function exactInput(V3TradeParams memory trade) private lock returns (uint256 amountOut)
+    function exactInput(V3TradeParams memory trade) private returns (uint256 amountOut)
     {
         require(isWhiteListTokenFromPath(trade.path),
             'swap: not whitelist token');
@@ -284,7 +284,7 @@ contract XXXFund2 is IXXXFund2 {
         emit Swap(trade.investor, trade.tokenIn, trade.tokenOut, trade.amountIn, amountOut);
     }
 
-    function exactOutputSingle(V3TradeParams memory trade) private lock returns (uint256 amountIn)
+    function exactOutputSingle(V3TradeParams memory trade) private returns (uint256 amountIn)
     {
         require(IXXXFactory(factory).isWhiteListToken(trade.tokenOut), 
             'swap: not whitelist token');
@@ -310,7 +310,7 @@ contract XXXFund2 is IXXXFund2 {
         emit Swap(trade.investor, trade.tokenIn, trade.tokenOut, amountIn, trade.amountOut);
     }
 
-    function exactOutput(V3TradeParams memory trade) private lock returns (uint256 amountIn)
+    function exactOutput(V3TradeParams memory trade) private returns (uint256 amountIn)
     {
         require(isWhiteListTokenFromPath(trade.path),
             'swap: not whitelist token');
@@ -360,6 +360,8 @@ contract XXXFund2 is IXXXFund2 {
         for (uint256 i=0; i<trades.length; i++) {
             swapInputAmount += trades[i].amountIn;
         }
+        console.log("investorAmount :", investorAmount);
+        console.log("swapInputAmount :", swapInputAmount);
         require(investorAmount >= swapInputAmount, 'swap: invalid inputAmount');
 
         for(uint256 i=0; i<trades.length; i++) {

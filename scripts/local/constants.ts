@@ -2,7 +2,7 @@ import type {
   BigNumber
 } from "ethers";
 
-export const NEW_FUND_ADDRESS = '0x67feb4b7ed0e3fe9644943abf67f7cb5e579ef09'
+export const NEW_FUND_ADDRESS = '0x5d0df78584b884e6bd0df7e75ccf6b0e77f03a15'
 export const WETH9_MAINNET = '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2';
 export const WETH9_RINKEBY = '0xc778417E063141139Fce010982780140Aa0cD5Ab';
 export const UNI_ADDRESS = '0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984';

@@ -14,6 +14,16 @@ import { solidity } from "ethereum-waffle";
 
 chai.use(solidity);
 
+enum TradeType {
+  SINGLE_HOP,
+  MULTI_HOP
+}
+
+enum SwapType {
+  EXACT_INPUT,
+  EXACT_OUTPUT
+}
+
 async function main() {
 
   const [owner, otherAccount] = await ethers.getSigners();
@@ -23,8 +33,8 @@ async function main() {
   // swap call parameter (array length 1)
 
   const swapCallParameter : V3TradeParamsStruct = {
-    tradeType: 0,
-    swapType: 0,
+    tradeType: TradeType.SINGLE_HOP,
+    swapType: SwapType.EXACT_INPUT,
     investor: owner.address,
     tokenIn: WETH9_MAINNET,
     tokenOut: UNI_ADDRESS,
@@ -50,7 +60,7 @@ async function main() {
         //         sqrtPriceLimitX96: 0
         //     });
   const swapCallParameters = [swapCallParameter]
-  const newFund = await ethers.getContractAt("XXXFund", NEW_FUND_ADDRESS);
+  const newFund = await ethers.getContractAt("XXXFund2", NEW_FUND_ADDRESS);
   await newFund.swap(swapCallParameters);
 
   console.log("swap()\n");
@@ -83,7 +93,15 @@ async function main() {
 
   console.log("\n------------------------------------------------------------------------\n");
 
+  console.log("<<< Check Data >>>\n")
+  console.log("investorTokens : mapping(address => mapping(uint256 => Token))\n");
 
+  const investorTokenCount = await newFund.investorTokenCount(owner.address);
+  console.log('investorTokenCount :', investorTokenCount);
+  for (let i=0; i<investorTokenCount.toNumber(); i++) {
+    const investorToken = await newFund.investorTokens(owner.address, i);
+    console.log('investorToken :', investorToken);
+  }
 
 
 }
