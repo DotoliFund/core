@@ -6,11 +6,14 @@ pragma abicoder v2;
 import './interfaces/IXXXFund2.sol';
 import './interfaces/IXXXFactory.sol';
 import './interfaces/IERC20.sol';
+import '@uniswap/v3-periphery/contracts/libraries/Path.sol';
 import '@uniswap/swap-router-contracts/contracts/interfaces/ISwapRouter02.sol';
 
 import "hardhat/console.sol";
 
 contract XXXFund2 is IXXXFund2 {
+    using Path for bytes;
+
     address public factory;
     address public manager;
 
@@ -214,6 +217,122 @@ contract XXXFund2 is IXXXFund2 {
         // console.log("    _amount : ", _amount);
     }
 
+    function isWhiteListTokenFromPath(bytes memory path) private returns (bool) {
+        address _tokenOut;
+
+        while (true) {
+            bool hasMultiplePools = path.hasMultiplePools();
+
+            if (hasMultiplePools) {
+                path = path.skipToken();
+            } else {
+                (address tokenIn, address tokenOut, uint24 fee) = path.decodeFirstPool();
+                _tokenOut = tokenOut;
+                break;
+            }
+        }
+        return IXXXFactory(factory).isWhiteListToken(_tokenOut);
+    }
+
+    function exactInputSingle(V3TradeParams memory trade) private lock returns (uint256 amountOut)
+    {
+        require(IXXXFactory(factory).isWhiteListToken(trade.tokenOut), 
+            'swap: not whitelist token');
+
+        address _swapRouterAddress = IXXXFactory(factory).getSwapRouterAddress();
+
+        // approve
+        trade.tokenIn.call(abi.encodeWithSelector(IERC20.approve.selector, _swapRouterAddress, trade.amountIn));
+        // Naively set amountOutMinimum to 0. In production, use an oracle or other data source to choose a safer value for amountOutMinimum.
+        // We also set the sqrtPriceLimitx96 to be 0 to ensure we swap our exact input amount.
+        ISwapRouter02.ExactInputSingleParams memory params =
+            IV3SwapRouter.ExactInputSingleParams({
+                tokenIn: trade.tokenIn,
+                tokenOut: trade.tokenOut,
+                fee: trade.fee,
+                recipient: address(this),
+                amountIn: trade.amountIn,
+                amountOutMinimum: trade.amountOutMinimum,
+                sqrtPriceLimitX96: 0
+            });
+        amountOut = ISwapRouter02(_swapRouterAddress).exactInputSingle(params);
+
+        updateSwapInfo(trade.investor, trade.tokenIn, trade.tokenOut, trade.amountIn, amountOut);
+        emit Swap(trade.investor, trade.tokenIn, trade.tokenOut, trade.amountIn, amountOut);
+    }
+
+    function exactInput(V3TradeParams memory trade) private lock returns (uint256 amountOut)
+    {
+        require(isWhiteListTokenFromPath(trade.path),
+            'swap: not whitelist token');
+
+        address _swapRouterAddress = IXXXFactory(factory).getSwapRouterAddress();
+
+        // approve
+        trade.tokenIn.call(abi.encodeWithSelector(IERC20.approve.selector, _swapRouterAddress, trade.amountIn));
+
+        ISwapRouter02.ExactInputParams memory params =
+            IV3SwapRouter.ExactInputParams({
+                path: trade.path,
+                recipient: address(this),
+                amountIn: trade.amountIn,
+                amountOutMinimum: trade.amountOut
+            });
+        amountOut = ISwapRouter02(_swapRouterAddress).exactInput(params);
+
+        updateSwapInfo(trade.investor, trade.tokenIn, trade.tokenOut, trade.amountIn, amountOut);
+        emit Swap(trade.investor, trade.tokenIn, trade.tokenOut, trade.amountIn, amountOut);
+    }
+
+    function exactOutputSingle(V3TradeParams memory trade) private lock returns (uint256 amountIn)
+    {
+        require(IXXXFactory(factory).isWhiteListToken(trade.tokenOut), 
+            'swap: not whitelist token');
+
+        address _swapRouterAddress = IXXXFactory(factory).getSwapRouterAddress();
+
+        // approve
+        trade.tokenIn.call(abi.encodeWithSelector(IERC20.approve.selector, _swapRouterAddress, trade.amountInMaximum));
+
+        ISwapRouter02.ExactOutputSingleParams memory params =
+            IV3SwapRouter.ExactOutputSingleParams({
+                tokenIn: trade.tokenIn,
+                tokenOut: trade.tokenOut,
+                fee: trade.fee,
+                recipient: address(this),
+                amountOut: trade.amountOut,
+                amountInMaximum: trade.amountInMaximum,
+                sqrtPriceLimitX96: 0
+            });
+        amountIn = ISwapRouter02(_swapRouterAddress).exactOutputSingle(params);
+
+        updateSwapInfo(trade.investor, trade.tokenIn, trade.tokenOut, amountIn, trade.amountOut);
+        emit Swap(trade.investor, trade.tokenIn, trade.tokenOut, amountIn, trade.amountOut);
+    }
+
+    function exactOutput(V3TradeParams memory trade) private lock returns (uint256 amountIn)
+    {
+        require(isWhiteListTokenFromPath(trade.path),
+            'swap: not whitelist token');
+
+        address _swapRouterAddress = IXXXFactory(factory).getSwapRouterAddress();
+
+        // approve
+        trade.tokenIn.call(abi.encodeWithSelector(IERC20.approve.selector, _swapRouterAddress, trade.amountInMaximum));
+
+        ISwapRouter02.ExactOutputParams memory params =
+            IV3SwapRouter.ExactOutputParams({
+                path: trade.path,
+                recipient: address(this),
+                amountOut: trade.amountOut,
+                amountInMaximum: trade.amountIn
+            });
+        amountIn = ISwapRouter02(_swapRouterAddress).exactOutput(params);
+
+        updateSwapInfo(trade.investor, trade.tokenIn, trade.tokenOut, amountIn, trade.amountOut);
+        emit Swap(trade.investor, trade.tokenIn, trade.tokenOut, amountIn, trade.amountOut);
+    }
+
     function swap(
         V3TradeParams[] calldata trades
     ) external payable override lock returns (uint256) {
@@ -234,120 +353,29 @@ contract XXXFund2 is IXXXFund2 {
         console.logBytes(trades[0].path);
 
 
-        // // Approve the router to spend the specifed `amountInMaximum` of tokenIn.
-        // // In production, you should choose the maximum amount to spend based on oracles or other data sources to acheive a better swap.
-        //address(0xc778417E063141139Fce010982780140Aa0cD5Ab).call(abi.encodeWithSelector(IERC20.approve.selector, 0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45, 0x011C37937E080000));
-
-        //test
-        // uint256 amountOut;
-        // ISwapRouter02.ExactInputSingleParams memory params =
-        //     IV3SwapRouter.ExactInputSingleParams({
-        //         tokenIn: 0xc778417E063141139Fce010982780140Aa0cD5Ab,
-        //         tokenOut: 0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984,
-        //         fee: 500,
-        //         recipient: address(this),
-        //         //deadline: _params.deadline,
-        //         //amountIn: 0x02c68af0bb140000,  //0.2
-        //         amountIn: 0x011c37937e080000,   //0.08
-        //         amountOutMinimum: 0x01802d909beab40d,
-        //         sqrtPriceLimitX96: 0
-        //     });
-
-        //console.log(ISwapRouter02(0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45).exactInputSingle(params));
-        //(bool success, bytes memory response) = address(0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45).call(abi.encodeWithSelector(IV3SwapRouter.exactInputSingle.selector, params));
-        //amountOut = ISwapRouter02(0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45).exactInputSingle(params);
-        //console.log(amountOut);
-
-
-
-        address investor = trades[0].investor;
         require(msg.sender == manager, 'swap: invalid sender');
-        require(IXXXFactory(factory).isWhiteListToken(trades[0].tokenOut), 
-            'swap: not whitelist token');
-        address _swapRouterAddress = IXXXFactory(factory).getSwapRouterAddress();
 
-        // Approve the router to spend the specifed `amountInMaximum` of tokenIn.
-        // In production, you should choose the maximum amount to spend based on oracles or other data sources to acheive a better swap.
-        //trades[0].tokenIn.call(abi.encodeWithSelector(IERC20.approve.selector, _swapRouterAddress, trades[0].amountInMaximum));
-        //trades[0].tokenIn.call(abi.encodeWithSelector(IERC20.approve.selector, 0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45, 0x011C37937E080000));
-
-        uint256 investorAmount = getInvestorTokenAmount(investor, trades[0].tokenIn);
+        uint256 investorAmount = getInvestorTokenAmount(trades[0].investor, trades[0].tokenIn);
         uint256 swapInputAmount = 0;
         for (uint256 i=0; i<trades.length; i++) {
             swapInputAmount += trades[i].amountIn;
         }
         require(investorAmount >= swapInputAmount, 'swap: invalid inputAmount');
 
-
-        uint256 amountIn;
-        uint256 amountOut;
         for(uint256 i=0; i<trades.length; i++) {
             if (trades[i].swapType == V3SwapType.SINGLE_HOP) {
                 if (trades[i].tradeType == V3TradeType.EXACT_INPUT) {
-                    // approve
-                    trades[i].tokenIn.call(abi.encodeWithSelector(IERC20.approve.selector, _swapRouterAddress, trades[i].amountIn));
-                    // Naively set amountOutMinimum to 0. In production, use an oracle or other data source to choose a safer value for amountOutMinimum.
-                    // We also set the sqrtPriceLimitx96 to be 0 to ensure we swap our exact input amount.
-                    ISwapRouter02.ExactInputSingleParams memory params =
-                        IV3SwapRouter.ExactInputSingleParams({
-                            tokenIn: trades[i].tokenIn,
-                            tokenOut: trades[i].tokenOut,
-                            fee: trades[i].fee,
-                            recipient: address(this),
-                            amountIn: trades[i].amountIn,
-                            amountOutMinimum: trades[i].amountOutMinimum,
-                            sqrtPriceLimitX96: 0
-                        });
-                    amountIn = trades[i].amountIn;
-                    amountOut = ISwapRouter02(_swapRouterAddress).exactInputSingle(params);
+                    exactInputSingle(trades[i]);
                 } else {
-                    // approve
-                    trades[i].tokenIn.call(abi.encodeWithSelector(IERC20.approve.selector, _swapRouterAddress, trades[i].amountInMaximum));
-
-                    ISwapRouter02.ExactOutputSingleParams memory params =
-                        IV3SwapRouter.ExactOutputSingleParams({
-                            tokenIn: trades[i].tokenIn,
-                            tokenOut: trades[i].tokenOut,
-                            fee: trades[i].fee,
-                            recipient: address(this),
-                            amountOut: trades[i].amountOut,
-                            amountInMaximum: trades[i].amountInMaximum,
-                            sqrtPriceLimitX96: 0
-                        });
-                    amountIn = ISwapRouter02(_swapRouterAddress).exactOutputSingle(params);
-                    amountOut = trades[i].amountOut;
+                    exactOutputSingle(trades[i]);
                 }
             } else {
                 if (trades[i].tradeType == V3TradeType.EXACT_INPUT) {
-                    // approve
-                    trades[i].tokenIn.call(abi.encodeWithSelector(IERC20.approve.selector, _swapRouterAddress, trades[i].amountIn));
-
-                    ISwapRouter02.ExactInputParams memory params =
-                        IV3SwapRouter.ExactInputParams({
-                            path: trades[i].path,
-                            recipient: address(this),
-                            amountIn: trades[i].amountIn,
-                            amountOutMinimum: trades[i].amountOut
-                        });
-                    amountIn = trades[i].amountIn;
-                    amountOut = ISwapRouter02(_swapRouterAddress).exactInput(params);
+                    exactInput(trades[i]);
                 } else {
-                    // approve
-                    trades[i].tokenIn.call(abi.encodeWithSelector(IERC20.approve.selector, _swapRouterAddress, trades[i].amountInMaximum));
-
-                    ISwapRouter02.ExactOutputParams memory params =
-                        IV3SwapRouter.ExactOutputParams({
-                            path: trades[i].path,
-                            recipient: address(this),
-                            amountOut: trades[i].amountOut,
-                            amountInMaximum: trades[i].amountIn
-                        });
-                    amountIn = ISwapRouter02(_swapRouterAddress).exactOutput(params);
-                    amountOut = trades[i].amountOut;
+                    exactOutput(trades[i]);
                 }
             }
-            updateSwapInfo(investor, trades[0].tokenIn, trades[0].tokenOut, amountIn, amountOut);
-            emit Swap(investor, trades[0].tokenIn, trades[0].tokenOut, amountIn, amountOut);
         }
         return 1;
     }
