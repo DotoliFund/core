@@ -9,7 +9,7 @@ async function main() {
   console.log("Deploying contracts with the account:", deployer.address);
   console.log("Account balance:", (await deployer.getBalance()).toString());
 
-  const FactoryAddress = '0x81A0E41f9c1129aEa3C22BA63C5599d610329FC4'
+  const FactoryAddress = '0x9ca62C1148a8E57A720E2f367d680497A186AEA2'
   const factory = await ethers.getContractAt("XXXFactory", FactoryAddress)
   const createdFundAddress = await factory.createFund(deployer.address);
   console.log("new fund address : ", createdFundAddress);
