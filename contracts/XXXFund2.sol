@@ -263,17 +263,19 @@ contract XXXFund2 is IXXXFund2 {
     function exactInput(V3TradeParams memory trade) private returns (uint256 amountOut)
     {
         address tokenOut = getTokenOutFromPath(trade.path);
+        (address tokenIn, , ) = trade.path.decodeFirstPool();
+
         require(IXXXFactory(factory).isWhiteListToken(tokenOut), 
             'swap: not whitelist token');
 
-        (address tokenIn, , ) = trade.path.decodeFirstPool();
+        
         uint256 tokenBalance = getInvestorTokenBalance(trade.investor, tokenIn);
         require(tokenBalance >= trade.amountIn, 'swap: invalid inputAmount');
 
         address _swapRouterAddress = IXXXFactory(factory).getSwapRouterAddress();
 
         // approve
-        trade.tokenIn.call(abi.encodeWithSelector(IERC20.approve.selector, _swapRouterAddress, trade.amountIn));
+        tokenIn.call(abi.encodeWithSelector(IERC20.approve.selector, _swapRouterAddress, trade.amountIn));
 
         ISwapRouter02.ExactInputParams memory params =
             IV3SwapRouter.ExactInputParams({
@@ -284,8 +286,8 @@ contract XXXFund2 is IXXXFund2 {
             });
         amountOut = ISwapRouter02(_swapRouterAddress).exactInput(params);
 
-        updateSwapInfo(trade.investor, trade.tokenIn, trade.tokenOut, trade.amountIn, amountOut);
-        emit Swap(trade.investor, trade.tokenIn, trade.tokenOut, trade.amountIn, amountOut);
+        updateSwapInfo(trade.investor, tokenIn, tokenOut, trade.amountIn, amountOut);
+        emit Swap(trade.investor, tokenIn, tokenOut, trade.amountIn, amountOut);
     }
 
     function exactOutputSingle(V3TradeParams memory trade) private returns (uint256 amountIn)
@@ -320,17 +322,18 @@ contract XXXFund2 is IXXXFund2 {
     function exactOutput(V3TradeParams memory trade) private returns (uint256 amountIn)
     {
         address tokenOut = getTokenOutFromPath(trade.path);
+        (address tokenIn, , ) = trade.path.decodeFirstPool();
+
         require(IXXXFactory(factory).isWhiteListToken(tokenOut), 
             'swap: not whitelist token');
 
-        (address tokenIn, , ) = trade.path.decodeFirstPool();
         uint256 tokenBalance = getInvestorTokenBalance(trade.investor, tokenIn);
         require(tokenBalance >= trade.amountInMaximum, 'swap: invalid inputAmount');
 
         address _swapRouterAddress = IXXXFactory(factory).getSwapRouterAddress();
 
         // approve
-        trade.tokenIn.call(abi.encodeWithSelector(IERC20.approve.selector, _swapRouterAddress, trade.amountInMaximum));
+        tokenIn.call(abi.encodeWithSelector(IERC20.approve.selector, _swapRouterAddress, trade.amountInMaximum));
 
         ISwapRouter02.ExactOutputParams memory params =
             IV3SwapRouter.ExactOutputParams({
@@ -341,8 +344,8 @@ contract XXXFund2 is IXXXFund2 {
             });
         amountIn = ISwapRouter02(_swapRouterAddress).exactOutput(params);
 
-        updateSwapInfo(trade.investor, trade.tokenIn, trade.tokenOut, amountIn, trade.amountOut);
-        emit Swap(trade.investor, trade.tokenIn, trade.tokenOut, amountIn, trade.amountOut);
+        updateSwapInfo(trade.investor, tokenIn, tokenOut, amountIn, trade.amountOut);
+        emit Swap(trade.investor, tokenIn, tokenOut, amountIn, trade.amountOut);
     }
 
     function swap(
