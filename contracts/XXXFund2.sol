@@ -62,7 +62,7 @@ contract XXXFund2 is IXXXFund2 {
         return 0;
     }
 
-    function increaseInvestorTokenAmount(address investor, address _token, uint256 _amount) private returns (bool){
+    function increaseInvestorTokenBalance(address investor, address _token, uint256 _amount) private returns (bool){
         bool isNewToken = true;
         for (uint256 i=0; i<investorTokenCount[investor]; i++) {
             if (investorTokens[investor][i].tokenAddress == _token) {
@@ -74,7 +74,7 @@ contract XXXFund2 is IXXXFund2 {
         return isNewToken;
     }
 
-    function decreaseInvestorTokenAmount(address investor, address _token, uint256 _amount) private returns (bool){
+    function decreaseInvestorTokenBalance(address investor, address _token, uint256 _amount) private returns (bool){
         bool isNewToken = true;
         for (uint256 i=0; i<investorTokenCount[investor]; i++) {
             if (investorTokens[investor][i].tokenAddress == _token) {
@@ -87,32 +87,13 @@ contract XXXFund2 is IXXXFund2 {
         return isNewToken;
     }
 
-    function updateDepositInfo(address investor, address _token, uint256 _amount) private {
-        //update investor info
-        bool isNewInvestorToken = increaseInvestorTokenAmount(investor, _token, _amount);
-        if (isNewInvestorToken) {
-            uint256 newTokenIndex = investorTokenCount[investor];
-            investorTokens[investor][newTokenIndex].tokenAddress = _token;
-            investorTokens[investor][newTokenIndex].amount = _amount;
-            investorTokenCount[investor] += 1;
-        }
-    }
-
-    function updateWithdrawInfo(address investor, address _token, uint256 _amount) private {
-        //update investor info
-        bool isNewInvestorToken = decreaseInvestorTokenAmount(investor, _token, _amount);
-        require(isNewInvestorToken == false, 'updateWithdrawInfo: Invalid investor token withdraw attempt');
-    }
-
-    function updateSwapInfo(address investor, address swapFrom, address swapTo, uint256 swapFromAmount, uint256 swapToAmount) private {
-        require(address(this) == IXXXFactory(factory).getFundByManager(msg.sender), "updateSwapInfo: invalid swapRouter");
-
+    function handleSwap(address investor, address swapFrom, address swapTo, uint256 swapFromAmount, uint256 swapToAmount) private {
         //update investor info
         //decrease part of swap (decrease swapFrom token reduce by swapFromAmount)
-        bool isNewInvestorToken = decreaseInvestorTokenAmount(investor, swapFrom, swapFromAmount);
-        require(isNewInvestorToken == false, 'updateSwapInfo: Invalid investor token withdraw attempt');
+        bool isNewInvestorToken = decreaseInvestorTokenBalance(investor, swapFrom, swapFromAmount);
+        require(isNewInvestorToken == false, 'handleSwap: Invalid investor token withdraw attempt');
         //increase part of swap (increase swapTo token increase by swapToAmount)
-        isNewInvestorToken = increaseInvestorTokenAmount(investor, swapTo, swapToAmount);
+        isNewInvestorToken = increaseInvestorTokenBalance(investor, swapTo, swapToAmount);
         if (isNewInvestorToken) {
             uint256 newTokenIndex = investorTokenCount[investor];
             investorTokens[investor][newTokenIndex].tokenAddress = swapTo;
@@ -133,19 +114,7 @@ contract XXXFund2 is IXXXFund2 {
         return _isValidTokenAmount;
     }
 
-    // function getManagerReward(address investor, address _token, uint256 _amount) private returns (uint256) {
-    //     uint256 withdrawValue = getPriceUSD(_token) * _amount;
-    //     require(address(investor) != address(0), 'getManagerReward: Invalid investor address');
-    //     uint256 managerReward = 0;
-    //     uint256 investorTotalValue = getInvestorTotalValueUSD(investor);
-    //     uint256 investorProfit = investorTotalValue - investorPrincipalUSD[investor];
-    //     if (investorProfit > 0) {
-    //         managerReward = investorProfit * IXXXFactory(factory).getManagerFee() * withdrawValue / investorTotalValue;
-    //     }
-    //     return managerReward;
-    // }
-
-    function increaseManagerRewardTokenAmount(address _token, uint256 _amount) private returns (bool){
+    function increaseManagerReward(address _token, uint256 _amount) private returns (bool){
         bool isNewToken = true;
         for (uint256 i=0; i<rewardTokenCount; i++) {
             if (rewardTokens[i].tokenAddress == _token) {
@@ -154,7 +123,11 @@ contract XXXFund2 is IXXXFund2 {
                 break;
             }
         }
-        return isNewToken;
+        if (isNewToken) {
+            rewardTokens[rewardTokenCount].tokenAddress = _token;
+            rewardTokens[rewardTokenCount].amount = _amount;
+            rewardTokenCount += 1;
+        }
     }
 
     // this low-level function should be called from a contract which performs important safety checks
@@ -162,15 +135,16 @@ contract XXXFund2 is IXXXFund2 {
         require(msg.sender == investor); // sufficient check
         require(IXXXFactory(factory).isWhiteListToken(_token), 'XXXFund initialize: not whitelist token');
         
-        //_token.call(abi.encodeWithSelector(IERC20.transferFrom.selector, investor, address(this), _amount));
         IERC20(_token).transferFrom(investor, address(this), _amount);
 
-        updateDepositInfo(investor, _token, _amount);
+        bool isNewInvestorToken = increaseInvestorTokenBalance(investor, _token, _amount);
+        if (isNewInvestorToken) {
+            uint256 newTokenIndex = investorTokenCount[investor];
+            investorTokens[investor][newTokenIndex].tokenAddress = _token;
+            investorTokens[investor][newTokenIndex].amount = _amount;
+            investorTokenCount[investor] += 1;
+        }
 
-        console.log("deposit() => ");
-        console.log("    investor : ", investor);
-        console.log("    _token : ", _token);
-        console.log("    _amount : ", _amount);
         emit Deposit(investor, _token, _amount);
     }
 
@@ -178,39 +152,21 @@ contract XXXFund2 is IXXXFund2 {
     function withdraw(address investor, address _token, uint256 _amount) external payable override lock {
         require(msg.sender == investor); // sufficient check
         //check if investor has valid token amount
-        require(isValidTokenAmount(investor, _token, _amount) == true, 'withdraw: invalid token amount');
+        require(isValidTokenAmount(investor, _token, _amount), 'withdraw: invalid token amount');
 
-        //_token.call(abi.encodeWithSelector(IERC20.transfer.selector, investor, _amount));
-        IERC20(_token).transfer(investor, _amount);
+        uint256 managerFee = IXXXFactory(factory).getManagerFee();
 
-        // if (investor == manager) {
-        //     // manager withdraw is no need manager fee
-        //     _token.call(abi.encodeWithSelector(IERC20.transfer.selector, investor, _amount));
-        //     updateWithdrawInfo(investor, _token, _amount);
-        // } else {
-        //     //if investor has a profit, send manager reward.
-        //     uint256 managerReward = getManagerReward(investor, _token, _amount);
-        //     if (managerReward > 0) {
-        //         uint256 rewardTokenAmount = managerReward / getPriceUSD(_token);
-        //         bool isNewRewardToken = increaseManagerRewardTokenAmount(_token, rewardTokenAmount);
-        //         if (isNewRewardToken) {
-        //             rewardTokens[rewardTokenCount].tokenAddress = _token;
-        //             rewardTokens[rewardTokenCount].amount = rewardTokenAmount;
-        //             rewardTokenCount += 1;
-        //         }
-        //         _token.call(abi.encodeWithSelector(IERC20.transfer.selector, investor, _amount - rewardTokenAmount));
-        //         updateWithdrawInfo(investor, _token, _amount);
-
-        //     } else {
-        //         _token.call(abi.encodeWithSelector(IERC20.transfer.selector, investor, _amount));
-        //         updateWithdrawInfo(investor, _token, _amount);
-        //     }
-        // }
-
-        // console.log("withdraw() => ");
-        // console.log("    investor : ", investor);
-        // console.log("    _token : ", _token);
-        // console.log("    _amount : ", _amount);
+        if (investor == manager) {
+            // manager withdraw is no need manager fee
+            decreaseInvestorTokenBalance(investor, _token, _amount);
+            IERC20(_token).transfer(investor, _amount);
+        } else {
+            //if investor has a profit, send manager reward.
+            uint256 rewardAmount = _amount * managerFee / 100;
+            decreaseInvestorTokenBalance(investor, _token, _amount);
+            increaseManagerReward(_token, rewardAmount);
+            IERC20(_token).transfer(investor, _amount - rewardAmount);
+        }
     }
 
     function getTokenOutFromPath(bytes memory path) private returns (address) {
@@ -241,7 +197,8 @@ contract XXXFund2 is IXXXFund2 {
         address _swapRouterAddress = IXXXFactory(factory).getSwapRouterAddress();
 
         // approve
-        trade.tokenIn.call(abi.encodeWithSelector(IERC20.approve.selector, _swapRouterAddress, trade.amountIn));
+        //trade.tokenIn.call(abi.encodeWithSelector(IERC20.approve.selector, _swapRouterAddress, trade.amountIn));
+        IERC20(trade.tokenIn).approve(_swapRouterAddress, trade.amountIn);
         // Naively set amountOutMinimum to 0. In production, use an oracle or other data source to choose a safer value for amountOutMinimum.
         // We also set the sqrtPriceLimitx96 to be 0 to ensure we swap our exact input amount.
         ISwapRouter02.ExactInputSingleParams memory params =
@@ -256,7 +213,7 @@ contract XXXFund2 is IXXXFund2 {
             });
         amountOut = ISwapRouter02(_swapRouterAddress).exactInputSingle(params);
 
-        updateSwapInfo(trade.investor, trade.tokenIn, trade.tokenOut, trade.amountIn, amountOut);
+        handleSwap(trade.investor, trade.tokenIn, trade.tokenOut, trade.amountIn, amountOut);
         emit Swap(trade.investor, trade.tokenIn, trade.tokenOut, trade.amountIn, amountOut);
     }
 
@@ -275,7 +232,8 @@ contract XXXFund2 is IXXXFund2 {
         address _swapRouterAddress = IXXXFactory(factory).getSwapRouterAddress();
 
         // approve
-        tokenIn.call(abi.encodeWithSelector(IERC20.approve.selector, _swapRouterAddress, trade.amountIn));
+        //tokenIn.call(abi.encodeWithSelector(IERC20.approve.selector, _swapRouterAddress, trade.amountIn));
+        IERC20(tokenIn).approve(_swapRouterAddress, trade.amountIn);
 
         ISwapRouter02.ExactInputParams memory params =
             IV3SwapRouter.ExactInputParams({
@@ -286,7 +244,7 @@ contract XXXFund2 is IXXXFund2 {
             });
         amountOut = ISwapRouter02(_swapRouterAddress).exactInput(params);
 
-        updateSwapInfo(trade.investor, tokenIn, tokenOut, trade.amountIn, amountOut);
+        handleSwap(trade.investor, tokenIn, tokenOut, trade.amountIn, amountOut);
         emit Swap(trade.investor, tokenIn, tokenOut, trade.amountIn, amountOut);
     }
 
@@ -301,7 +259,8 @@ contract XXXFund2 is IXXXFund2 {
         address _swapRouterAddress = IXXXFactory(factory).getSwapRouterAddress();
 
         // approve
-        trade.tokenIn.call(abi.encodeWithSelector(IERC20.approve.selector, _swapRouterAddress, trade.amountInMaximum));
+        //trade.tokenIn.call(abi.encodeWithSelector(IERC20.approve.selector, _swapRouterAddress, trade.amountInMaximum));
+        IERC20(trade.tokenIn).approve(_swapRouterAddress, trade.amountInMaximum);
 
         ISwapRouter02.ExactOutputSingleParams memory params =
             IV3SwapRouter.ExactOutputSingleParams({
@@ -315,7 +274,7 @@ contract XXXFund2 is IXXXFund2 {
             });
         amountIn = ISwapRouter02(_swapRouterAddress).exactOutputSingle(params);
 
-        updateSwapInfo(trade.investor, trade.tokenIn, trade.tokenOut, amountIn, trade.amountOut);
+        handleSwap(trade.investor, trade.tokenIn, trade.tokenOut, amountIn, trade.amountOut);
         emit Swap(trade.investor, trade.tokenIn, trade.tokenOut, amountIn, trade.amountOut);
     }
 
@@ -333,7 +292,8 @@ contract XXXFund2 is IXXXFund2 {
         address _swapRouterAddress = IXXXFactory(factory).getSwapRouterAddress();
 
         // approve
-        tokenIn.call(abi.encodeWithSelector(IERC20.approve.selector, _swapRouterAddress, trade.amountInMaximum));
+        //tokenIn.call(abi.encodeWithSelector(IERC20.approve.selector, _swapRouterAddress, trade.amountInMaximum));
+        IERC20(tokenIn).approve(_swapRouterAddress, trade.amountInMaximum);
 
         ISwapRouter02.ExactOutputParams memory params =
             IV3SwapRouter.ExactOutputParams({
@@ -344,7 +304,7 @@ contract XXXFund2 is IXXXFund2 {
             });
         amountIn = ISwapRouter02(_swapRouterAddress).exactOutput(params);
 
-        updateSwapInfo(trade.investor, tokenIn, tokenOut, amountIn, trade.amountOut);
+        handleSwap(trade.investor, tokenIn, tokenOut, amountIn, trade.amountOut);
         emit Swap(trade.investor, tokenIn, tokenOut, amountIn, trade.amountOut);
     }
 
