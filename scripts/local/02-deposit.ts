@@ -56,6 +56,8 @@ async function main() {
     const investorToken = await newFund.investorTokens(owner.address, i);
     console.log('investorToken :', investorToken);
   }
+
+
 }
 
 // We recommend this pattern to be able to use async/await everywhere

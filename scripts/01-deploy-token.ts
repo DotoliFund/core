@@ -2,9 +2,9 @@ import { HardhatRuntimeEnvironment } from "hardhat/types"
 import { ethers } from "hardhat"
 
 async function main() {
-  const [deployer] = await ethers.getSigners();
-  console.log("Deploying contracts with the account:", deployer.address);
-  console.log("Account balance:", (await deployer.getBalance()).toString());
+  const [test_account_1] = await ethers.getSigners();
+  console.log("Deploying contracts with the account:", test_account_1.address);
+  console.log("Account balance:", (await test_account_1.getBalance()).toString());
 
   const XXXToken = await ethers.getContractFactory("XXXToken");
   const token = await XXXToken.deploy();

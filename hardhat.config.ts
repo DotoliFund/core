@@ -11,9 +11,13 @@ const INFURA_API_KEY = process.env.INFURA_API_KEY;
 // To export your private key from Metamask, open Metamask and
 // go to Account Details > Export Private Key
 // Beware: NEVER put real Ether into testing accounts
-const GOERLI_PRIVATE_KEY = process.env.GOERLI_PRIVATE_KEY;
-if (typeof GOERLI_PRIVATE_KEY === 'undefined') {
-  throw new Error(`GOERLI_PRIVATE_KEY must be a defined environment variable`);
+const TEST_PRIVATE_KEY1 = process.env.TEST_PRIVATE_KEY1;
+if (typeof TEST_PRIVATE_KEY1 === 'undefined') {
+  throw new Error(`TEST_PRIVATE_KEY1 must be a defined environment variable`);
+}
+const TEST_PRIVATE_KEY2 = process.env.TEST_PRIVATE_KEY2;
+if (typeof TEST_PRIVATE_KEY2 === 'undefined') {
+  throw new Error(`TEST_PRIVATE_KEY2 must be a defined environment variable`);
 }
 
 const config: HardhatUserConfig = {
@@ -42,11 +46,11 @@ const config: HardhatUserConfig = {
   networks: {
     goerli: {
       url: `https://goerli.infura.io/v3/${INFURA_API_KEY}`,
-      accounts: [GOERLI_PRIVATE_KEY]
+      accounts: [TEST_PRIVATE_KEY1, TEST_PRIVATE_KEY2]
     },
     rinkeby: {
       url: `https://rinkeby.infura.io/v3/${INFURA_API_KEY}`,
-      accounts: [GOERLI_PRIVATE_KEY]
+      accounts: [TEST_PRIVATE_KEY1, TEST_PRIVATE_KEY2]
     },
     hardhat: {
       chainId: 31337,
@@ -57,9 +61,13 @@ const config: HardhatUserConfig = {
     },
   },
   namedAccounts: {
-    deployer: {
+    test_account_1: {
       default: 0, // here this will by default take the first account as deployer
       1: 0, // similarly on mainnet it will take the first account as deployer. Note though that depending on how hardhat network are configured, the account 0 on one network can be different than on another
+    },
+    test_account_2: {
+      default: 1, // here this will by default take the first account as deployer
+      1: 1, // similarly on mainnet it will take the first account as deployer. Note though that depending on how hardhat network are configured, the account 0 on one network can be different than on another
     },
   },
 };

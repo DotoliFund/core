@@ -54,6 +54,10 @@ contract XXXFactory is IXXXFactory {
         IXXXFund2(fund).initialize(manager);
         totalFundCount += 1;
 
+        uint256 fundCount = getFundCountByInvestor[manager];
+        getFundByInvestor[manager][fundCount] = fund;
+        getFundCountByInvestor[manager] += 1;
+
         console.log("createFund() => fund address : ", fund);
         return fund;
     }

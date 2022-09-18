@@ -5,14 +5,19 @@ require('dotenv').config()
 
 
 async function main() {
-  const [deployer] = await ethers.getSigners();
-  console.log("Deploying contracts with the account:", deployer.address);
-  console.log("Account balance:", (await deployer.getBalance()).toString());
+  const [test_account_1, test_account_2] = await ethers.getSigners();
+  console.log("Deploying contracts with the account1:", test_account_1.address);
+  console.log("Deploying contracts with the account2:", test_account_2.address);
+  console.log("Account1 balance:", (await test_account_1.getBalance()).toString());
+  console.log("Account2 balance:", (await test_account_2.getBalance()).toString());
 
-  const FactoryAddress = '0x5d58cb8467Ef75d392B20ACCAa5Af47Ed9DD9bE8'
+  const FactoryAddress = '0x90107713F5bE7304ec2db5B0dB7f4Df98C62e1d4'
   const factory = await ethers.getContractAt("XXXFactory", FactoryAddress)
-  const createdFundAddress = await factory.createFund(deployer.address);
+  
+  const createdFundAddress = await factory.connect(test_account_1).createFund(test_account_1.address);
   console.log("new fund address : ", createdFundAddress);
+  const createdFundAddress2 = await factory.connect(test_account_2).createFund(test_account_2.address);
+  console.log("new fund address2 : ", createdFundAddress2);
 }
 
 // We recommend this pattern to be able to use async/await everywhere

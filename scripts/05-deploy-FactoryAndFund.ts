@@ -3,9 +3,9 @@ import { ethers } from "hardhat";
 require('dotenv').config()
 
 async function main() {
-  const [deployer] = await ethers.getSigners();
-  console.log("Deploying contracts with the account:", deployer.address);
-  console.log("Account balance:", (await deployer.getBalance()).toString());
+  const [test_account_1] = await ethers.getSigners();
+  console.log("Deploying contracts with the account:", test_account_1.address);
+  console.log("Account balance:", (await test_account_1.getBalance()).toString());
 
   const XXXFactory = await ethers.getContractFactory("XXXFactory");
   const Factory = await XXXFactory.deploy();

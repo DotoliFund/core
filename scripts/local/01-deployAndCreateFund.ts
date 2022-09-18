@@ -27,6 +27,26 @@ async function main() {
   console.log("Fund address : ", Fund.address);
 
   console.log("new Fund address : ", await Factory.createFund(owner.address));
+
+
+  const XXXFactoryContract = await ethers.getContractAt("XXXFactory", Factory.address);
+
+  console.log("\n------------------------------------------------------------------------\n");
+
+  const managerFund = await XXXFactoryContract.getFundByManager(owner.address);
+
+  console.log("getFundByManager()\n");
+  console.log("investor : ", owner.address);
+  console.log("managerFund : ", managerFund);
+
+  console.log("\n------------------------------------------------------------------------\n");
+
+  const investorFundList = await XXXFactoryContract.getInvestorFundList(owner.address);
+
+  console.log("getInvestorFundList()\n");
+  console.log("investor : ", owner.address);
+  console.log("investorFundList : ", investorFundList);
+
 }
 
 // We recommend this pattern to be able to use async/await everywhere
