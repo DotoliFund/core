@@ -14,10 +14,18 @@ async function main() {
   const FactoryAddress = '0x90107713F5bE7304ec2db5B0dB7f4Df98C62e1d4'
   const factory = await ethers.getContractAt("XXXFactory", FactoryAddress)
   
-  const createdFundAddress = await factory.connect(test_account_1).createFund(test_account_1.address);
-  console.log("new fund address : ", createdFundAddress);
-  const createdFundAddress2 = await factory.connect(test_account_2).createFund(test_account_2.address);
-  console.log("new fund address2 : ", createdFundAddress2);
+  const newFundAddress = await factory.connect(test_account_1).createFund(test_account_1.address);
+  console.log("new fund address : ", newFundAddress);
+  const newFundAddress2 = await factory.connect(test_account_2).createFund(test_account_2.address);
+  console.log("new fund address2 : ", newFundAddress2);
+
+  console.log("\n------------------------------------------------------------------------\n");
+
+  console.log("addInvestorFundList()\n");
+  await factory.connect(test_account_1).addInvestorFundList(newFundAddress);
+  await factory.connect(test_account_2).addInvestorFundList(newFundAddress);
+
+
 }
 
 // We recommend this pattern to be able to use async/await everywhere

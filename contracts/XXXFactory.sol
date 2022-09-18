@@ -135,6 +135,7 @@ contract XXXFactory is IXXXFactory {
         return funds;
     }
     function addInvestorFundList(address fund) override external lock {
+        require(!isInvestorFundExist(msg.sender, fund), 'XXXFactory addInvestorFundList() : Already exist')
         uint256 fundCount = getFundCountByInvestor[msg.sender];
         getFundByInvestor[msg.sender][fundCount] = fund;
         getFundCountByInvestor[msg.sender] += 1;
