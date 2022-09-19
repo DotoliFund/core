@@ -13,17 +13,12 @@ async function main() {
 
   const FactoryAddress = '0x7aFAb5bDE28E2B21576663e25B720c5f58207246'
   const factory = await ethers.getContractAt("XXXFactory", FactoryAddress)
-  
-  const newFundAddress = await factory.connect(test_account_1).createFund(test_account_1.address);
-  console.log("new fund address : ", newFundAddress);
-  const newFundAddress2 = await factory.connect(test_account_2).createFund(test_account_2.address);
-  console.log("new fund address2 : ", newFundAddress2);
 
   console.log("\n------------------------------------------------------------------------\n");
 
   console.log("addInvestorFundList()\n");
-  //await factory.connect(test_account_1).addInvestorFundList(newFundAddress);
-  //await factory.connect(test_account_2).addInvestorFundList(newFundAddress);
+  await factory.connect(test_account_1).addInvestorFundList('0x4E000dAf4fC494CADd1b03F55826d67DAdf39F38');
+  await factory.connect(test_account_2).addInvestorFundList('0x4E000dAf4fC494CADd1b03F55826d67DAdf39F38');
 
 
 }
