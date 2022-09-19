@@ -133,7 +133,8 @@ contract XXXFund2 is IXXXFund2 {
     // this low-level function should be called from a contract which performs important safety checks
     function deposit(address investor, address _token, uint256 _amount) external payable override lock {
         require(msg.sender == investor); // sufficient check
-        require(IXXXFactory(factory).isInvestorFundExist(investor, address(this)),
+        bool _isInvestorFundExist = IXXXFactory(factory).isInvestorFundExist(investor, address(this));
+        require(_isInvestorFundExist || msg.sender == manager,
             'XXXFund2 deposit: account not added to investor list');
         require(IXXXFactory(factory).isWhiteListToken(_token), 'XXXFund2 deposit: not whitelist token');
 
@@ -153,7 +154,8 @@ contract XXXFund2 is IXXXFund2 {
     // this low-level function should be called from a contract which performs important safety checks
     function withdraw(address investor, address _token, uint256 _amount) external payable override lock {
         require(msg.sender == investor); // sufficient check
-        require(IXXXFactory(factory).isInvestorFundExist(investor, address(this)),
+        bool _isInvestorFundExist = IXXXFactory(factory).isInvestorFundExist(investor, address(this));
+        require(_isInvestorFundExist || msg.sender == manager,
             'XXXFund2 withdraw: account not added to investor list');
         //check if investor has valid token amount
         require(isValidTokenAmount(investor, _token, _amount), 'withdraw: invalid token amount');

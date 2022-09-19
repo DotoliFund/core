@@ -54,10 +54,6 @@ contract XXXFactory is IXXXFactory {
         IXXXFund2(fund).initialize(manager);
         totalFundCount += 1;
 
-        uint256 fundCount = getFundCountByInvestor[manager];
-        getFundByInvestor[manager][fundCount] = fund;
-        getFundCountByInvestor[manager] += 1;
-
         console.log("createFund() => fund address : ", fund);
         return fund;
     }
@@ -135,6 +131,7 @@ contract XXXFactory is IXXXFactory {
         return funds;
     }
     function addInvestorFundList(address fund) override external lock {
+        require(getFundByManager[msg.sender] != fund, 'XXXFactory: Manager cannot add investor fund list');
         uint256 fundCount = getFundCountByInvestor[msg.sender];
         for (uint256 i=0; i<fundCount; i++) {
             if (fund == getFundByInvestor[msg.sender][i]) {
