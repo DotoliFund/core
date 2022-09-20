@@ -11,7 +11,7 @@ async function main() {
 
   console.log("\n------------------------------------------------------------------------\n");  
   // ETH -> WETH9
-  const WETH9 = await ethers.getContractAt("IWETH", WETH9_mainnet);
+  const WETH9 = await ethers.getContractAt("IWETH9", WETH9_mainnet);
   await WETH9.deposit({
             from: owner.address,
             value: depositAmount
@@ -44,13 +44,26 @@ async function main() {
   console.log("amount : ", depositAmount);
   console.log("New Fund's WETH balance : ", await WETH.balanceOf(NEW_FUND_ADDRESS));
 
+  console.log("\n------------------------------------------------------------------------\n");
+  // send ETH
+  const transactionHash = await owner.sendTransaction({
+    to: NEW_FUND_ADDRESS,
+    value: ethers.utils.parseEther("1.0"), // Sends exactly 1.0 ether
+  });
+
+  console.log("deposit ETH()\n");
+  console.log("Fund address : ", NEW_FUND_ADDRESS);
+  console.log("token : ", 'ETH');
+  console.log("amount : ", ethers.utils.parseEther("1.0"));
 
   console.log("\n------------------------------------------------------------------------\n");
 
   console.log("<<< Check Data >>>\n")
   console.log("investorTokens : mapping(address => mapping(uint256 => Token))\n");
 
-  const investorTokenCount = await newFund.investorTokenCount(owner.address);
+  console.log('owner.address :', owner.address);
+
+  const investorTokenCount = await newFund.connect(owner).getInvestorTokenCount(owner.address);
   console.log('investorTokenCount :', investorTokenCount);
   for (let i=0; i<investorTokenCount.toNumber(); i++) {
     const investorToken = await newFund.investorTokens(owner.address, i);

@@ -26,9 +26,6 @@ async function main() {
   await Fund.deployed();
   console.log("Fund address : ", Fund.address);
 
-  console.log("new Fund address : ", await Factory.createFund(owner.address));
-
-
   const XXXFactoryContract = await ethers.getContractAt("XXXFactory", Factory.address);
 
   console.log("\n------------------------------------------------------------------------\n");
@@ -37,7 +34,6 @@ async function main() {
 
   console.log("getFundByManager()\n");
   console.log("investor : ", owner.address);
-  console.log("managerFund : ", managerFund);
 
   console.log("\n------------------------------------------------------------------------\n");
 
