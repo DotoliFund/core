@@ -2,7 +2,7 @@ import { HardhatUserConfig } from "hardhat/config";
 import "@nomicfoundation/hardhat-toolbox";
 import "@nomiclabs/hardhat-waffle";
 import "hardhat-deploy";
-
+require("@nomicfoundation/hardhat-chai-matchers")
 require('dotenv').config()
 
 const INFURA_API_KEY = process.env.INFURA_API_KEY;
