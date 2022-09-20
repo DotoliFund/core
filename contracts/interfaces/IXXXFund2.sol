@@ -56,9 +56,11 @@ interface IXXXFund2 {
 
     function deposit(address investor, address _token, uint256 _amount) external payable;
     function withdraw(address _token, address to, uint256 _amount) external payable;
+    function withdrawWETH(address _token, address to, uint256 _amount) external payable;
     function swap(
         V3TradeParams[] calldata trades
     ) external payable returns (uint256);
 
+    function getInvestorTokenCount(address investor) external returns (uint256);
     function getInvestorTokens(address investor) external returns (Token[] memory);
 }
