@@ -54,7 +54,7 @@ contract XXXFactory is IXXXFactory {
         IXXXFund2(fund).initialize(manager);
         totalFundCount += 1;
 
-        console.log("createFund() => fund address : ", fund);
+        //console.log("createFund() => fund address : ", fund);
         return fund;
     }
 
