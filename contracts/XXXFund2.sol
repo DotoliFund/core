@@ -177,6 +177,21 @@ contract XXXFund2 is IXXXFund2 {
         emit Deposit(investor, _token, _amount);
     }
 
+    function withdrawWETH(address investor, address _token, uint256 _amount) external payable override lock {
+        // require(msg.sender == investor); // sufficient check
+        // bool _isInvestorFundExist = IXXXFactory(factory).isInvestorFundExist(investor, address(this));
+        // require(_isInvestorFundExist || msg.sender == manager,
+        //     'XXXFund2 withdraw: account not added to investor list');
+        // //check if investor has valid token amount
+        // require(isValidTokenAmount(investor, _token, _amount), 'withdraw: invalid token amount');
+        // require(msg.sender == manager || 
+        //     IXXXFactory(factory).isInvestorFundExist(investor, address(this)), 'withdraw: invalid sender');
+        // uint256 managerFee = IXXXFactory(factory).getManagerFee();
+        console.log(123);
+        IWETH9(WETH9).withdraw(_amount);
+        console.log(456);
+    }
+
     // this low-level function should be called from a contract which performs important safety checks
     function withdraw(address investor, address _token, uint256 _amount) external payable override lock {
         require(msg.sender == investor); // sufficient check
@@ -185,17 +200,24 @@ contract XXXFund2 is IXXXFund2 {
             'XXXFund2 withdraw: account not added to investor list');
         //check if investor has valid token amount
         require(isValidTokenAmount(investor, _token, _amount), 'withdraw: invalid token amount');
-        require(IXXXFactory(factory).isInvestorFundExist(investor, address(this)));
-
+        require(msg.sender == manager || 
+            IXXXFactory(factory).isInvestorFundExist(investor, address(this)), 'withdraw: invalid sender');
         uint256 managerFee = IXXXFactory(factory).getManagerFee();
 
         if (investor == manager) {
             // manager withdraw is no need manager fee
             decreaseInvestorTokenBalance(investor, _token, _amount);
             if (_token == WETH9) {
+                console.log(555);
+                console.log(IWETH9(WETH9).balanceOf(address(this)));
+                //console.log(getInvestorTokenBalance(investor, _token));
                 IWETH9(WETH9).withdraw(_amount);
-                (bool success, ) = investor.call{value: _amount}(new bytes(0));
-                require(success, 'manager withdraw: failed withdraw ETH');
+                console.log(666);
+                //(bool success, ) = investor.call{value: _amount}(new bytes(0));
+                console.log(777);
+                //require(success, 'manager withdraw: failed withdraw ETH');
+                emit Withdraw(investor, _token, _amount);
+
             } else {
                 IERC20(_token).transfer(investor, _amount);
             }

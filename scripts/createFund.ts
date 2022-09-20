@@ -11,7 +11,7 @@ async function main() {
   console.log("Account1 balance:", (await test_account_1.getBalance()).toString());
   console.log("Account2 balance:", (await test_account_2.getBalance()).toString());
 
-  const FactoryAddress = '0x7aFAb5bDE28E2B21576663e25B720c5f58207246'
+  const FactoryAddress = '0xB318c6Da139CD02fD398a2cc234E5F810c886cE7'
   const factory = await ethers.getContractAt("XXXFactory", FactoryAddress)
   
   const newFundAddress = await factory.connect(test_account_1).createFund(test_account_1.address);
@@ -21,10 +21,9 @@ async function main() {
 
   console.log("\n------------------------------------------------------------------------\n");
 
-  console.log("addInvestorFundList()\n");
+  //console.log("addInvestorFundList()\n");
   //await factory.connect(test_account_1).addInvestorFundList(newFundAddress);
   //await factory.connect(test_account_2).addInvestorFundList(newFundAddress);
-
 
 }
 

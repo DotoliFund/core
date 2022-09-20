@@ -25,7 +25,8 @@ async function main() {
   const Fund = await XXXFund2.deploy();
   await Fund.deployed();
   console.log("Fund address : ", Fund.address);
-
+  await Factory.createFund(owner.address);
+  
   const XXXFactoryContract = await ethers.getContractAt("XXXFactory", Factory.address);
 
   console.log("\n------------------------------------------------------------------------\n");
