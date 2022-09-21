@@ -42,21 +42,28 @@ contract XXXFund2 is IXXXFund2 {
     }
 
     receive() external payable {
-        bool _isInvestorFundExist = IXXXFactory(factory).isInvestorFundExist(msg.sender, address(this));
-        require(_isInvestorFundExist || msg.sender == manager,
-            'XXXFund2 deposit: account not added to investor list');
 
-        IWETH9(WETH9).deposit{value: msg.value}();
+        if (msg.sender == WETH9) {
+            
+            // when call IWETH9(WETH9).withdraw(amount) in this contract, go into here.
 
-        bool isNewInvestorToken = increaseInvestorTokenBalance(msg.sender, WETH9, msg.value);
-        if (isNewInvestorToken) {
-            uint256 newTokenIndex = investorTokenCount[msg.sender];
-            investorTokens[msg.sender][newTokenIndex].tokenAddress = WETH9;
-            investorTokens[msg.sender][newTokenIndex].amount = msg.value;
-            investorTokenCount[msg.sender] += 1;
+        } else {
+            bool _isInvestorFundExist = IXXXFactory(factory).isInvestorFundExist(msg.sender, address(this));
+            require(_isInvestorFundExist || msg.sender == manager,
+                'XXXFund2 deposit: account not added to investor list');
+
+            IWETH9(WETH9).deposit{value: msg.value}();
+
+            bool isNewInvestorToken = increaseInvestorTokenBalance(msg.sender, WETH9, msg.value);
+            if (isNewInvestorToken) {
+                uint256 newTokenIndex = investorTokenCount[msg.sender];
+                investorTokens[msg.sender][newTokenIndex].tokenAddress = WETH9;
+                investorTokens[msg.sender][newTokenIndex].amount = msg.value;
+                investorTokenCount[msg.sender] += 1;
+            }
+
+            emit Deposit(msg.sender, WETH9, msg.value);
         }
-
-        emit Deposit(msg.sender, WETH9, msg.value);
     }
 
     function initialize(address _manager) override external {
@@ -177,21 +184,6 @@ contract XXXFund2 is IXXXFund2 {
         emit Deposit(investor, _token, _amount);
     }
 
-    function withdrawWETH(address investor, address _token, uint256 _amount) external payable override lock {
-        // require(msg.sender == investor); // sufficient check
-        // bool _isInvestorFundExist = IXXXFactory(factory).isInvestorFundExist(investor, address(this));
-        // require(_isInvestorFundExist || msg.sender == manager,
-        //     'XXXFund2 withdraw: account not added to investor list');
-        // //check if investor has valid token amount
-        // require(isValidTokenAmount(investor, _token, _amount), 'withdraw: invalid token amount');
-        // require(msg.sender == manager || 
-        //     IXXXFactory(factory).isInvestorFundExist(investor, address(this)), 'withdraw: invalid sender');
-        // uint256 managerFee = IXXXFactory(factory).getManagerFee();
-        console.log(123);
-        IWETH9(WETH9).withdraw(_amount);
-        console.log(456);
-    }
-
     // this low-level function should be called from a contract which performs important safety checks
     function withdraw(address investor, address _token, uint256 _amount) external payable override lock {
         require(msg.sender == investor); // sufficient check
@@ -208,16 +200,10 @@ contract XXXFund2 is IXXXFund2 {
             // manager withdraw is no need manager fee
             decreaseInvestorTokenBalance(investor, _token, _amount);
             if (_token == WETH9) {
-                console.log(555);
-                console.log(IWETH9(WETH9).balanceOf(address(this)));
-                //console.log(getInvestorTokenBalance(investor, _token));
                 IWETH9(WETH9).withdraw(_amount);
-                console.log(666);
-                //(bool success, ) = investor.call{value: _amount}(new bytes(0));
-                console.log(777);
-                //require(success, 'manager withdraw: failed withdraw ETH');
-                emit Withdraw(investor, _token, _amount);
-
+                (bool success, ) = investor.call{value: _amount}(new bytes(0));
+                require(success, 'manager withdraw: failed withdraw ETH');
+                //emit Withdraw(investor, _token, _amount);
             } else {
                 IERC20(_token).transfer(investor, _amount);
             }
@@ -234,6 +220,7 @@ contract XXXFund2 is IXXXFund2 {
                 IERC20(_token).transfer(investor, _amount - rewardAmount);
             }
         }
+        emit Withdraw(investor, _token, _amount);
     }
 
     function getTokenOutFromPath(bytes memory path) private returns (address) {
@@ -378,21 +365,21 @@ contract XXXFund2 is IXXXFund2 {
     function swap(
         V3TradeParams[] calldata trades
     ) external payable override lock returns (uint256) {
-        console.log("swap() parameter => ");
-        console.log("    tradeType : ", uint(trades[0].tradeType));
-        console.log("    swapType : ", uint(trades[0].swapType));
-        console.log("    investor : ", trades[0].investor);
-        console.log("    tokenIn : ", trades[0].tokenIn);
-        console.log("    tokenOut : ", trades[0].tokenOut);
-        console.log("    recipient : ", trades[0].recipient);
-        console.log("    fee : ", trades[0].fee);
-        console.log("    amountIn : ", trades[0].amountIn);
-        console.log("    amountOut : ", trades[0].amountOut);
-        console.log("    amountInMaximum : ", trades[0].amountOutMinimum);
-        console.log("    amountOutMinimum : ", trades[0].amountOutMinimum);
-        console.log("    sqrtPriceLimitX96 : ", trades[0].sqrtPriceLimitX96);
-        console.log("    path : ");
-        console.logBytes(trades[0].path);
+        // console.log("swap() parameter => ");
+        // console.log("    tradeType : ", uint(trades[0].tradeType));
+        // console.log("    swapType : ", uint(trades[0].swapType));
+        // console.log("    investor : ", trades[0].investor);
+        // console.log("    tokenIn : ", trades[0].tokenIn);
+        // console.log("    tokenOut : ", trades[0].tokenOut);
+        // console.log("    recipient : ", trades[0].recipient);
+        // console.log("    fee : ", trades[0].fee);
+        // console.log("    amountIn : ", trades[0].amountIn);
+        // console.log("    amountOut : ", trades[0].amountOut);
+        // console.log("    amountInMaximum : ", trades[0].amountOutMinimum);
+        // console.log("    amountOutMinimum : ", trades[0].amountOutMinimum);
+        // console.log("    sqrtPriceLimitX96 : ", trades[0].sqrtPriceLimitX96);
+        // console.log("    path : ");
+        // console.logBytes(trades[0].path);
 
 
         require(msg.sender == manager, 'swap: invalid sender');
