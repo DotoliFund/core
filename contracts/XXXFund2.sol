@@ -367,7 +367,7 @@ contract XXXFund2 is IXXXFund2 {
 
     function swap(
         V3TradeParams[] calldata trades
-    ) external payable override lock returns (uint256) {
+    ) external payable override lock {
         // console.log("swap() parameter => ");
         // console.log("    tradeType : ", uint(trades[0].tradeType));
         // console.log("    swapType : ", uint(trades[0].swapType));
@@ -402,6 +402,5 @@ contract XXXFund2 is IXXXFund2 {
                 }
             }
         }
-        return 1;
     }
 }

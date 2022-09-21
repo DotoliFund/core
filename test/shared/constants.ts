@@ -17,3 +17,67 @@ export const WHITE_LIST_TOKENS = [
   '0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984',
   '0xEAE906dC299ccd9Cd94584377d0F96Ce144c942f'
 ]
+
+export const EXACT_INPUT_SINGLE_PARAMS = [{
+  tradeType: 0,
+  swapType: 0,
+  investor: ,
+  tokenIn: ,
+  tokenOut: ,
+  recipient: ,
+  fee: ,
+  amountIn: ,
+  amountOut: ,
+  amountInMaximum: ,
+  amountOutMinimum: ,
+  sqrtPriceLimitX96: ,
+  path: ,
+}]
+
+export const EXACT_INPUT_PARAMS = [{
+  tradeType: 0,
+  swapType: 1,
+  investor: ,
+  tokenIn: ,
+  tokenOut: ,
+  recipient: ,
+  fee: ,
+  amountIn: ,
+  amountOut: ,
+  amountInMaximum: ,
+  amountOutMinimum: ,
+  sqrtPriceLimitX96: ,
+  path: ,
+}]
+
+export const EXACT_OUTPUT_SINGLE_PARAMS = [{
+  tradeType: 1,
+  swapType: 0,
+  investor: ,
+  tokenIn: ,
+  tokenOut: ,
+  recipient: ,
+  fee: ,
+  amountIn: ,
+  amountOut: ,
+  amountInMaximum: ,
+  amountOutMinimum: ,
+  sqrtPriceLimitX96: ,
+  path: ,
+}]
+
+export const EXACT_OUTPUT_PARAMS = [{
+  tradeType: 1,
+  swapType: 1,
+  investor: ,
+  tokenIn: ,
+  tokenOut: ,
+  recipient: ,
+  fee: ,
+  amountIn: ,
+  amountOut: ,
+  amountInMaximum: ,
+  amountOutMinimum: ,
+  sqrtPriceLimitX96: ,
+  path: ,
+}]
