@@ -62,4 +62,5 @@ interface IXXXFund2 {
 
     function getInvestorTokenCount(address investor) external returns (uint256);
     function getInvestorTokens(address investor) external returns (Token[] memory);
+    function getRewardTokens() external returns (Token[] memory);
 }

@@ -27,8 +27,6 @@ contract XXXFund2 is IXXXFund2 {
 
     //fund manager profit rewards added, only if the investor receives a profit.
     Token[] public rewardTokens;
-    //mapping(uint256 => Token) public rewardTokens;
-    //uint256 public rewardTokenCount = 0;
 
     uint256 private unlocked = 1;
     modifier lock() {
@@ -94,6 +92,14 @@ contract XXXFund2 is IXXXFund2 {
             }
         }
         return 0;
+    }
+
+    function getRewardTokens() external override view returns (Token[] memory){
+        Token[] memory _rewardTokens = new Token[](rewardTokens.length);
+        for (uint i = 0; i < rewardTokens.length; i++) {
+            _rewardTokens[i] = rewardTokens[i];
+        }
+        return _rewardTokens;
     }
 
     function increaseInvestorTokenBalance(address investor, address _token, uint256 _amount) private returns (bool){
