@@ -31,7 +31,7 @@ contract XXXFund2 is IXXXFund2 {
 
     uint256 private unlocked = 1;
     modifier lock() {
-        require(unlocked == 1, 'XXXFund: LOCKED');
+        require(unlocked == 1, 'Fund LOCKED');
         unlocked = 0;
         _;
         unlocked = 1;
@@ -50,7 +50,7 @@ contract XXXFund2 is IXXXFund2 {
         } else {
             bool _isInvestorFundExist = IXXXFactory(factory).isInvestorFundExist(msg.sender, address(this));
             require(_isInvestorFundExist || msg.sender == manager,
-                'XXXFund2 deposit: account not added to investor list');
+                'receive() => account is not exist in manager list nor investor list');
 
             IWETH9(WETH9).deposit{value: msg.value}();
 
@@ -67,7 +67,7 @@ contract XXXFund2 is IXXXFund2 {
     }
 
     function initialize(address _manager) override external {
-        require(msg.sender == factory, 'XXXFund initialize: FORBIDDEN'); // sufficient check
+        require(msg.sender == factory, 'initialize() => FORBIDDEN'); // sufficient check
         manager = _manager;
 
         emit Create(address(this), manager);
@@ -112,7 +112,7 @@ contract XXXFund2 is IXXXFund2 {
         for (uint256 i=0; i<investorTokenCount[investor]; i++) {
             if (investorTokens[investor][i].tokenAddress == _token) {
                 isNewToken = false;
-                require(investorTokens[investor][i].amount >= _amount, 'decreaseTokenAmount: decrease token amount is more than you have');
+                require(investorTokens[investor][i].amount >= _amount, 'decreaseTokenAmount() => decrease token amount is more than you have');
                 investorTokens[investor][i].amount -= _amount;
                 break;
             }
@@ -124,7 +124,7 @@ contract XXXFund2 is IXXXFund2 {
         //update investor info
         //decrease part of swap (decrease swapFrom token reduce by swapFromAmount)
         bool isNewInvestorToken = decreaseInvestorTokenBalance(investor, swapFrom, swapFromAmount);
-        require(isNewInvestorToken == false, 'handleSwap: Invalid investor token withdraw attempt');
+        require(isNewInvestorToken == false, 'handleSwap() => Invalid investor token withdraw attempt');
         //increase part of swap (increase swapTo token increase by swapToAmount)
         isNewInvestorToken = increaseInvestorTokenBalance(investor, swapTo, swapToAmount);
         if (isNewInvestorToken) {
@@ -168,11 +168,11 @@ contract XXXFund2 is IXXXFund2 {
         require(msg.sender == investor); // sufficient check
         bool _isInvestorFundExist = IXXXFactory(factory).isInvestorFundExist(investor, address(this));
         require(_isInvestorFundExist || msg.sender == manager,
-            'XXXFund2 deposit: account not added to investor list');
-        require(IXXXFactory(factory).isWhiteListToken(_token), 'XXXFund2 deposit: not whitelist token');
-
+            'deposit() => account is not exist in manager list nor investor list');
+        require(IXXXFactory(factory).isWhiteListToken(_token), 'deposit() => not whitelist token');
+        
         IERC20(_token).transferFrom(investor, address(this), _amount);
-
+        
         bool isNewInvestorToken = increaseInvestorTokenBalance(investor, _token, _amount);
         if (isNewInvestorToken) {
             uint256 newTokenIndex = investorTokenCount[investor];
@@ -180,7 +180,7 @@ contract XXXFund2 is IXXXFund2 {
             investorTokens[investor][newTokenIndex].amount = _amount;
             investorTokenCount[investor] += 1;
         }
-
+        console.log(789);
         emit Deposit(investor, _token, _amount);
     }
 
@@ -189,11 +189,10 @@ contract XXXFund2 is IXXXFund2 {
         require(msg.sender == investor); // sufficient check
         bool _isInvestorFundExist = IXXXFactory(factory).isInvestorFundExist(investor, address(this));
         require(_isInvestorFundExist || msg.sender == manager,
-            'XXXFund2 withdraw: account not added to investor list');
+            'withdraw() => account is not exist in manager list nor investor list');
         //check if investor has valid token amount
-        require(isValidTokenAmount(investor, _token, _amount), 'withdraw: invalid token amount');
-        require(msg.sender == manager || 
-            IXXXFactory(factory).isInvestorFundExist(investor, address(this)), 'withdraw: invalid sender');
+        require(isValidTokenAmount(investor, _token, _amount), 'withdraw() => invalid token amount');
+        
         uint256 managerFee = IXXXFactory(factory).getManagerFee();
 
         if (investor == manager) {
@@ -202,8 +201,7 @@ contract XXXFund2 is IXXXFund2 {
             if (_token == WETH9) {
                 IWETH9(WETH9).withdraw(_amount);
                 (bool success, ) = investor.call{value: _amount}(new bytes(0));
-                require(success, 'manager withdraw: failed withdraw ETH');
-                //emit Withdraw(investor, _token, _amount);
+                require(success, 'withdraw() => sending ETH to manager failed');
             } else {
                 IERC20(_token).transfer(investor, _amount);
             }
@@ -215,7 +213,7 @@ contract XXXFund2 is IXXXFund2 {
             if (_token == WETH9) {
                 IWETH9(WETH9).withdraw(_amount - rewardAmount);
                 (bool success, ) = investor.call{value: _amount - rewardAmount}(new bytes(0));
-                require(success, 'investor withdraw: failed withdraw ETH');
+                require(success, 'withdraw() => sending ETH to investor failed');
             } else {
                 IERC20(_token).transfer(investor, _amount - rewardAmount);
             }
@@ -243,10 +241,10 @@ contract XXXFund2 is IXXXFund2 {
     function exactInputSingle(V3TradeParams memory trade) private returns (uint256 amountOut)
     {
         require(IXXXFactory(factory).isWhiteListToken(trade.tokenOut), 
-            'swap: not whitelist token');
+            'exactInputSingle() => not whitelist token');
 
         uint256 tokenBalance = getInvestorTokenBalance(trade.investor, trade.tokenIn);
-        require(tokenBalance >= trade.amountIn, 'swap: invalid inputAmount');
+        require(tokenBalance >= trade.amountIn, 'exactInputSingle() => invalid inputAmount');
 
         address _swapRouterAddress = IXXXFactory(factory).getSwapRouterAddress();
 
@@ -277,11 +275,11 @@ contract XXXFund2 is IXXXFund2 {
         (address tokenIn, , ) = trade.path.decodeFirstPool();
 
         require(IXXXFactory(factory).isWhiteListToken(tokenOut), 
-            'swap: not whitelist token');
+            'exactInput() => not whitelist token');
 
         
         uint256 tokenBalance = getInvestorTokenBalance(trade.investor, tokenIn);
-        require(tokenBalance >= trade.amountIn, 'swap: invalid inputAmount');
+        require(tokenBalance >= trade.amountIn, 'exactInput() => invalid inputAmount');
 
         address _swapRouterAddress = IXXXFactory(factory).getSwapRouterAddress();
 
@@ -305,10 +303,10 @@ contract XXXFund2 is IXXXFund2 {
     function exactOutputSingle(V3TradeParams memory trade) private returns (uint256 amountIn)
     {
         require(IXXXFactory(factory).isWhiteListToken(trade.tokenOut), 
-            'swap: not whitelist token');
+            'exactOutputSingle() => not whitelist token');
 
         uint256 tokenBalance = getInvestorTokenBalance(trade.investor, trade.tokenIn);
-        require(tokenBalance >= trade.amountInMaximum, 'swap: invalid inputAmount');
+        require(tokenBalance >= trade.amountInMaximum, 'exactOutputSingle() => invalid inputAmount');
 
         address _swapRouterAddress = IXXXFactory(factory).getSwapRouterAddress();
 
@@ -338,10 +336,10 @@ contract XXXFund2 is IXXXFund2 {
         (address tokenIn, , ) = trade.path.decodeFirstPool();
 
         require(IXXXFactory(factory).isWhiteListToken(tokenOut), 
-            'swap: not whitelist token');
+            'exactOutput() => not whitelist token');
 
         uint256 tokenBalance = getInvestorTokenBalance(trade.investor, tokenIn);
-        require(tokenBalance >= trade.amountInMaximum, 'swap: invalid inputAmount');
+        require(tokenBalance >= trade.amountInMaximum, 'exactOutput() => invalid inputAmount');
 
         address _swapRouterAddress = IXXXFactory(factory).getSwapRouterAddress();
 
@@ -382,7 +380,7 @@ contract XXXFund2 is IXXXFund2 {
         // console.logBytes(trades[0].path);
 
 
-        require(msg.sender == manager, 'swap: invalid sender');
+        require(msg.sender == manager, 'swap() => invalid sender');
 
         for(uint256 i=0; i<trades.length; i++) {
             if (trades[i].swapType == V3SwapType.SINGLE_HOP) {
