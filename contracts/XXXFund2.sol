@@ -26,8 +26,9 @@ contract XXXFund2 is IXXXFund2 {
     mapping(address => uint256) public investorTokenCount;
 
     //fund manager profit rewards added, only if the investor receives a profit.
-    mapping(uint256 => Token) public rewardTokens;
-    uint256 public rewardTokenCount = 0;
+    Token[] public rewardTokens;
+    //mapping(uint256 => Token) public rewardTokens;
+    //uint256 public rewardTokenCount = 0;
 
     uint256 private unlocked = 1;
     modifier lock() {
@@ -149,7 +150,7 @@ contract XXXFund2 is IXXXFund2 {
 
     function increaseManagerReward(address _token, uint256 _amount) private returns (bool){
         bool isNewToken = true;
-        for (uint256 i=0; i<rewardTokenCount; i++) {
+        for (uint256 i=0; i<rewardTokens.length; i++) {
             if (rewardTokens[i].tokenAddress == _token) {
                 isNewToken = false;
                 rewardTokens[i].amount += _amount;
@@ -157,9 +158,7 @@ contract XXXFund2 is IXXXFund2 {
             }
         }
         if (isNewToken) {
-            rewardTokens[rewardTokenCount].tokenAddress = _token;
-            rewardTokens[rewardTokenCount].amount = _amount;
-            rewardTokenCount += 1;
+            rewardTokens.push(Token(_token, _amount));
         }
     }
 

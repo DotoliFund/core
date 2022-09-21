@@ -19,8 +19,6 @@ contract XXXFactory is IXXXFactory {
     mapping(address => mapping(uint256 => address)) public getFundByInvestor;
     mapping(address => uint256) public getFundCountByInvestor;
 
-    uint256 totalFundCount;
-
     uint256 private unlocked = 1;
     modifier lock() {
         require(unlocked == 1, 'Fund LOCKED');
@@ -31,7 +29,6 @@ contract XXXFactory is IXXXFactory {
 
     constructor() {
         owner = msg.sender;
-        totalFundCount = 0;
         emit OwnerChanged(address(0), msg.sender);
 
         whiteListTokens.push(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2); //WETH mainnet
@@ -52,7 +49,6 @@ contract XXXFactory is IXXXFactory {
         fund = address(new XXXFund2{salt: keccak256(abi.encode(address(this), manager))}());
         getFundByManager[manager] = fund;
         IXXXFund2(fund).initialize(manager);
-        totalFundCount += 1;
 
         console.log("createFund() => fund address : ", fund);
         return fund;
