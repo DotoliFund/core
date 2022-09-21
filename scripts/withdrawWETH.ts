@@ -26,7 +26,7 @@ async function main() {
   // withdraw ETH
 
   const fundContract = await ethers.getContractAt("XXXFund2", newFundAddress);
-  await fundContract.withdrawWETH(
+  await fundContract.withdraw(
     test_account_1.address, 
     '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2', 
     ethers.utils.parseEther("0.1")
