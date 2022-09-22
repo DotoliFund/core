@@ -85,7 +85,7 @@ contract XXXFund2 is IXXXFund2 {
         return _investorTokens;
     }
 
-    function getInvestorTokenBalance(address investor, address token) private view returns (uint256){
+    function getInvestorTokenAmount(address investor, address token) public override view returns (uint256){
         for (uint256 i=0; i<investorTokenCount[investor]; i++) {
             if (investorTokens[investor][i].tokenAddress == token) {
                 return investorTokens[investor][i].amount;
@@ -248,7 +248,7 @@ contract XXXFund2 is IXXXFund2 {
         require(IXXXFactory(factory).isWhiteListToken(trade.tokenOut), 
             'exactInputSingle() => not whitelist token');
 
-        uint256 tokenBalance = getInvestorTokenBalance(trade.investor, trade.tokenIn);
+        uint256 tokenBalance = getInvestorTokenAmount(trade.investor, trade.tokenIn);
         require(tokenBalance >= trade.amountIn, 'exactInputSingle() => invalid inputAmount');
 
         address _swapRouterAddress = IXXXFactory(factory).getSwapRouterAddress();
@@ -283,7 +283,7 @@ contract XXXFund2 is IXXXFund2 {
             'exactInput() => not whitelist token');
 
         
-        uint256 tokenBalance = getInvestorTokenBalance(trade.investor, tokenIn);
+        uint256 tokenBalance = getInvestorTokenAmount(trade.investor, tokenIn);
         require(tokenBalance >= trade.amountIn, 'exactInput() => invalid inputAmount');
 
         address _swapRouterAddress = IXXXFactory(factory).getSwapRouterAddress();
@@ -310,7 +310,7 @@ contract XXXFund2 is IXXXFund2 {
         require(IXXXFactory(factory).isWhiteListToken(trade.tokenOut), 
             'exactOutputSingle() => not whitelist token');
 
-        uint256 tokenBalance = getInvestorTokenBalance(trade.investor, trade.tokenIn);
+        uint256 tokenBalance = getInvestorTokenAmount(trade.investor, trade.tokenIn);
         require(tokenBalance >= trade.amountInMaximum, 'exactOutputSingle() => invalid inputAmount');
 
         address _swapRouterAddress = IXXXFactory(factory).getSwapRouterAddress();
@@ -340,10 +340,12 @@ contract XXXFund2 is IXXXFund2 {
         address tokenOut = getTokenOutFromPath(trade.path);
         (address tokenIn, , ) = trade.path.decodeFirstPool();
 
+        console.log(tokenIn, tokenOut);
+
         require(IXXXFactory(factory).isWhiteListToken(tokenOut), 
             'exactOutput() => not whitelist token');
 
-        uint256 tokenBalance = getInvestorTokenBalance(trade.investor, tokenIn);
+        uint256 tokenBalance = getInvestorTokenAmount(trade.investor, tokenIn);
         require(tokenBalance >= trade.amountInMaximum, 'exactOutput() => invalid inputAmount');
 
         address _swapRouterAddress = IXXXFactory(factory).getSwapRouterAddress();
@@ -381,7 +383,7 @@ contract XXXFund2 is IXXXFund2 {
         console.log("    amountInMaximum : ", trades[0].amountOutMinimum);
         console.log("    amountOutMinimum : ", trades[0].amountOutMinimum);
         console.log("    sqrtPriceLimitX96 : ", trades[0].sqrtPriceLimitX96);
-        console.log("    path : ");
+        //console.log("    path : ");
         console.logBytes(trades[0].path);
 
 
