@@ -368,21 +368,21 @@ contract XXXFund2 is IXXXFund2 {
     function swap(
         V3TradeParams[] calldata trades
     ) external payable override lock {
-        // console.log("swap() parameter => ");
-        // console.log("    tradeType : ", uint(trades[0].tradeType));
-        // console.log("    swapType : ", uint(trades[0].swapType));
-        // console.log("    investor : ", trades[0].investor);
-        // console.log("    tokenIn : ", trades[0].tokenIn);
-        // console.log("    tokenOut : ", trades[0].tokenOut);
-        // console.log("    recipient : ", trades[0].recipient);
-        // console.log("    fee : ", trades[0].fee);
-        // console.log("    amountIn : ", trades[0].amountIn);
-        // console.log("    amountOut : ", trades[0].amountOut);
-        // console.log("    amountInMaximum : ", trades[0].amountOutMinimum);
-        // console.log("    amountOutMinimum : ", trades[0].amountOutMinimum);
-        // console.log("    sqrtPriceLimitX96 : ", trades[0].sqrtPriceLimitX96);
-        // console.log("    path : ");
-        // console.logBytes(trades[0].path);
+        console.log("swap() parameter => ");
+        console.log("    tradeType : ", uint(trades[0].tradeType));
+        console.log("    swapType : ", uint(trades[0].swapType));
+        console.log("    investor : ", trades[0].investor);
+        console.log("    tokenIn : ", trades[0].tokenIn);
+        console.log("    tokenOut : ", trades[0].tokenOut);
+        console.log("    recipient : ", trades[0].recipient);
+        console.log("    fee : ", trades[0].fee);
+        console.log("    amountIn : ", trades[0].amountIn);
+        console.log("    amountOut : ", trades[0].amountOut);
+        console.log("    amountInMaximum : ", trades[0].amountOutMinimum);
+        console.log("    amountOutMinimum : ", trades[0].amountOutMinimum);
+        console.log("    sqrtPriceLimitX96 : ", trades[0].sqrtPriceLimitX96);
+        console.log("    path : ");
+        console.logBytes(trades[0].path);
 
 
         require(msg.sender == manager, 'swap() => invalid sender');

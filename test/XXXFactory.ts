@@ -97,7 +97,7 @@ describe('XXXFactory', () => {
 
     it("addInvestorFundList()", async function () {
       const FactoryContract = await ethers.getContractAt("XXXFactory", FactoryContractAddress)
-      await expect(FactoryContract.connect(manager).addInvestorFundList(NewFundAddress)).to.be.revertedWith('addInvestorFundList() => manager cannot add investor fund list')
+      await expect(FactoryContract.connect(manager).addInvestorFundList(NewFundAddress)).to.be.reverted
     })
 
   })
@@ -196,6 +196,11 @@ describe('XXXFactory', () => {
     it("getInvestorFundList()", async function () {
       const FactoryContract = await ethers.getContractAt("XXXFactory", FactoryContractAddress)
       expect(await FactoryContract.connect(investor).getInvestorFundList(investor.address)).to.have.lengthOf(1)
+    })
+
+    it("addInvestorFundList() must be fail : duplicate", async function () {
+      const FactoryContract = await ethers.getContractAt("XXXFactory", FactoryContractAddress)
+      await expect(FactoryContract.connect(investor).addInvestorFundList(NewFundAddress)).to.be.reverted
     })
 
   })

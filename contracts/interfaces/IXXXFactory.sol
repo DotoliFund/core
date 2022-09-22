@@ -33,7 +33,8 @@ interface IXXXFactory {
     function addWhiteListToken(address _token) external;
     function removeWhiteListToken(address _token) external;
 
-    function getFundByManager(address manager) external view returns (address);
+    //TODO : remove getFundByManager in app
+    //function getFundByManager(address manager) external view returns (address);
     
     function isInvestorFundExist(address investor, address fund) external view returns (bool);
     function getInvestorFundList(address investor) external view returns (address[] memory);

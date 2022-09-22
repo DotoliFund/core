@@ -15,7 +15,7 @@ contract XXXFactory is IXXXFactory {
     uint256 managerFee = 1; // 1% of investor profit ex) MANAGER_FEE = 10 -> 10% of investor profit
     address[] whiteListTokens;
 
-    mapping(address => address) override public getFundByManager;
+    mapping(address => address) public getFundByManager;
     mapping(address => mapping(uint256 => address)) public getFundByInvestor;
     mapping(address => uint256) public getFundCountByInvestor;
 
