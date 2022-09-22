@@ -226,7 +226,7 @@ contract XXXFund2 is IXXXFund2 {
         emit Withdraw(investor, _token, _amount);
     }
 
-    function getTokenOutFromPath(bytes memory path) private returns (address) {
+    function getLastTokenFromPath(bytes memory path) private returns (address) {
         address _tokenOut;
 
         while (true) {
@@ -254,8 +254,8 @@ contract XXXFund2 is IXXXFund2 {
         address _swapRouterAddress = IXXXFactory(factory).getSwapRouterAddress();
 
         // approve
-        //trade.tokenIn.call(abi.encodeWithSelector(IERC20.approve.selector, _swapRouterAddress, trade.amountIn));
         IERC20(trade.tokenIn).approve(_swapRouterAddress, trade.amountIn);
+
         // Naively set amountOutMinimum to 0. In production, use an oracle or other data source to choose a safer value for amountOutMinimum.
         // We also set the sqrtPriceLimitx96 to be 0 to ensure we swap our exact input amount.
         ISwapRouter02.ExactInputSingleParams memory params =
@@ -276,7 +276,7 @@ contract XXXFund2 is IXXXFund2 {
 
     function exactInput(V3TradeParams memory trade) private returns (uint256 amountOut)
     {
-        address tokenOut = getTokenOutFromPath(trade.path);
+        address tokenOut = getLastTokenFromPath(trade.path);
         (address tokenIn, , ) = trade.path.decodeFirstPool();
 
         require(IXXXFactory(factory).isWhiteListToken(tokenOut), 
@@ -289,7 +289,6 @@ contract XXXFund2 is IXXXFund2 {
         address _swapRouterAddress = IXXXFactory(factory).getSwapRouterAddress();
 
         // approve
-        //tokenIn.call(abi.encodeWithSelector(IERC20.approve.selector, _swapRouterAddress, trade.amountIn));
         IERC20(tokenIn).approve(_swapRouterAddress, trade.amountIn);
 
         ISwapRouter02.ExactInputParams memory params =
@@ -316,7 +315,6 @@ contract XXXFund2 is IXXXFund2 {
         address _swapRouterAddress = IXXXFactory(factory).getSwapRouterAddress();
 
         // approve
-        //trade.tokenIn.call(abi.encodeWithSelector(IERC20.approve.selector, _swapRouterAddress, trade.amountInMaximum));
         IERC20(trade.tokenIn).approve(_swapRouterAddress, trade.amountInMaximum);
 
         ISwapRouter02.ExactOutputSingleParams memory params =
@@ -337,10 +335,8 @@ contract XXXFund2 is IXXXFund2 {
 
     function exactOutput(V3TradeParams memory trade) private returns (uint256 amountIn)
     {
-        address tokenOut = getTokenOutFromPath(trade.path);
-        (address tokenIn, , ) = trade.path.decodeFirstPool();
-
-        console.log(tokenIn, tokenOut);
+        address tokenIn = getLastTokenFromPath(trade.path);
+        (address tokenOut, , ) = trade.path.decodeFirstPool();
 
         require(IXXXFactory(factory).isWhiteListToken(tokenOut), 
             'exactOutput() => not whitelist token');
@@ -351,7 +347,6 @@ contract XXXFund2 is IXXXFund2 {
         address _swapRouterAddress = IXXXFactory(factory).getSwapRouterAddress();
 
         // approve
-        //tokenIn.call(abi.encodeWithSelector(IERC20.approve.selector, _swapRouterAddress, trade.amountInMaximum));
         IERC20(tokenIn).approve(_swapRouterAddress, trade.amountInMaximum);
 
         ISwapRouter02.ExactOutputParams memory params =

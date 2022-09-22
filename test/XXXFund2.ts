@@ -442,11 +442,6 @@ describe('XXXFund2', () => {
 
           expect(managerWETHAfter).to.be.above(managerWETHBefore)
           expect(managerUNIAfter).to.equal(managerUNIBefore.sub(swapInputAmount))
-          console.log('managerWETHBefore', managerWETHBefore)
-          console.log('managerWETHAfter', managerWETHAfter)
-          console.log('managerUNIBefore', managerUNIBefore)
-          console.log('managerUNIAfter', managerUNIAfter)
-
         })
 
       })
@@ -460,8 +455,7 @@ describe('XXXFund2', () => {
         ): Promise<ContractTransaction> {
 
           const value = 0
-          const path = encodePath(tokens, new Array(tokens.length - 1).fill(FeeAmount.MEDIUM))
-
+          const path = encodePath(tokens.slice().reverse(), new Array(tokens.length - 1).fill(FeeAmount.MEDIUM))
           const params: V3TradeParams[] = [
             {
               tradeType: V3TradeType.EXACT_OUTPUT,
@@ -486,16 +480,13 @@ describe('XXXFund2', () => {
 
 
         it("WETH -> DAI -> UNI", async function () {
-          const tokens = [UNI_ADDRESS, DAI_ADDRESS, WETH9_MAINNET]
-          const swapOutputAmount = BigNumber.from(100000)
-          const amountInMaximum = BigNumber.from(1000000)
+          const tokens = [WETH9_MAINNET, DAI_ADDRESS, UNI_ADDRESS]
+          const swapOutputAmount = BigNumber.from(1000000)
+          const amountInMaximum = BigNumber.from(100000)
           const newFundContract = await ethers.getContractAt("XXXFund2", NewFundAddress)
 
           const managerWETHBefore = await newFundContract.connect(manager).getInvestorTokenAmount(manager.address, WETH9_MAINNET)
           const managerUNIBefore = await newFundContract.connect(manager).getInvestorTokenAmount(manager.address, UNI_ADDRESS)
-
-          console.log('managerWETHBefore', managerWETHBefore)
-          console.log('managerUNIBefore', managerUNIBefore)
 
           await exactOutput(
             tokens,
@@ -506,13 +497,8 @@ describe('XXXFund2', () => {
           const managerWETHAfter = await newFundContract.connect(manager).getInvestorTokenAmount(manager.address, WETH9_MAINNET)
           const managerUNIAfter = await newFundContract.connect(manager).getInvestorTokenAmount(manager.address, UNI_ADDRESS)
 
-          console.log('managerWETHBefore', managerWETHBefore)
-          console.log('managerWETHAfter', managerWETHAfter)
-          console.log('managerUNIBefore', managerUNIBefore)
-          console.log('managerUNIAfter', managerUNIAfter)
-
-          expect(managerWETHAfter).to.equal(managerWETHBefore.sub(swapOutputAmount))
-          expect(managerUNIAfter).to.be.above(managerUNIBefore)
+          expect(managerWETHAfter).to.be.below(managerWETHBefore)
+          expect(managerUNIAfter).to.equal(managerUNIBefore.add(swapOutputAmount))
         })
 
         // it("UNI -> DAI -> WETH", async function () {
