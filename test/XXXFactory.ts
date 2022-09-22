@@ -37,14 +37,14 @@ describe('XXXFactory', () => {
       fundBytecode = (await ethers.getContractFactory('XXXFund2')).bytecode
     })
 
-    it("Deploy XXXFactory Contract", async function () {
+    before("Deploy XXXFactory Contract", async function () {
       const XXXFactory = await ethers.getContractFactory("XXXFactory")
       const Factory = await XXXFactory.connect(deployer).deploy()
       await Factory.deployed()
       FactoryContractAddress = Factory.address
     })
 
-    it("Deploy XXXFund2 Contract", async function () {
+    before("Deploy XXXFund2 Contract", async function () {
       const XXXFund = await ethers.getContractFactory("XXXFund2")
       const Fund = await XXXFund.connect(deployer).deploy()
       await Fund.deployed()
@@ -120,14 +120,14 @@ describe('XXXFactory', () => {
       fundBytecode = (await ethers.getContractFactory('XXXFund2')).bytecode
     })
 
-    it("Deploy XXXFactory Contract", async function () {
+    before("Deploy XXXFactory Contract", async function () {
       const XXXFactory = await ethers.getContractFactory("XXXFactory")
       const Factory = await XXXFactory.connect(deployer).deploy()
       await Factory.deployed()
       FactoryContractAddress = Factory.address
     })
 
-    it("Deploy XXXFund2 Contract", async function () {
+    before("Deploy XXXFund2 Contract", async function () {
       const XXXFund = await ethers.getContractFactory("XXXFund2")
       const Fund = await XXXFund.connect(deployer).deploy()
       await Fund.deployed()
@@ -222,14 +222,14 @@ describe('XXXFactory', () => {
       fundBytecode = (await ethers.getContractFactory('XXXFund2')).bytecode
     })
 
-    it("Deploy XXXFactory Contract", async function () {
+    before("Deploy XXXFactory Contract", async function () {
       const XXXFactory = await ethers.getContractFactory("XXXFactory")
       const Factory = await XXXFactory.connect(deployer).deploy()
       await Factory.deployed()
       FactoryContractAddress = Factory.address
     })
 
-    it("Deploy XXXFund2 Contract", async function () {
+    before("Deploy XXXFund2 Contract", async function () {
       const XXXFund = await ethers.getContractFactory("XXXFund2")
       const Fund = await XXXFund.connect(deployer).deploy()
       await Fund.deployed()
