@@ -151,8 +151,8 @@ describe('XXXFund2', () => {
       });
       const fundWETHBefore = await WETH9.balanceOf(NewFundAddress)
       const managerWETHBefore = await newFundContract.connect(manager).getInvestorTokenAmount(manager.address, WETH9_MAINNET)
- 
-      await newFundContract.connect(manager).withdraw(manager.address, WETH9_MAINNET, WITHDRAW_AMOUNT)
+
+      await newFundContract.connect(manager).withdraw(WETH9_MAINNET, WITHDRAW_AMOUNT)
 
       //check investorTokenCount
       const investorTokenCount = await newFundContract.connect(manager).investorTokenCount(manager.address)
@@ -183,7 +183,7 @@ describe('XXXFund2', () => {
       const managerWETHBefore = await newFundContract.connect(manager).getInvestorTokenAmount(manager.address, WETH9_MAINNET)
 
       await WETH9.connect(manager).approve(NewFundAddress, constants.MaxUint256)
-      await newFundContract.connect(manager).deposit(manager.address, WETH9_MAINNET, DEPOSIT_AMOUNT)
+      await newFundContract.connect(manager).deposit(WETH9_MAINNET, DEPOSIT_AMOUNT)
 
       //check investorTokenCount
       const investorTokenCount = await newFundContract.connect(manager).investorTokenCount(manager.address)
@@ -207,7 +207,7 @@ describe('XXXFund2', () => {
       const fundWETHBefore = await WETH9.balanceOf(NewFundAddress)
       const managerWETHBefore = await newFundContract.connect(manager).getInvestorTokenAmount(manager.address, WETH9_MAINNET)
 
-      await newFundContract.connect(manager).withdraw(manager.address, WETH9_MAINNET, WITHDRAW_AMOUNT)
+      await newFundContract.connect(manager).withdraw(WETH9_MAINNET, WITHDRAW_AMOUNT)
 
       //check investorTokenCount
       const investorTokenCount = await newFundContract.connect(manager).investorTokenCount(manager.address)
@@ -476,8 +476,8 @@ describe('XXXFund2', () => {
       await WETH9.connect(investor).approve(NewFundAddress, constants.MaxUint256)
       
       //deposit, withdraw
-      await expect(newFundContract.connect(investor).deposit(investor.address, WETH9_MAINNET, DEPOSIT_AMOUNT)).to.be.reverted
-      await expect(newFundContract.connect(investor).withdraw(investor.address, WETH9_MAINNET, WITHDRAW_AMOUNT)).to.be.reverted
+      await expect(newFundContract.connect(investor).deposit(WETH9_MAINNET, DEPOSIT_AMOUNT)).to.be.reverted
+      await expect(newFundContract.connect(investor).withdraw(WETH9_MAINNET, WITHDRAW_AMOUNT)).to.be.reverted
       //swap exactInput
       const tokens = [WETH9_MAINNET, DAI_ADDRESS, UNI_ADDRESS]
       const swapInputAmount = BigNumber.from(10000)
@@ -547,7 +547,7 @@ describe('XXXFund2', () => {
       const fundWETHBefore = await WETH9.balanceOf(NewFundAddress)
       const investorWETHBefore = await newFundContract.connect(investor).getInvestorTokenAmount(investor.address, WETH9_MAINNET)
  
-      await newFundContract.connect(investor).withdraw(investor.address, WETH9_MAINNET, WITHDRAW_AMOUNT)
+      await newFundContract.connect(investor).withdraw(WETH9_MAINNET, WITHDRAW_AMOUNT)
 
       //check investorTokenCount
       const investorTokenCount = await newFundContract.connect(investor).investorTokenCount(investor.address)
@@ -583,7 +583,7 @@ describe('XXXFund2', () => {
       const rewardAmountBefore = rewardTokensBefore[0].amount
 
       await WETH9.connect(investor).approve(NewFundAddress, constants.MaxUint256)
-      await newFundContract.connect(investor).deposit(investor.address, WETH9_MAINNET, DEPOSIT_AMOUNT)
+      await newFundContract.connect(investor).deposit(WETH9_MAINNET, DEPOSIT_AMOUNT)
 
       //check investorTokenCount
       const investorTokenCount = await newFundContract.connect(investor).investorTokenCount(investor.address)
@@ -610,7 +610,7 @@ describe('XXXFund2', () => {
       const rewardTokensBefore = await newFundContract.connect(investor).getRewardTokens()
       const rewardAmountBefore = rewardTokensBefore[0].amount
 
-      await newFundContract.connect(investor).withdraw(investor.address, WETH9_MAINNET, WITHDRAW_AMOUNT)
+      await newFundContract.connect(investor).withdraw(WETH9_MAINNET, WITHDRAW_AMOUNT)
 
       //check investorTokenCount
       const investorTokenCount = await newFundContract.connect(investor).investorTokenCount(investor.address)
@@ -705,7 +705,7 @@ describe('XXXFund2', () => {
 
   //     await WETH9.connect(notInvestor).approve(NewFundAddress, constants.MaxUint256)
   //     const newFundContract = await ethers.getContractAt("XXXFund2", NewFundAddress)
-  //     await expect(newFundContract.connect(notInvestor).deposit(notInvestor.address, WETH9_MAINNET, DEPOSIT_AMOUNT))
+  //     await expect(newFundContract.connect(notInvestor).deposit(WETH9_MAINNET, DEPOSIT_AMOUNT))
   //       .to.be.revertedWith('deposit() => account is not exist in manager list nor investor list')
   //   })
 

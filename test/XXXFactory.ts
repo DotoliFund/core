@@ -6,12 +6,8 @@ import { XXXFund2 } from '../typechain-types/contracts/XXXFund2'
 import { getCreate2Address } from './shared/utilities'
 
 import { 
-  WETH9_MAINNET,
   NULL_ADDRESS,
   V3_SWAP_ROUTER_ADDRESS,
-  WETH_CHARGE_AMOUNT,
-  DEPOSIT_AMOUNT,
-  WITHDRAW_AMOUNT,
   MANAGER_FEE,
   WHITE_LIST_TOKENS,
 } from "./shared/constants"
