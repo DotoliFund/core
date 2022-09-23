@@ -525,7 +525,7 @@ describe('XXXFund2', () => {
       //check investorTokens
       const investorWETH = await fund1.connect(investor).getInvestorTokenAmount(investor.address, WETH9_MAINNET)
       //check rewardTokens
-      const rewardTokens = await fund1.connect(investor).getRewardTokens()
+      const rewardTokens = await fund1.connect(manager1).getRewardTokens()
       //check fund balance
       const fundWETHAfter = await weth9.balanceOf(fund1Address)
 
@@ -550,7 +550,7 @@ describe('XXXFund2', () => {
       //check investorTokens
       const investorWETHAfter = await fund1.connect(investor).getInvestorTokenAmount(investor.address, WETH9_MAINNET)
       //check rewardTokens
-      const rewardTokens = await fund1.connect(investor).getRewardTokens()
+      const rewardTokens = await fund1.connect(manager1).getRewardTokens()
       const fee = WITHDRAW_AMOUNT.mul(MANAGER_FEE).div(100)
       const investorWithdrawAmount = WITHDRAW_AMOUNT.sub(fee)
       //check fund balance
@@ -572,7 +572,7 @@ describe('XXXFund2', () => {
     it("deposit WETH ( MANAGER_FEE 1% )", async function () {
       const fundWETHBefore = await weth9.balanceOf(fund1Address)
       const investorWETHBefore = await fund1.connect(investor).getInvestorTokenAmount(investor.address, WETH9_MAINNET)
-      const rewardTokensBefore = await fund1.connect(investor).getRewardTokens()
+      const rewardTokensBefore = await fund1.connect(manager1).getRewardTokens()
       const rewardAmountBefore = rewardTokensBefore[0].amount
 
       await weth9.connect(investor).approve(fund1Address, constants.MaxUint256)
@@ -583,7 +583,7 @@ describe('XXXFund2', () => {
       //check investorTokens
       const investorWETHAfter = await fund1.connect(investor).getInvestorTokenAmount(investor.address, WETH9_MAINNET)
       //check rewardTokens
-      const rewardTokensAfter = await fund1.connect(investor).getRewardTokens()
+      const rewardTokensAfter = await fund1.connect(manager1).getRewardTokens()
       const rewardAmountAfter = rewardTokensAfter[0].amount
       //check fund balance
       const fundWETHAfter = await weth9.balanceOf(fund1Address)
@@ -597,7 +597,7 @@ describe('XXXFund2', () => {
     it("withdraw WETH ( MANAGER_FEE 1% )", async function () {
       const fundWETHBefore = await weth9.balanceOf(fund1Address)
       const investorWETHBefore = await fund1.connect(investor).getInvestorTokenAmount(investor.address, WETH9_MAINNET)
-      const rewardTokensBefore = await fund1.connect(investor).getRewardTokens()
+      const rewardTokensBefore = await fund1.connect(manager1).getRewardTokens()
       const rewardAmountBefore = rewardTokensBefore[0].amount
 
       await fund1.connect(investor).withdraw(WETH9_MAINNET, WITHDRAW_AMOUNT)
@@ -607,7 +607,7 @@ describe('XXXFund2', () => {
       //check investorTokens
       const investorWETHAfter = await fund1.connect(investor).getInvestorTokenAmount(investor.address, WETH9_MAINNET)
       //check rewardTokens
-      const rewardTokensAfter = await fund1.connect(investor).getRewardTokens()
+      const rewardTokensAfter = await fund1.connect(manager1).getRewardTokens()
       const rewardAmountAfter = await rewardTokensAfter[0].amount
       const fee = WITHDRAW_AMOUNT.mul(MANAGER_FEE).div(100)
       const investorWithdrawAmount = WITHDRAW_AMOUNT.sub(fee)
