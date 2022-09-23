@@ -15,15 +15,13 @@ contract XXXFactory is IXXXFactory {
     uint256 managerFee = 1; // 1% of investor profit ex) MANAGER_FEE = 10 -> 10% of investor profit
     address[] whiteListTokens;
 
-    mapping(address => address) override public getFundByManager;
+    mapping(address => address) public getFundByManager;
     mapping(address => mapping(uint256 => address)) public getFundByInvestor;
     mapping(address => uint256) public getFundCountByInvestor;
 
-    uint256 totalFundCount;
-
     uint256 private unlocked = 1;
     modifier lock() {
-        require(unlocked == 1, 'XXXFund: LOCKED');
+        require(unlocked == 1, 'Fund LOCKED');
         unlocked = 0;
         _;
         unlocked = 1;
@@ -31,7 +29,6 @@ contract XXXFactory is IXXXFactory {
 
     constructor() {
         owner = msg.sender;
-        totalFundCount = 0;
         emit OwnerChanged(address(0), msg.sender);
 
         whiteListTokens.push(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2); //WETH mainnet
@@ -46,15 +43,14 @@ contract XXXFactory is IXXXFactory {
     }
 
     function createFund(address manager) override external returns (address fund) {
-        require(msg.sender == manager, 'XXXFactory: IDENTICAL_ADDRESSES');
-        require(getFundByManager[manager] == address(0), 'XXXFactory: FUND_EXISTS');
+        require(msg.sender == manager, 'createFund() => IDENTICAL_ADDRESSES');
+        require(getFundByManager[manager] == address(0), 'createFund() => FUND_EXISTS');
 
         fund = address(new XXXFund2{salt: keccak256(abi.encode(address(this), manager))}());
         getFundByManager[manager] = fund;
         IXXXFund2(fund).initialize(manager);
-        totalFundCount += 1;
 
-        console.log("createFund() => fund address : ", fund);
+        //console.log("createFund() => fund address : ", fund);
         return fund;
     }
 
@@ -112,7 +108,7 @@ contract XXXFactory is IXXXFactory {
         }
     }
 
-    function isInvestorFundExist(address investor, address fund) override external view returns (bool) {
+    function isInvestorFundExist(address investor, address fund) override public view returns (bool) {
         uint256 fundCount = getFundCountByInvestor[investor];
         for (uint256 i=0; i<fundCount; i++) {
             if (fund == getFundByInvestor[investor][i]) {
@@ -131,13 +127,10 @@ contract XXXFactory is IXXXFactory {
         return funds;
     }
     function addInvestorFundList(address fund) override external lock {
-        require(getFundByManager[msg.sender] != fund, 'XXXFactory: Manager cannot add investor fund list');
+        require(getFundByManager[msg.sender] != fund, 'manager cannot add investor fund list');
+        require(!isInvestorFundExist(msg.sender, fund), 'investor fund already registered');
+        
         uint256 fundCount = getFundCountByInvestor[msg.sender];
-        for (uint256 i=0; i<fundCount; i++) {
-            if (fund == getFundByInvestor[msg.sender][i]) {
-                return;
-            }
-        }
         getFundByInvestor[msg.sender][fundCount] = fund;
         getFundCountByInvestor[msg.sender] += 1;
     }

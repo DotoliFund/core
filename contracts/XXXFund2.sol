@@ -26,12 +26,11 @@ contract XXXFund2 is IXXXFund2 {
     mapping(address => uint256) public investorTokenCount;
 
     //fund manager profit rewards added, only if the investor receives a profit.
-    mapping(uint256 => Token) public rewardTokens;
-    uint256 public rewardTokenCount = 0;
+    Token[] public rewardTokens;
 
     uint256 private unlocked = 1;
     modifier lock() {
-        require(unlocked == 1, 'XXXFund: LOCKED');
+        require(unlocked == 1, 'Fund LOCKED');
         unlocked = 0;
         _;
         unlocked = 1;
@@ -50,7 +49,7 @@ contract XXXFund2 is IXXXFund2 {
         } else {
             bool _isInvestorFundExist = IXXXFactory(factory).isInvestorFundExist(msg.sender, address(this));
             require(_isInvestorFundExist || msg.sender == manager,
-                'XXXFund2 deposit: account not added to investor list');
+                'receive() => account is not exist in manager list nor investor list');
 
             IWETH9(WETH9).deposit{value: msg.value}();
 
@@ -67,7 +66,7 @@ contract XXXFund2 is IXXXFund2 {
     }
 
     function initialize(address _manager) override external {
-        require(msg.sender == factory, 'XXXFund initialize: FORBIDDEN'); // sufficient check
+        require(msg.sender == factory, 'initialize() => FORBIDDEN'); // sufficient check
         manager = _manager;
 
         emit Create(address(this), manager);
@@ -86,13 +85,21 @@ contract XXXFund2 is IXXXFund2 {
         return _investorTokens;
     }
 
-    function getInvestorTokenBalance(address investor, address token) private view returns (uint256){
+    function getInvestorTokenAmount(address investor, address token) public override view returns (uint256){
         for (uint256 i=0; i<investorTokenCount[investor]; i++) {
             if (investorTokens[investor][i].tokenAddress == token) {
                 return investorTokens[investor][i].amount;
             }
         }
         return 0;
+    }
+
+    function getRewardTokens() external override view returns (Token[] memory){
+        Token[] memory _rewardTokens = new Token[](rewardTokens.length);
+        for (uint i = 0; i < rewardTokens.length; i++) {
+            _rewardTokens[i] = rewardTokens[i];
+        }
+        return _rewardTokens;
     }
 
     function increaseInvestorTokenBalance(address investor, address _token, uint256 _amount) private returns (bool){
@@ -112,7 +119,7 @@ contract XXXFund2 is IXXXFund2 {
         for (uint256 i=0; i<investorTokenCount[investor]; i++) {
             if (investorTokens[investor][i].tokenAddress == _token) {
                 isNewToken = false;
-                require(investorTokens[investor][i].amount >= _amount, 'decreaseTokenAmount: decrease token amount is more than you have');
+                require(investorTokens[investor][i].amount >= _amount, 'decreaseTokenAmount() => decrease token amount is more than you have');
                 investorTokens[investor][i].amount -= _amount;
                 break;
             }
@@ -124,7 +131,7 @@ contract XXXFund2 is IXXXFund2 {
         //update investor info
         //decrease part of swap (decrease swapFrom token reduce by swapFromAmount)
         bool isNewInvestorToken = decreaseInvestorTokenBalance(investor, swapFrom, swapFromAmount);
-        require(isNewInvestorToken == false, 'handleSwap: Invalid investor token withdraw attempt');
+        require(isNewInvestorToken == false, 'handleSwap() => Invalid investor token withdraw attempt');
         //increase part of swap (increase swapTo token increase by swapToAmount)
         isNewInvestorToken = increaseInvestorTokenBalance(investor, swapTo, swapToAmount);
         if (isNewInvestorToken) {
@@ -149,7 +156,7 @@ contract XXXFund2 is IXXXFund2 {
 
     function increaseManagerReward(address _token, uint256 _amount) private returns (bool){
         bool isNewToken = true;
-        for (uint256 i=0; i<rewardTokenCount; i++) {
+        for (uint256 i=0; i<rewardTokens.length; i++) {
             if (rewardTokens[i].tokenAddress == _token) {
                 isNewToken = false;
                 rewardTokens[i].amount += _amount;
@@ -157,73 +164,65 @@ contract XXXFund2 is IXXXFund2 {
             }
         }
         if (isNewToken) {
-            rewardTokens[rewardTokenCount].tokenAddress = _token;
-            rewardTokens[rewardTokenCount].amount = _amount;
-            rewardTokenCount += 1;
+            rewardTokens.push(Token(_token, _amount));
         }
     }
 
     // this low-level function should be called from a contract which performs important safety checks
-    function deposit(address investor, address _token, uint256 _amount) external payable override lock {
-        require(msg.sender == investor); // sufficient check
-        bool _isInvestorFundExist = IXXXFactory(factory).isInvestorFundExist(investor, address(this));
+    function deposit(address _token, uint256 _amount) external payable override lock {
+        bool _isInvestorFundExist = IXXXFactory(factory).isInvestorFundExist(msg.sender, address(this));
         require(_isInvestorFundExist || msg.sender == manager,
-            'XXXFund2 deposit: account not added to investor list');
-        require(IXXXFactory(factory).isWhiteListToken(_token), 'XXXFund2 deposit: not whitelist token');
-
-        IERC20(_token).transferFrom(investor, address(this), _amount);
-
-        bool isNewInvestorToken = increaseInvestorTokenBalance(investor, _token, _amount);
+            'deposit() => account is not exist in manager list nor investor list');
+        require(IXXXFactory(factory).isWhiteListToken(_token), 'deposit() => not whitelist token');
+        
+        IERC20(_token).transferFrom(msg.sender, address(this), _amount);
+        
+        bool isNewInvestorToken = increaseInvestorTokenBalance(msg.sender, _token, _amount);
         if (isNewInvestorToken) {
-            uint256 newTokenIndex = investorTokenCount[investor];
-            investorTokens[investor][newTokenIndex].tokenAddress = _token;
-            investorTokens[investor][newTokenIndex].amount = _amount;
-            investorTokenCount[investor] += 1;
+            uint256 newTokenIndex = investorTokenCount[msg.sender];
+            investorTokens[msg.sender][newTokenIndex].tokenAddress = _token;
+            investorTokens[msg.sender][newTokenIndex].amount = _amount;
+            investorTokenCount[msg.sender] += 1;
         }
-
-        emit Deposit(investor, _token, _amount);
+        emit Deposit(msg.sender, _token, _amount);
     }
 
-    // this low-level function should be called from a contract which performs important safety checks
-    function withdraw(address investor, address _token, uint256 _amount) external payable override lock {
-        require(msg.sender == investor); // sufficient check
-        bool _isInvestorFundExist = IXXXFactory(factory).isInvestorFundExist(investor, address(this));
+    function withdraw(address _token, uint256 _amount) external payable override lock {
+        bool _isInvestorFundExist = IXXXFactory(factory).isInvestorFundExist(msg.sender, address(this));
         require(_isInvestorFundExist || msg.sender == manager,
-            'XXXFund2 withdraw: account not added to investor list');
+            'withdraw() => account is not exist in manager list nor investor list');
         //check if investor has valid token amount
-        require(isValidTokenAmount(investor, _token, _amount), 'withdraw: invalid token amount');
-        require(msg.sender == manager || 
-            IXXXFactory(factory).isInvestorFundExist(investor, address(this)), 'withdraw: invalid sender');
+        require(isValidTokenAmount(msg.sender, _token, _amount), 'withdraw() => invalid token amount');
+        
         uint256 managerFee = IXXXFactory(factory).getManagerFee();
 
-        if (investor == manager) {
+        if (msg.sender == manager) {
             // manager withdraw is no need manager fee
-            decreaseInvestorTokenBalance(investor, _token, _amount);
+            decreaseInvestorTokenBalance(msg.sender, _token, _amount);
             if (_token == WETH9) {
                 IWETH9(WETH9).withdraw(_amount);
-                (bool success, ) = investor.call{value: _amount}(new bytes(0));
-                require(success, 'manager withdraw: failed withdraw ETH');
-                //emit Withdraw(investor, _token, _amount);
+                (bool success, ) = (msg.sender).call{value: _amount}(new bytes(0));
+                require(success, 'withdraw() => sending ETH to manager failed');
             } else {
-                IERC20(_token).transfer(investor, _amount);
+                IERC20(_token).transfer(msg.sender, _amount);
             }
         } else {
             //if investor has a profit, send manager reward.
             uint256 rewardAmount = _amount * managerFee / 100;
-            decreaseInvestorTokenBalance(investor, _token, _amount);
+            decreaseInvestorTokenBalance(msg.sender, _token, _amount);
             increaseManagerReward(_token, rewardAmount);
             if (_token == WETH9) {
                 IWETH9(WETH9).withdraw(_amount - rewardAmount);
-                (bool success, ) = investor.call{value: _amount - rewardAmount}(new bytes(0));
-                require(success, 'investor withdraw: failed withdraw ETH');
+                (bool success, ) = (msg.sender).call{value: _amount - rewardAmount}(new bytes(0));
+                require(success, 'withdraw() => sending ETH to investor failed');
             } else {
-                IERC20(_token).transfer(investor, _amount - rewardAmount);
+                IERC20(_token).transfer(msg.sender, _amount - rewardAmount);
             }
         }
-        emit Withdraw(investor, _token, _amount);
+        emit Withdraw(msg.sender, _token, _amount);
     }
 
-    function getTokenOutFromPath(bytes memory path) private returns (address) {
+    function getLastTokenFromPath(bytes memory path) private returns (address) {
         address _tokenOut;
 
         while (true) {
@@ -243,16 +242,16 @@ contract XXXFund2 is IXXXFund2 {
     function exactInputSingle(V3TradeParams memory trade) private returns (uint256 amountOut)
     {
         require(IXXXFactory(factory).isWhiteListToken(trade.tokenOut), 
-            'swap: not whitelist token');
+            'exactInputSingle() => not whitelist token');
 
-        uint256 tokenBalance = getInvestorTokenBalance(trade.investor, trade.tokenIn);
-        require(tokenBalance >= trade.amountIn, 'swap: invalid inputAmount');
+        uint256 tokenBalance = getInvestorTokenAmount(trade.investor, trade.tokenIn);
+        require(tokenBalance >= trade.amountIn, 'exactInputSingle() => invalid inputAmount');
 
         address _swapRouterAddress = IXXXFactory(factory).getSwapRouterAddress();
 
         // approve
-        //trade.tokenIn.call(abi.encodeWithSelector(IERC20.approve.selector, _swapRouterAddress, trade.amountIn));
         IERC20(trade.tokenIn).approve(_swapRouterAddress, trade.amountIn);
+
         // Naively set amountOutMinimum to 0. In production, use an oracle or other data source to choose a safer value for amountOutMinimum.
         // We also set the sqrtPriceLimitx96 to be 0 to ensure we swap our exact input amount.
         ISwapRouter02.ExactInputSingleParams memory params =
@@ -273,20 +272,19 @@ contract XXXFund2 is IXXXFund2 {
 
     function exactInput(V3TradeParams memory trade) private returns (uint256 amountOut)
     {
-        address tokenOut = getTokenOutFromPath(trade.path);
+        address tokenOut = getLastTokenFromPath(trade.path);
         (address tokenIn, , ) = trade.path.decodeFirstPool();
 
         require(IXXXFactory(factory).isWhiteListToken(tokenOut), 
-            'swap: not whitelist token');
+            'exactInput() => not whitelist token');
 
         
-        uint256 tokenBalance = getInvestorTokenBalance(trade.investor, tokenIn);
-        require(tokenBalance >= trade.amountIn, 'swap: invalid inputAmount');
+        uint256 tokenBalance = getInvestorTokenAmount(trade.investor, tokenIn);
+        require(tokenBalance >= trade.amountIn, 'exactInput() => invalid inputAmount');
 
         address _swapRouterAddress = IXXXFactory(factory).getSwapRouterAddress();
 
         // approve
-        //tokenIn.call(abi.encodeWithSelector(IERC20.approve.selector, _swapRouterAddress, trade.amountIn));
         IERC20(tokenIn).approve(_swapRouterAddress, trade.amountIn);
 
         ISwapRouter02.ExactInputParams memory params =
@@ -305,15 +303,14 @@ contract XXXFund2 is IXXXFund2 {
     function exactOutputSingle(V3TradeParams memory trade) private returns (uint256 amountIn)
     {
         require(IXXXFactory(factory).isWhiteListToken(trade.tokenOut), 
-            'swap: not whitelist token');
+            'exactOutputSingle() => not whitelist token');
 
-        uint256 tokenBalance = getInvestorTokenBalance(trade.investor, trade.tokenIn);
-        require(tokenBalance >= trade.amountInMaximum, 'swap: invalid inputAmount');
+        uint256 tokenBalance = getInvestorTokenAmount(trade.investor, trade.tokenIn);
+        require(tokenBalance >= trade.amountInMaximum, 'exactOutputSingle() => invalid inputAmount');
 
         address _swapRouterAddress = IXXXFactory(factory).getSwapRouterAddress();
 
         // approve
-        //trade.tokenIn.call(abi.encodeWithSelector(IERC20.approve.selector, _swapRouterAddress, trade.amountInMaximum));
         IERC20(trade.tokenIn).approve(_swapRouterAddress, trade.amountInMaximum);
 
         ISwapRouter02.ExactOutputSingleParams memory params =
@@ -334,19 +331,18 @@ contract XXXFund2 is IXXXFund2 {
 
     function exactOutput(V3TradeParams memory trade) private returns (uint256 amountIn)
     {
-        address tokenOut = getTokenOutFromPath(trade.path);
-        (address tokenIn, , ) = trade.path.decodeFirstPool();
+        address tokenIn = getLastTokenFromPath(trade.path);
+        (address tokenOut, , ) = trade.path.decodeFirstPool();
 
         require(IXXXFactory(factory).isWhiteListToken(tokenOut), 
-            'swap: not whitelist token');
+            'exactOutput() => not whitelist token');
 
-        uint256 tokenBalance = getInvestorTokenBalance(trade.investor, tokenIn);
-        require(tokenBalance >= trade.amountInMaximum, 'swap: invalid inputAmount');
+        uint256 tokenBalance = getInvestorTokenAmount(trade.investor, tokenIn);
+        require(tokenBalance >= trade.amountInMaximum, 'exactOutput() => invalid inputAmount');
 
         address _swapRouterAddress = IXXXFactory(factory).getSwapRouterAddress();
 
         // approve
-        //tokenIn.call(abi.encodeWithSelector(IERC20.approve.selector, _swapRouterAddress, trade.amountInMaximum));
         IERC20(tokenIn).approve(_swapRouterAddress, trade.amountInMaximum);
 
         ISwapRouter02.ExactOutputParams memory params =
@@ -364,7 +360,7 @@ contract XXXFund2 is IXXXFund2 {
 
     function swap(
         V3TradeParams[] calldata trades
-    ) external payable override lock returns (uint256) {
+    ) external payable override lock {
         // console.log("swap() parameter => ");
         // console.log("    tradeType : ", uint(trades[0].tradeType));
         // console.log("    swapType : ", uint(trades[0].swapType));
@@ -382,7 +378,7 @@ contract XXXFund2 is IXXXFund2 {
         // console.logBytes(trades[0].path);
 
 
-        require(msg.sender == manager, 'swap: invalid sender');
+        require(msg.sender == manager, 'swap() => invalid sender');
 
         for(uint256 i=0; i<trades.length; i++) {
             if (trades[i].swapType == V3SwapType.SINGLE_HOP) {
@@ -399,6 +395,5 @@ contract XXXFund2 is IXXXFund2 {
                 }
             }
         }
-        return 1;
     }
 }
