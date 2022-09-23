@@ -1,4 +1,4 @@
-import { Wallet, constants, BigNumber, ContractTransaction } from 'ethers'
+import { Wallet, constants, BigNumber, ContractTransaction, Contract } from 'ethers'
 import { expect } from "chai"
 import { ethers, waffle } from 'hardhat'
 import { XXXFactory } from '../typechain-types/contracts/XXXFactory'
@@ -33,107 +33,131 @@ import {
 describe('XXXFund2', () => {
 
   let deployer: Wallet 
-  let manager: Wallet
+  let manager1: Wallet
   let manager2: Wallet
   let investor: Wallet
   let investor2: Wallet
+  let notInvestor: Wallet
 
-  let FactoryContractAddress = ''
-  let FundContractAddress = ''
-  
-  let fundBytecode = ''
-  let NewFundAddress = ''
+  let factoryContractAddress: string
+  let fundContractAddress: string
 
-  let fund2Bytecode = ''
-  let NewFund2Address = ''
+  let fund1Address: string
+  let fund2Address: string
+
+  let factory: Contract
+  let fund1: Contract
+  let fund2: Contract
+  let WETH9: Contract
+
+  // let getBalances: (
+  //   who: string
+  // ) => Promise<{
+  //   weth9: BigNumber
+  //   token0: BigNumber
+  //   token1: BigNumber
+  //   token2: BigNumber
+  // }>
 
   before('get signer', async () => {
-    [ deployer, 
-      manager, 
-      manager2, 
-      investor, 
-      investor2
+    [ deployer,
+      manager1,
+      manager2,
+      investor,
+      investor2,
+      notInvestor
     ] = await (ethers as any).getSigners()
+
+    WETH9 = await ethers.getContractAt("IWETH9", WETH9_MAINNET)
+
+    // getBalances = async (who: string) => {
+    //   const balances = await Promise.all([
+    //     weth9.balanceOf(who),
+    //     tokens[0].balanceOf(who),
+    //     tokens[1].balanceOf(who),
+    //     tokens[2].balanceOf(who),
+    //   ])
+    //   return {
+    //     weth9: balances[0],
+    //     token0: balances[1],
+    //     token1: balances[2],
+    //     token2: balances[3],
+    //   }
+    // }
   })
 
   before("Deploy XXXFactory Contract", async function () {
     const XXXFactory = await ethers.getContractFactory("XXXFactory")
     const Factory = await XXXFactory.connect(deployer).deploy()
     await Factory.deployed()
-    FactoryContractAddress = Factory.address
+    factoryContractAddress = Factory.address
+    factory = await ethers.getContractAt("XXXFactory", factoryContractAddress)
   })
 
   before("Deploy XXXFund2 Contract", async function () {
     const XXXFund = await ethers.getContractFactory("XXXFund2")
     const Fund = await XXXFund.connect(deployer).deploy()
     await Fund.deployed()
-    FundContractAddress = Fund.address
-  })
-
-  before('load fund bytecode', async () => {
-    fundBytecode = (await ethers.getContractFactory('XXXFund2')).bytecode
+    fundContractAddress = Fund.address
   })
 
   it("create 1st fund", async function () {
-    const FactoryContract = await ethers.getContractAt("XXXFactory", FactoryContractAddress)
-    await FactoryContract.connect(manager).createFund(manager.address)
-    const expectedFundAddress = getCreate2Address(FactoryContractAddress, manager.address, fundBytecode)
-    const savedFundAddress = await FactoryContract.connect(manager).getFundByManager(manager.address)
+    await factory.connect(manager1).createFund(manager1.address)
+    const fundBytecode = (await ethers.getContractFactory('XXXFund2')).bytecode
+    const expectedFundAddress = getCreate2Address(factoryContractAddress, manager1.address, fundBytecode)
+    const savedFundAddress = await factory.connect(manager1).getFundByManager(manager1.address)
     expect(savedFundAddress).to.equal(expectedFundAddress)
-    NewFundAddress = savedFundAddress
+    fund1Address = savedFundAddress
+    fund1 = await ethers.getContractAt("XXXFund2", fund1Address)
   })
 
   it("create 2nd fund", async function () {
-    const FactoryContract = await ethers.getContractAt("XXXFactory", FactoryContractAddress)
-    await FactoryContract.connect(manager2).createFund(manager2.address)
-    const expectedFundAddress = getCreate2Address(FactoryContractAddress, manager2.address, fundBytecode)
-    const savedFundAddress = await FactoryContract.connect(manager2).getFundByManager(manager2.address)
+    await factory.connect(manager2).createFund(manager2.address)
+    const fundBytecode = (await ethers.getContractFactory('XXXFund2')).bytecode
+    const expectedFundAddress = getCreate2Address(factoryContractAddress, manager2.address, fundBytecode)
+    const savedFundAddress = await factory.connect(manager2).getFundByManager(manager2.address)
     expect(savedFundAddress).to.equal(expectedFundAddress)
-    NewFund2Address = savedFundAddress
+    fund2Address = savedFundAddress
+    fund2 = await ethers.getContractAt("XXXFund2", fund2Address)
   })
 
-  describe('user : manager', () => {
+  describe('user : manager1', () => {
 
-    it("factory", async function () {
-      const newFundContract = await ethers.getContractAt("XXXFund2", NewFundAddress)
-      expect(await newFundContract.connect(manager).factory()).to.equal(FactoryContractAddress)
+    it("check correct factory", async function () {
+      fund1 = await ethers.getContractAt("XXXFund2", fund1Address)
+      expect(await fund1.connect(manager1).factory()).to.equal(factoryContractAddress)
     })
 
-    it("manager", async function () {
-      const newFundContract = await ethers.getContractAt("XXXFund2", NewFundAddress)
-      expect(await newFundContract.connect(manager).manager()).to.equal(manager.address)
+    it("check correct manager", async function () {
+      expect(await fund1.connect(manager1).manager()).to.equal(manager1.address)
     })
 
     it("ETH -> WETH", async function () {
-      const WETH9 = await ethers.getContractAt("IWETH9", WETH9_MAINNET)
-      const managerWETHBefore = await WETH9.balanceOf(manager.address)
-      await WETH9.connect(manager).deposit({
-                from: manager.address,
-                value: WETH_CHARGE_AMOUNT
-            })
-      const managerWETHAfter = await WETH9.balanceOf(manager.address)
+      const managerWETHBefore = await WETH9.balanceOf(manager1.address)
+      await WETH9.connect(manager1).deposit({
+        from: manager1.address,
+        value: WETH_CHARGE_AMOUNT
+      })
+      const managerWETHAfter = await WETH9.balanceOf(manager1.address)
       expect(managerWETHAfter).to.equal(managerWETHBefore.add(WETH_CHARGE_AMOUNT))
     })
 
     it("deposit ETH => receive()", async function () {
-      const WETH9 = await ethers.getContractAt("IWETH9", WETH9_MAINNET)
-      const newFundContract = await ethers.getContractAt("XXXFund2", NewFundAddress)
+      const fundWETHBefore = await WETH9.balanceOf(fund1Address)
 
-      const fundWETHBefore = await WETH9.balanceOf(NewFundAddress)
-
-      await manager.sendTransaction({
-        to: NewFundAddress,
+      await manager1.sendTransaction({
+        to: fund1Address,
         value: DEPOSIT_AMOUNT, // Sends exactly 1.0 ether
       })
 
       //check investorTokenCount
-      const investorTokenCount = await newFundContract.connect(manager).investorTokenCount(manager.address)
+      const investorTokenCount = await fund1.connect(manager1).investorTokenCount(manager1.address)
       //check investorTokens
-      const managerWETH = await newFundContract.connect(manager).getInvestorTokenAmount(manager.address, WETH9_MAINNET)
+      const managerWETH = await fund1.connect(manager1).getInvestorTokenAmount(manager1.address, WETH9_MAINNET)
       //check rewardTokens
-      const rewardTokens = await newFundContract.connect(manager).getRewardTokens()
+      const rewardTokens = await fund1.connect(manager1).getRewardTokens()
       //check fund balance
-      const fundWETHAfter = await WETH9.balanceOf(NewFundAddress)
+      const fundWETHAfter = await WETH9.balanceOf(fund1Address)
 
       expect(investorTokenCount).to.equal(1)
       expect(managerWETH).to.equal(DEPOSIT_AMOUNT)
@@ -142,29 +166,26 @@ describe('XXXFund2', () => {
     })
 
     it("withdraw ETH", async function () {
-      const WETH9 = await ethers.getContractAt("IWETH9", WETH9_MAINNET)
-      const newFundContract = await ethers.getContractAt("XXXFund2", NewFundAddress)
-
       let beforeETHBalance = 0
-      await manager.getBalance().then((balance: any) => {
+      await manager1.getBalance().then((balance: any) => {
           beforeETHBalance = balance
       });
-      const fundWETHBefore = await WETH9.balanceOf(NewFundAddress)
-      const managerWETHBefore = await newFundContract.connect(manager).getInvestorTokenAmount(manager.address, WETH9_MAINNET)
+      const fundWETHBefore = await WETH9.balanceOf(fund1Address)
+      const managerWETHBefore = await fund1.connect(manager1).getInvestorTokenAmount(manager1.address, WETH9_MAINNET)
 
-      await newFundContract.connect(manager).withdraw(WETH9_MAINNET, WITHDRAW_AMOUNT)
+      await fund1.connect(manager1).withdraw(WETH9_MAINNET, WITHDRAW_AMOUNT)
 
       //check investorTokenCount
-      const investorTokenCount = await newFundContract.connect(manager).investorTokenCount(manager.address)
+      const investorTokenCount = await fund1.connect(manager1).investorTokenCount(manager1.address)
       //check investorTokens
-      const managerWETHAfter = await newFundContract.connect(manager).getInvestorTokenAmount(manager.address, WETH9_MAINNET)
+      const managerWETHAfter = await fund1.connect(manager1).getInvestorTokenAmount(manager1.address, WETH9_MAINNET)
       //check rewardTokens
-      const rewardTokens = await newFundContract.connect(manager).getRewardTokens()
+      const rewardTokens = await fund1.connect(manager1).getRewardTokens()
       //check fund balance
-      const fundWETHAfter = await WETH9.balanceOf(NewFundAddress)
+      const fundWETHAfter = await WETH9.balanceOf(fund1Address)
 
       let afterETHBalance = 0
-      await manager.getBalance().then((balance: any) => {
+      await manager1.getBalance().then((balance: any) => {
           afterETHBalance = balance
       });
 
@@ -176,23 +197,20 @@ describe('XXXFund2', () => {
     })
 
     it("deposit WETH", async function () {
-      const WETH9 = await ethers.getContractAt("IWETH9", WETH9_MAINNET)
-      const newFundContract = await ethers.getContractAt("XXXFund2", NewFundAddress)
+      const fundWETHBefore = await WETH9.balanceOf(fund1Address)
+      const managerWETHBefore = await fund1.connect(manager1).getInvestorTokenAmount(manager1.address, WETH9_MAINNET)
 
-      const fundWETHBefore = await WETH9.balanceOf(NewFundAddress)
-      const managerWETHBefore = await newFundContract.connect(manager).getInvestorTokenAmount(manager.address, WETH9_MAINNET)
-
-      await WETH9.connect(manager).approve(NewFundAddress, constants.MaxUint256)
-      await newFundContract.connect(manager).deposit(WETH9_MAINNET, DEPOSIT_AMOUNT)
+      await WETH9.connect(manager1).approve(fund1Address, constants.MaxUint256)
+      await fund1.connect(manager1).deposit(WETH9_MAINNET, DEPOSIT_AMOUNT)
 
       //check investorTokenCount
-      const investorTokenCount = await newFundContract.connect(manager).investorTokenCount(manager.address)
+      const investorTokenCount = await fund1.connect(manager1).investorTokenCount(manager1.address)
       //check investorTokens
-      const managerWETHAfter = await newFundContract.connect(manager).getInvestorTokenAmount(manager.address, WETH9_MAINNET)
+      const managerWETHAfter = await fund1.connect(manager1).getInvestorTokenAmount(manager1.address, WETH9_MAINNET)
       //check rewardTokens
-      const rewardTokens = await newFundContract.connect(manager).getRewardTokens()
+      const rewardTokens = await fund1.connect(manager1).getRewardTokens()
       //check fund balance
-      const fundWETHAfter = await WETH9.balanceOf(NewFundAddress)
+      const fundWETHAfter = await WETH9.balanceOf(fund1Address)
 
       expect(investorTokenCount).to.equal(1)
       expect(managerWETHAfter).to.equal(managerWETHBefore.add(DEPOSIT_AMOUNT))
@@ -201,22 +219,19 @@ describe('XXXFund2', () => {
     })
 
     it("withdraw WETH", async function () {
-      const WETH9 = await ethers.getContractAt("IWETH9", WETH9_MAINNET)
-      const newFundContract = await ethers.getContractAt("XXXFund2", NewFundAddress)
+      const fundWETHBefore = await WETH9.balanceOf(fund1Address)
+      const managerWETHBefore = await fund1.connect(manager1).getInvestorTokenAmount(manager1.address, WETH9_MAINNET)
 
-      const fundWETHBefore = await WETH9.balanceOf(NewFundAddress)
-      const managerWETHBefore = await newFundContract.connect(manager).getInvestorTokenAmount(manager.address, WETH9_MAINNET)
-
-      await newFundContract.connect(manager).withdraw(WETH9_MAINNET, WITHDRAW_AMOUNT)
+      await fund1.connect(manager1).withdraw(WETH9_MAINNET, WITHDRAW_AMOUNT)
 
       //check investorTokenCount
-      const investorTokenCount = await newFundContract.connect(manager).investorTokenCount(manager.address)
+      const investorTokenCount = await fund1.connect(manager1).investorTokenCount(manager1.address)
       //check investorTokens
-      const managerWETHAfter = await newFundContract.connect(manager).getInvestorTokenAmount(manager.address, WETH9_MAINNET)
+      const managerWETHAfter = await fund1.connect(manager1).getInvestorTokenAmount(manager1.address, WETH9_MAINNET)
       //check rewardTokens
-      const rewardTokens = await newFundContract.connect(manager).getRewardTokens()
+      const rewardTokens = await fund1.connect(manager1).getRewardTokens()
       //check fund balance
-      const fundWETHAfter = await WETH9.balanceOf(NewFundAddress)
+      const fundWETHAfter = await WETH9.balanceOf(fund1Address)
 
       expect(investorTokenCount).to.equal(1)
       expect(managerWETHAfter).to.equal(managerWETHBefore.sub(WITHDRAW_AMOUNT))
@@ -232,24 +247,23 @@ describe('XXXFund2', () => {
         it("WETH -> UNI", async function () {
           const swapInputAmount = BigNumber.from(1000000)
           const amountOutMinimum = BigNumber.from(1)
-          const newFundContract = await ethers.getContractAt("XXXFund2", NewFundAddress)
 
-          const managerWETHBefore = await newFundContract.connect(manager).getInvestorTokenAmount(manager.address, WETH9_MAINNET)
-          const managerUNIBefore = await newFundContract.connect(manager).getInvestorTokenAmount(manager.address, UNI_ADDRESS)
+          const managerWETHBefore = await fund1.connect(manager1).getInvestorTokenAmount(manager1.address, WETH9_MAINNET)
+          const managerUNIBefore = await fund1.connect(manager1).getInvestorTokenAmount(manager1.address, UNI_ADDRESS)
 
           const params = exactInputSingleParams(
-            manager.address,
+            manager1.address,
             WETH9_MAINNET,
             UNI_ADDRESS,
             swapInputAmount,
             amountOutMinimum,
             BigNumber.from(0),
-            NewFundAddress
+            fund1Address
           )
-          await newFundContract.connect(manager).swap(params, { value: 0 })
+          await fund1.connect(manager1).swap(params, { value: 0 })
 
-          const managerWETHAfter = await newFundContract.connect(manager).getInvestorTokenAmount(manager.address, WETH9_MAINNET)
-          const managerUNIAfter = await newFundContract.connect(manager).getInvestorTokenAmount(manager.address, UNI_ADDRESS)
+          const managerWETHAfter = await fund1.connect(manager1).getInvestorTokenAmount(manager1.address, WETH9_MAINNET)
+          const managerUNIAfter = await fund1.connect(manager1).getInvestorTokenAmount(manager1.address, UNI_ADDRESS)
 
           expect(managerWETHAfter).to.equal(managerWETHBefore.sub(swapInputAmount))
           expect(managerUNIAfter).to.be.above(managerUNIBefore)
@@ -259,24 +273,22 @@ describe('XXXFund2', () => {
           const swapInputAmount = BigNumber.from(1000000)
           const amountOutMinimum = BigNumber.from(1)
 
-          const newFundContract = await ethers.getContractAt("XXXFund2", NewFundAddress)
-
-          const managerWETHBefore = await newFundContract.connect(manager).getInvestorTokenAmount(manager.address, WETH9_MAINNET)
-          const managerUNIBefore = await newFundContract.connect(manager).getInvestorTokenAmount(manager.address, UNI_ADDRESS)
+          const managerWETHBefore = await fund1.connect(manager1).getInvestorTokenAmount(manager1.address, WETH9_MAINNET)
+          const managerUNIBefore = await fund1.connect(manager1).getInvestorTokenAmount(manager1.address, UNI_ADDRESS)
 
           const params = exactInputSingleParams(
-            manager.address,
+            manager1.address,
             UNI_ADDRESS,
             WETH9_MAINNET, 
             swapInputAmount, 
             amountOutMinimum, 
             BigNumber.from(0),
-            NewFundAddress
+            fund1Address
           )
-          await newFundContract.connect(manager).swap(params, { value: 0 })
+          await fund1.connect(manager1).swap(params, { value: 0 })
 
-          const managerWETHAfter = await newFundContract.connect(manager).getInvestorTokenAmount(manager.address, WETH9_MAINNET)
-          const managerUNIAfter = await newFundContract.connect(manager).getInvestorTokenAmount(manager.address, UNI_ADDRESS)
+          const managerWETHAfter = await fund1.connect(manager1).getInvestorTokenAmount(manager1.address, WETH9_MAINNET)
+          const managerUNIAfter = await fund1.connect(manager1).getInvestorTokenAmount(manager1.address, UNI_ADDRESS)
 
           expect(managerWETHAfter).to.be.above(managerWETHBefore)
           expect(managerUNIAfter).to.equal(managerUNIBefore.sub(swapInputAmount))
@@ -290,24 +302,23 @@ describe('XXXFund2', () => {
         it("WETH -> UNI", async function () {
           const swapOutputAmount = BigNumber.from(1000000)
           const amountInMaximum = BigNumber.from(100000)
-          const newFundContract = await ethers.getContractAt("XXXFund2", NewFundAddress)
 
-          const managerWETHBefore = await newFundContract.connect(manager).getInvestorTokenAmount(manager.address, WETH9_MAINNET)
-          const managerUNIBefore = await newFundContract.connect(manager).getInvestorTokenAmount(manager.address, UNI_ADDRESS)
+          const managerWETHBefore = await fund1.connect(manager1).getInvestorTokenAmount(manager1.address, WETH9_MAINNET)
+          const managerUNIBefore = await fund1.connect(manager1).getInvestorTokenAmount(manager1.address, UNI_ADDRESS)
 
           const params = exactOutputSingleParams(
-            manager.address,
+            manager1.address,
             WETH9_MAINNET, 
             UNI_ADDRESS, 
             swapOutputAmount, 
             amountInMaximum, 
             BigNumber.from(0),
-            NewFundAddress
+            fund1Address
           )
-          await newFundContract.connect(manager).swap(params, { value: 0 })
+          await fund1.connect(manager1).swap(params, { value: 0 })
 
-          const managerWETHAfter = await newFundContract.connect(manager).getInvestorTokenAmount(manager.address, WETH9_MAINNET)
-          const managerUNIAfter = await newFundContract.connect(manager).getInvestorTokenAmount(manager.address, UNI_ADDRESS)
+          const managerWETHAfter = await fund1.connect(manager1).getInvestorTokenAmount(manager1.address, WETH9_MAINNET)
+          const managerUNIAfter = await fund1.connect(manager1).getInvestorTokenAmount(manager1.address, UNI_ADDRESS)
 
           expect(managerWETHAfter).to.be.below(managerWETHBefore)
           expect(managerUNIAfter).to.equal(managerUNIBefore.add(swapOutputAmount))
@@ -316,24 +327,23 @@ describe('XXXFund2', () => {
         it("UNI -> WETH", async function () {
           const swapOutputAmount = BigNumber.from(100000)
           const amountInMaximum = BigNumber.from(30000000)
-          const newFundContract = await ethers.getContractAt("XXXFund2", NewFundAddress)
 
-          const managerWETHBefore = await newFundContract.connect(manager).getInvestorTokenAmount(manager.address, WETH9_MAINNET)
-          const managerUNIBefore = await newFundContract.connect(manager).getInvestorTokenAmount(manager.address, UNI_ADDRESS)
+          const managerWETHBefore = await fund1.connect(manager1).getInvestorTokenAmount(manager1.address, WETH9_MAINNET)
+          const managerUNIBefore = await fund1.connect(manager1).getInvestorTokenAmount(manager1.address, UNI_ADDRESS)
 
           const params = exactOutputSingleParams(
-            manager.address,
+            manager1.address,
             UNI_ADDRESS,
             WETH9_MAINNET, 
             swapOutputAmount, 
             amountInMaximum, 
             BigNumber.from(0),
-            NewFundAddress
+            fund1Address
           )
-          await newFundContract.connect(manager).swap(params, { value: 0 })
+          await fund1.connect(manager1).swap(params, { value: 0 })
 
-          const managerWETHAfter = await newFundContract.connect(manager).getInvestorTokenAmount(manager.address, WETH9_MAINNET)
-          const managerUNIAfter = await newFundContract.connect(manager).getInvestorTokenAmount(manager.address, UNI_ADDRESS)
+          const managerWETHAfter = await fund1.connect(manager1).getInvestorTokenAmount(manager1.address, WETH9_MAINNET)
+          const managerUNIAfter = await fund1.connect(manager1).getInvestorTokenAmount(manager1.address, UNI_ADDRESS)
 
           expect(managerWETHAfter).to.equal(managerWETHBefore.add(swapOutputAmount))
           expect(managerUNIAfter).to.be.below(managerUNIBefore)
@@ -347,22 +357,21 @@ describe('XXXFund2', () => {
           const tokens = [WETH9_MAINNET, DAI_ADDRESS, UNI_ADDRESS]
           const swapInputAmount = BigNumber.from(10000)
           const amountOutMinimum = BigNumber.from(1)
-          const newFundContract = await ethers.getContractAt("XXXFund2", NewFundAddress)
 
-          const managerWETHBefore = await newFundContract.connect(manager).getInvestorTokenAmount(manager.address, WETH9_MAINNET)
-          const managerUNIBefore = await newFundContract.connect(manager).getInvestorTokenAmount(manager.address, UNI_ADDRESS)
+          const managerWETHBefore = await fund1.connect(manager1).getInvestorTokenAmount(manager1.address, WETH9_MAINNET)
+          const managerUNIBefore = await fund1.connect(manager1).getInvestorTokenAmount(manager1.address, UNI_ADDRESS)
 
           const params = exactInputParams(
-            manager.address,
+            manager1.address,
             tokens,
             swapInputAmount,
             amountOutMinimum,
-            NewFundAddress
+            fund1Address
           )
-          await newFundContract.connect(manager).swap(params, { value: 0 })
+          await fund1.connect(manager1).swap(params, { value: 0 })
 
-          const managerWETHAfter = await newFundContract.connect(manager).getInvestorTokenAmount(manager.address, WETH9_MAINNET)
-          const managerUNIAfter = await newFundContract.connect(manager).getInvestorTokenAmount(manager.address, UNI_ADDRESS)
+          const managerWETHAfter = await fund1.connect(manager1).getInvestorTokenAmount(manager1.address, WETH9_MAINNET)
+          const managerUNIAfter = await fund1.connect(manager1).getInvestorTokenAmount(manager1.address, UNI_ADDRESS)
 
           expect(managerWETHAfter).to.equal(managerWETHBefore.sub(swapInputAmount))
           expect(managerUNIAfter).to.be.above(managerUNIBefore)
@@ -373,22 +382,20 @@ describe('XXXFund2', () => {
           const swapInputAmount = BigNumber.from(3000000)
           const amountOutMinimum = BigNumber.from(1)
 
-          const newFundContract = await ethers.getContractAt("XXXFund2", NewFundAddress)
-
-          const managerWETHBefore = await newFundContract.connect(manager).getInvestorTokenAmount(manager.address, WETH9_MAINNET)
-          const managerUNIBefore = await newFundContract.connect(manager).getInvestorTokenAmount(manager.address, UNI_ADDRESS)
+          const managerWETHBefore = await fund1.connect(manager1).getInvestorTokenAmount(manager1.address, WETH9_MAINNET)
+          const managerUNIBefore = await fund1.connect(manager1).getInvestorTokenAmount(manager1.address, UNI_ADDRESS)
 
           const params = exactInputParams(
-            manager.address,
+            manager1.address,
             tokens,
             swapInputAmount,
             amountOutMinimum,
-            NewFundAddress
+            fund1Address
           )
-          await newFundContract.connect(manager).swap(params, { value: 0 })
+          await fund1.connect(manager1).swap(params, { value: 0 })
 
-          const managerWETHAfter = await newFundContract.connect(manager).getInvestorTokenAmount(manager.address, WETH9_MAINNET)
-          const managerUNIAfter = await newFundContract.connect(manager).getInvestorTokenAmount(manager.address, UNI_ADDRESS)
+          const managerWETHAfter = await fund1.connect(manager1).getInvestorTokenAmount(manager1.address, WETH9_MAINNET)
+          const managerUNIAfter = await fund1.connect(manager1).getInvestorTokenAmount(manager1.address, UNI_ADDRESS)
 
           expect(managerWETHAfter).to.be.above(managerWETHBefore)
           expect(managerUNIAfter).to.equal(managerUNIBefore.sub(swapInputAmount))
@@ -402,22 +409,21 @@ describe('XXXFund2', () => {
           const tokens = [WETH9_MAINNET, DAI_ADDRESS, UNI_ADDRESS]
           const swapOutputAmount = BigNumber.from(1000000)
           const amountInMaximum = BigNumber.from(100000)
-          const newFundContract = await ethers.getContractAt("XXXFund2", NewFundAddress)
 
-          const managerWETHBefore = await newFundContract.connect(manager).getInvestorTokenAmount(manager.address, WETH9_MAINNET)
-          const managerUNIBefore = await newFundContract.connect(manager).getInvestorTokenAmount(manager.address, UNI_ADDRESS)
+          const managerWETHBefore = await fund1.connect(manager1).getInvestorTokenAmount(manager1.address, WETH9_MAINNET)
+          const managerUNIBefore = await fund1.connect(manager1).getInvestorTokenAmount(manager1.address, UNI_ADDRESS)
 
           const params = exactOutputParams(
-            manager.address,
+            manager1.address,
             tokens,
             swapOutputAmount,
             amountInMaximum,
-            NewFundAddress
+            fund1Address
           )
-          await newFundContract.connect(manager).swap(params, { value: 0 })
+          await fund1.connect(manager1).swap(params, { value: 0 })
 
-          const managerWETHAfter = await newFundContract.connect(manager).getInvestorTokenAmount(manager.address, WETH9_MAINNET)
-          const managerUNIAfter = await newFundContract.connect(manager).getInvestorTokenAmount(manager.address, UNI_ADDRESS)
+          const managerWETHAfter = await fund1.connect(manager1).getInvestorTokenAmount(manager1.address, WETH9_MAINNET)
+          const managerUNIAfter = await fund1.connect(manager1).getInvestorTokenAmount(manager1.address, UNI_ADDRESS)
 
           expect(managerWETHAfter).to.be.below(managerWETHBefore)
           expect(managerUNIAfter).to.equal(managerUNIBefore.add(swapOutputAmount))
@@ -428,22 +434,20 @@ describe('XXXFund2', () => {
           const swapOutputAmount = BigNumber.from(10000)
           const amountInMaximum = BigNumber.from(3000000)
 
-          const newFundContract = await ethers.getContractAt("XXXFund2", NewFundAddress)
-
-          const managerWETHBefore = await newFundContract.connect(manager).getInvestorTokenAmount(manager.address, WETH9_MAINNET)
-          const managerUNIBefore = await newFundContract.connect(manager).getInvestorTokenAmount(manager.address, UNI_ADDRESS)
+          const managerWETHBefore = await fund1.connect(manager1).getInvestorTokenAmount(manager1.address, WETH9_MAINNET)
+          const managerUNIBefore = await fund1.connect(manager1).getInvestorTokenAmount(manager1.address, UNI_ADDRESS)
 
           const params = exactOutputParams(
-            manager.address,
+            manager1.address,
             tokens,
             swapOutputAmount,
             amountInMaximum,
-            NewFundAddress
+            fund1Address
           )
-          await newFundContract.connect(manager).swap(params, { value: 0 })
+          await fund1.connect(manager1).swap(params, { value: 0 })
 
-          const managerWETHAfter = await newFundContract.connect(manager).getInvestorTokenAmount(manager.address, WETH9_MAINNET)
-          const managerUNIAfter = await newFundContract.connect(manager).getInvestorTokenAmount(manager.address, UNI_ADDRESS)
+          const managerWETHAfter = await fund1.connect(manager1).getInvestorTokenAmount(manager1.address, WETH9_MAINNET)
+          const managerUNIAfter = await fund1.connect(manager1).getInvestorTokenAmount(manager1.address, UNI_ADDRESS)
 
           expect(managerWETHAfter).to.equal(managerWETHBefore.add(swapOutputAmount))
           expect(managerUNIAfter).to.be.below(managerUNIBefore)
@@ -456,53 +460,47 @@ describe('XXXFund2', () => {
 
   })
 
-  describe('user : manager, investor', () => {
+  describe('user : manager1, investor', () => {
 
-    //investor is different from not investor at addInvestorFundList(), isInvestorFundExist()
-    it("not investor yet => isInvestorFundExist()", async function () {
-      const FactoryContract = await ethers.getContractAt("XXXFactory", FactoryContractAddress)
-      expect(await FactoryContract.connect(investor).isInvestorFundExist(investor.address, NewFundAddress)).to.be.false
+    it("investor not register yet => manager1", async function () {
+      expect(await factory.connect(investor).isInvestorFundExist(investor.address, fund1Address)).to.be.false
     })
-    it("not investor yet => deposit, withdraw swap fail", async function () {
-      const FactoryContract = await ethers.getContractAt("XXXFactory", FactoryContractAddress)
-      
+
+    it("investor not register yet => deposit, withdraw swap fail", async function () {
       await expect(investor.sendTransaction({
-        to: NewFundAddress,
+        to: fund1Address,
         value: DEPOSIT_AMOUNT, // Sends exactly 1.0 ether
       })).to.be.reverted
 
-      const WETH9 = await ethers.getContractAt("IWETH9", WETH9_MAINNET)
-      const newFundContract = await ethers.getContractAt("XXXFund2", NewFundAddress)
-      await WETH9.connect(investor).approve(NewFundAddress, constants.MaxUint256)
+      await WETH9.connect(investor).approve(fund1Address, constants.MaxUint256)
       
       //deposit, withdraw
-      await expect(newFundContract.connect(investor).deposit(WETH9_MAINNET, DEPOSIT_AMOUNT)).to.be.reverted
-      await expect(newFundContract.connect(investor).withdraw(WETH9_MAINNET, WITHDRAW_AMOUNT)).to.be.reverted
+      await expect(fund1.connect(investor).deposit(WETH9_MAINNET, DEPOSIT_AMOUNT)).to.be.reverted
+      await expect(fund1.connect(investor).withdraw(WETH9_MAINNET, WITHDRAW_AMOUNT)).to.be.reverted
       //swap exactInput
       const tokens = [WETH9_MAINNET, DAI_ADDRESS, UNI_ADDRESS]
       const swapInputAmount = BigNumber.from(10000)
       const amountOutMinimum = BigNumber.from(1)
       const params = exactInputParams(
-        manager.address,
+        manager1.address,
         tokens,
         swapInputAmount,
         amountOutMinimum,
-        NewFundAddress
+        fund1Address
       )
-      await expect(newFundContract.connect(investor).swap(params, { value: 0 })).to.be.reverted
+      await expect(fund1.connect(investor).swap(params, { value: 0 })).to.be.reverted
     })
 
-    it("register investor => addInvestorFundList()", async function () {
-      const FactoryContract = await ethers.getContractAt("XXXFactory", FactoryContractAddress)
-      FactoryContract.connect(investor).addInvestorFundList(NewFundAddress)
+    it("investor register => manager1", async function () {
+      await factory.connect(investor).addInvestorFundList(fund1Address)
     })
-    it("now check investor => isInvestorFundExist()", async function () {
-      const FactoryContract = await ethers.getContractAt("XXXFactory", FactoryContractAddress)
-      expect(await FactoryContract.connect(investor).isInvestorFundExist(investor.address, NewFundAddress)).to.be.true
+
+    it("check investor registered", async function () {
+      const isRegistered = await factory.connect(investor).isInvestorFundExist(investor.address, fund1Address)
+      expect(isRegistered).to.be.true
     })
 
     it("ETH -> WETH", async function () {
-      const WETH9 = await ethers.getContractAt("IWETH9", WETH9_MAINNET)
       const beforeWETHBalance = await WETH9.balanceOf(investor.address)
       await WETH9.connect(investor).deposit({
                 from: investor.address,
@@ -513,22 +511,20 @@ describe('XXXFund2', () => {
     })
 
     it("deposit ETH => receive() ( MANAGER_FEE 1% )", async function () {
-      const WETH9 = await ethers.getContractAt("IWETH9", WETH9_MAINNET)
-      const fundWETHBefore = await WETH9.balanceOf(NewFundAddress)
+      const fundWETHBefore = await WETH9.balanceOf(fund1Address)
       await investor.sendTransaction({
-        to: NewFundAddress,
+        to: fund1Address,
         value: DEPOSIT_AMOUNT, // Sends exactly 1.0 ether
       })
 
-      const newFundContract = await ethers.getContractAt("XXXFund2", NewFundAddress)
       //check investorTokenCount
-      const investorTokenCount = await newFundContract.connect(investor).investorTokenCount(investor.address)
+      const investorTokenCount = await fund1.connect(investor).investorTokenCount(investor.address)
       //check investorTokens
-      const investorWETH = await newFundContract.connect(investor).getInvestorTokenAmount(investor.address, WETH9_MAINNET)
+      const investorWETH = await fund1.connect(investor).getInvestorTokenAmount(investor.address, WETH9_MAINNET)
       //check rewardTokens
-      const rewardTokens = await newFundContract.connect(investor).getRewardTokens()
+      const rewardTokens = await fund1.connect(investor).getRewardTokens()
       //check fund balance
-      const fundWETHAfter = await WETH9.balanceOf(NewFundAddress)
+      const fundWETHAfter = await WETH9.balanceOf(fund1Address)
 
       expect(investorTokenCount).to.equal(1)
       expect(investorWETH).to.equal(DEPOSIT_AMOUNT)
@@ -537,28 +533,25 @@ describe('XXXFund2', () => {
     })
 
     it("withdraw ETH ( MANAGER_FEE 1% )", async function () {
-      const WETH9 = await ethers.getContractAt("IWETH9", WETH9_MAINNET)
-      const newFundContract = await ethers.getContractAt("XXXFund2", NewFundAddress)
-
       let beforeETHBalance = 0
       await investor.getBalance().then((balance: any) => {
           beforeETHBalance = balance
       });
-      const fundWETHBefore = await WETH9.balanceOf(NewFundAddress)
-      const investorWETHBefore = await newFundContract.connect(investor).getInvestorTokenAmount(investor.address, WETH9_MAINNET)
+      const fundWETHBefore = await WETH9.balanceOf(fund1Address)
+      const investorWETHBefore = await fund1.connect(investor).getInvestorTokenAmount(investor.address, WETH9_MAINNET)
  
-      await newFundContract.connect(investor).withdraw(WETH9_MAINNET, WITHDRAW_AMOUNT)
+      await fund1.connect(investor).withdraw(WETH9_MAINNET, WITHDRAW_AMOUNT)
 
       //check investorTokenCount
-      const investorTokenCount = await newFundContract.connect(investor).investorTokenCount(investor.address)
+      const investorTokenCount = await fund1.connect(investor).investorTokenCount(investor.address)
       //check investorTokens
-      const investorWETHAfter = await newFundContract.connect(investor).getInvestorTokenAmount(investor.address, WETH9_MAINNET)
+      const investorWETHAfter = await fund1.connect(investor).getInvestorTokenAmount(investor.address, WETH9_MAINNET)
       //check rewardTokens
-      const rewardTokens = await newFundContract.connect(investor).getRewardTokens()
+      const rewardTokens = await fund1.connect(investor).getRewardTokens()
       const fee = WITHDRAW_AMOUNT.mul(MANAGER_FEE).div(100)
       const investorWithdrawAmount = WITHDRAW_AMOUNT.sub(fee)
       //check fund balance
-      const fundWETHAfter = await WETH9.balanceOf(NewFundAddress)
+      const fundWETHAfter = await WETH9.balanceOf(fund1Address)
 
       let afterETHBalance = 0
       await investor.getBalance().then((balance: any) => {
@@ -574,26 +567,23 @@ describe('XXXFund2', () => {
     })
 
     it("deposit WETH ( MANAGER_FEE 1% )", async function () {
-      const WETH9 = await ethers.getContractAt("IWETH9", WETH9_MAINNET)
-      const newFundContract = await ethers.getContractAt("XXXFund2", NewFundAddress)
-
-      const fundWETHBefore = await WETH9.balanceOf(NewFundAddress)
-      const investorWETHBefore = await newFundContract.connect(investor).getInvestorTokenAmount(investor.address, WETH9_MAINNET)
-      const rewardTokensBefore = await newFundContract.connect(investor).getRewardTokens()
+      const fundWETHBefore = await WETH9.balanceOf(fund1Address)
+      const investorWETHBefore = await fund1.connect(investor).getInvestorTokenAmount(investor.address, WETH9_MAINNET)
+      const rewardTokensBefore = await fund1.connect(investor).getRewardTokens()
       const rewardAmountBefore = rewardTokensBefore[0].amount
 
-      await WETH9.connect(investor).approve(NewFundAddress, constants.MaxUint256)
-      await newFundContract.connect(investor).deposit(WETH9_MAINNET, DEPOSIT_AMOUNT)
+      await WETH9.connect(investor).approve(fund1Address, constants.MaxUint256)
+      await fund1.connect(investor).deposit(WETH9_MAINNET, DEPOSIT_AMOUNT)
 
       //check investorTokenCount
-      const investorTokenCount = await newFundContract.connect(investor).investorTokenCount(investor.address)
+      const investorTokenCount = await fund1.connect(investor).investorTokenCount(investor.address)
       //check investorTokens
-      const investorWETHAfter = await newFundContract.connect(investor).getInvestorTokenAmount(investor.address, WETH9_MAINNET)
+      const investorWETHAfter = await fund1.connect(investor).getInvestorTokenAmount(investor.address, WETH9_MAINNET)
       //check rewardTokens
-      const rewardTokensAfter = await newFundContract.connect(investor).getRewardTokens()
+      const rewardTokensAfter = await fund1.connect(investor).getRewardTokens()
       const rewardAmountAfter = rewardTokensAfter[0].amount
       //check fund balance
-      const fundWETHAfter = await WETH9.balanceOf(NewFundAddress)
+      const fundWETHAfter = await WETH9.balanceOf(fund1Address)
 
       expect(investorTokenCount).to.equal(1)
       expect(investorWETHAfter).to.equal(investorWETHBefore.add(DEPOSIT_AMOUNT))
@@ -602,27 +592,24 @@ describe('XXXFund2', () => {
     })
 
     it("withdraw WETH ( MANAGER_FEE 1% )", async function () {
-      const WETH9 = await ethers.getContractAt("IWETH9", WETH9_MAINNET)
-      const newFundContract = await ethers.getContractAt("XXXFund2", NewFundAddress)
-
-      const fundWETHBefore = await WETH9.balanceOf(NewFundAddress)
-      const investorWETHBefore = await newFundContract.connect(investor).getInvestorTokenAmount(investor.address, WETH9_MAINNET)
-      const rewardTokensBefore = await newFundContract.connect(investor).getRewardTokens()
+      const fundWETHBefore = await WETH9.balanceOf(fund1Address)
+      const investorWETHBefore = await fund1.connect(investor).getInvestorTokenAmount(investor.address, WETH9_MAINNET)
+      const rewardTokensBefore = await fund1.connect(investor).getRewardTokens()
       const rewardAmountBefore = rewardTokensBefore[0].amount
 
-      await newFundContract.connect(investor).withdraw(WETH9_MAINNET, WITHDRAW_AMOUNT)
+      await fund1.connect(investor).withdraw(WETH9_MAINNET, WITHDRAW_AMOUNT)
 
       //check investorTokenCount
-      const investorTokenCount = await newFundContract.connect(investor).investorTokenCount(investor.address)
+      const investorTokenCount = await fund1.connect(investor).investorTokenCount(investor.address)
       //check investorTokens
-      const investorWETHAfter = await newFundContract.connect(investor).getInvestorTokenAmount(investor.address, WETH9_MAINNET)
+      const investorWETHAfter = await fund1.connect(investor).getInvestorTokenAmount(investor.address, WETH9_MAINNET)
       //check rewardTokens
-      const rewardTokensAfter = await newFundContract.connect(investor).getRewardTokens()
+      const rewardTokensAfter = await fund1.connect(investor).getRewardTokens()
       const rewardAmountAfter = await rewardTokensAfter[0].amount
       const fee = WITHDRAW_AMOUNT.mul(MANAGER_FEE).div(100)
       const investorWithdrawAmount = WITHDRAW_AMOUNT.sub(fee)
       //check fund balance
-      const fundWETHAfter = await WETH9.balanceOf(NewFundAddress)
+      const fundWETHAfter = await WETH9.balanceOf(fund1Address)
 
       expect(investorTokenCount).to.equal(1)
       expect(investorWETHAfter).to.equal(investorWETHBefore.sub(WITHDRAW_AMOUNT))
@@ -630,98 +617,125 @@ describe('XXXFund2', () => {
       expect(fundWETHAfter).to.equal(fundWETHBefore.sub(investorWithdrawAmount))
     })
 
-  })
+    describe("swap reverted", async function () {
 
-  // describe('sender : not investor', () => {
+      it("#exactInputSingle", async function () {
+        const swapInputAmount = BigNumber.from(1000000)
+        const amountOutMinimum = BigNumber.from(1)
 
-  //   let deployer: Wallet, manager: Wallet, notInvestor: Wallet
+        const params = exactInputSingleParams(
+          investor.address,
+          WETH9_MAINNET,
+          UNI_ADDRESS, 
+          swapInputAmount, 
+          amountOutMinimum, 
+          BigNumber.from(0),
+          fund1Address
+        )
+        await expect(fund1.connect(investor).swap(params, { value: 0 })).to.be.reverted
+      })
 
-  //   let FactoryContractAddress = ''
-  //   let FundContractAddress = ''
-  //   let NewFundAddress = ''
+      it("#exactOutputSingle", async function () {
+        const swapOutputAmount = BigNumber.from(1000000)
+        const amountInMaximum = BigNumber.from(100000)
 
-  //   let fundBytecode = ''
+        const params = exactOutputSingleParams(
+          investor.address,
+          WETH9_MAINNET, 
+          UNI_ADDRESS, 
+          swapOutputAmount, 
+          amountInMaximum, 
+          BigNumber.from(0),
+          fund1Address
+        )
+        await expect(fund1.connect(investor).swap(params, { value: 0 })).to.be.reverted
+      })
 
-  //   before('load fund bytecode', async () => {
-  //     fundBytecode = (await ethers.getContractFactory('XXXFund2')).bytecode
-  //   })
+      it("#exactInput", async function () {
+        const tokens = [WETH9_MAINNET, DAI_ADDRESS, UNI_ADDRESS]
+        const swapInputAmount = BigNumber.from(10000)
+        const amountOutMinimum = BigNumber.from(1)
 
-  //   it("Deploy XXXFactory Contract", async function () {
-  //     const XXXFactory = await ethers.getContractFactory("XXXFactory")
-  //     const Factory = await XXXFactory.connect(deployer).deploy()
-  //     await Factory.deployed()
-  //     FactoryContractAddress = Factory.address
-  //   })
+        const params = exactInputParams(
+          investor.address,
+          tokens,
+          swapInputAmount,
+          amountOutMinimum,
+          fund1Address
+        )
+        await expect(fund1.connect(investor).swap(params, { value: 0 })).to.be.reverted
+      })
 
-  //   it("Deploy XXXFund2 Contract", async function () {
-  //     const XXXFund = await ethers.getContractFactory("XXXFund2")
-  //     const Fund = await XXXFund.connect(deployer).deploy()
-  //     await Fund.deployed()
-  //     FundContractAddress = Fund.address
-  //   })
+      it("#exactOutput", async function () {
+        const tokens = [WETH9_MAINNET, DAI_ADDRESS, UNI_ADDRESS]
+        const swapInputAmount = BigNumber.from(10000)
+        const amountOutMinimum = BigNumber.from(1)
 
-  //   it("createFund()", async function () {
-  //     const FactoryContract = await ethers.getContractAt("XXXFactory", FactoryContractAddress)
-  //     await FactoryContract.connect(manager).createFund(manager.address)
-  //     const expectedFundAddress = getCreate2Address(FactoryContractAddress, manager.address, fundBytecode)
-  //     const savedFundAddress = await FactoryContract.connect(manager).getFundByManager(manager.address)
-  //     expect(savedFundAddress).to.equal(expectedFundAddress)
-  //     NewFundAddress = expectedFundAddress
-  //   })
+        const params = exactOutputParams(
+          investor.address,
+          tokens,
+          swapInputAmount,
+          amountOutMinimum,
+          fund1Address
+        )
+        await expect(fund1.connect(investor).swap(params, { value: 0 })).to.be.reverted
+      })
 
-  //   it("ETH -> WETH", async function () {
-  //     const WETH9 = await ethers.getContractAt("IWETH9", WETH9_MAINNET)
-  //     const beforeWETHBalance = await WETH9.balanceOf(notInvestor.address)
-  //     await WETH9.connect(notInvestor).deposit({
-  //               from: notInvestor.address,
-  //               value: WETH_CHARGE_AMOUNT
-  //           })
-  //     const afterWETHBalance = await WETH9.balanceOf(notInvestor.address)
-  //     expect(afterWETHBalance).to.equal(beforeWETHBalance.add(WETH_CHARGE_AMOUNT))
-  //   })
-
-  //   it("deposit ETH => receive()", async function () {
-  //     const WETH9 = await ethers.getContractAt("IWETH9", WETH9_MAINNET)
-  //     const beforeWETHBalance = await WETH9.balanceOf(NewFundAddress)
-  //     await expect(notInvestor.sendTransaction({
-  //       to: NewFundAddress,
-  //       value: ethers.utils.parseEther("1.0"), // Sends exactly 1.0 ether
-  //     })).to.be.revertedWith('receive() => account is not exist in manager list nor investor list')
-  //   })
-
-  //   it("withdraw ETH ( MANAGER_FEE 1% )", async function () {
-  //     const WETH9 = await ethers.getContractAt("IWETH9", WETH9_MAINNET)
-  //     const beforeFundWETHBalance = await WETH9.balanceOf(NewFundAddress)
-
-  //     const newFundContract = await ethers.getContractAt("XXXFund2", NewFundAddress)
-  //     await expect(newFundContract.connect(notInvestor)
-  //       .withdraw(notInvestor.address, WETH9_MAINNET, WITHDRAW_AMOUNT))
-  //       .to.be.revertedWith('withdraw() => account is not exist in manager list nor investor list')
-  //   })
-
-  //   it("deposit WETH", async function () {
-  //     const WETH9 = await ethers.getContractAt("IWETH9", WETH9_MAINNET)
-  //     const beforeFundWETHBalance = await WETH9.balanceOf(NewFundAddress)
-
-  //     await WETH9.connect(notInvestor).approve(NewFundAddress, constants.MaxUint256)
-  //     const newFundContract = await ethers.getContractAt("XXXFund2", NewFundAddress)
-  //     await expect(newFundContract.connect(notInvestor).deposit(WETH9_MAINNET, DEPOSIT_AMOUNT))
-  //       .to.be.revertedWith('deposit() => account is not exist in manager list nor investor list')
-  //   })
-
-  //   it("withdraw WETH ( MANAGER_FEE 1% )", async function () {
-  //     const WETH9 = await ethers.getContractAt("IWETH9", WETH9_MAINNET)
-  //     const beforeFundWETHBalance = await WETH9.balanceOf(NewFundAddress)
-  //     const beforeManagerWETHBalance = await WETH9.balanceOf(notInvestor.address)
-
-  //     const newFundContract = await ethers.getContractAt("XXXFund2", NewFundAddress)
-  //     await expect(newFundContract.connect(notInvestor).withdraw(notInvestor.address, WETH9_MAINNET, WITHDRAW_AMOUNT))
-  //       .to.be.revertedWith('withdraw() => account is not exist in manager list nor investor list')
-  //   })
-
-  // })
-
-  describe('sender : manager manager', () => {
+    })
 
   })
+
+  describe('user : manager1, manager2', () => {
+
+    it("manager1 not register yet => manager2 ", async function () {
+      expect(await factory.connect(manager1).isInvestorFundExist(manager1.address, fund2Address)).to.be.false
+    })
+
+    it("manager2 not register yet => manager1", async function () {
+      expect(await factory.connect(manager2).isInvestorFundExist(manager2.address, fund1Address)).to.be.false
+    })
+
+    // it("manager1 not register yet => manager2, deposit, withdraw swap fail", async function () {
+      
+    //   await expect(investor.sendTransaction({
+    //     to: fund1Address,
+    //     value: DEPOSIT_AMOUNT, // Sends exactly 1.0 ether
+    //   })).to.be.reverted
+
+    //   await WETH9.connect(investor).approve(fund1Address, constants.MaxUint256)
+      
+    //   //deposit, withdraw
+    //   await expect(fund1.connect(investor).deposit(WETH9_MAINNET, DEPOSIT_AMOUNT)).to.be.reverted
+    //   await expect(fund1.connect(investor).withdraw(WETH9_MAINNET, WITHDRAW_AMOUNT)).to.be.reverted
+    //   //swap exactInput
+    //   const tokens = [WETH9_MAINNET, DAI_ADDRESS, UNI_ADDRESS]
+    //   const swapInputAmount = BigNumber.from(10000)
+    //   const amountOutMinimum = BigNumber.from(1)
+    //   const params = exactInputParams(
+    //     manager1.address,
+    //     tokens,
+    //     swapInputAmount,
+    //     amountOutMinimum,
+    //     fund1Address
+    //   )
+    //   await expect(fund1.connect(investor).swap(params, { value: 0 })).to.be.reverted
+    // })
+
+    // it("manager2 not register yet => manager1, deposit, withdraw swap fail", async function () {
+
+
+    // })
+
+    // it("manager1 register => manager2", async function () {
+    //   factory.connect(manager1).addInvestorFundList(fund2Address)
+    // })
+    // it("manager2 register => manager1", async function () {
+    //   factory.connect(manager2).addInvestorFundList(fund1Address)
+    // })
+    // it("now check manager1, manager2 registered", async function () {
+    //   expect(await factory.connect(manager1).isInvestorFundExist(investor.address, fund1Address)).to.be.true
+    // })
+
+  })
+
 })
