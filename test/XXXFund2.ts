@@ -48,16 +48,17 @@ describe('XXXFund2', () => {
   let factory: Contract
   let fund1: Contract
   let fund2: Contract
-  let WETH9: Contract
+  let weth9: Contract
 
-  // let getBalances: (
-  //   who: string
-  // ) => Promise<{
-  //   weth9: BigNumber
-  //   token0: BigNumber
-  //   token1: BigNumber
-  //   token2: BigNumber
-  // }>
+  let getBalances: (
+    who: string
+  ) => Promise<{
+    weth9: BigNumber
+    fund1WETH: BigNumber,
+    fund1UNI: BigNumber,
+    fund2WETH: BigNumber,
+    fund2UNI: BigNumber, 
+  }>
 
   before('get signer', async () => {
     [ deployer,
@@ -68,22 +69,24 @@ describe('XXXFund2', () => {
       notInvestor
     ] = await (ethers as any).getSigners()
 
-    WETH9 = await ethers.getContractAt("IWETH9", WETH9_MAINNET)
+    weth9 = await ethers.getContractAt("IWETH9", WETH9_MAINNET)
 
-    // getBalances = async (who: string) => {
-    //   const balances = await Promise.all([
-    //     weth9.balanceOf(who),
-    //     tokens[0].balanceOf(who),
-    //     tokens[1].balanceOf(who),
-    //     tokens[2].balanceOf(who),
-    //   ])
-    //   return {
-    //     weth9: balances[0],
-    //     token0: balances[1],
-    //     token1: balances[2],
-    //     token2: balances[3],
-    //   }
-    // }
+    getBalances = async (who: string) => {
+      const balances = await Promise.all([
+        weth9.balanceOf(who),
+        fund1.connect(manager1).getInvestorTokenAmount(who, WETH9_MAINNET),
+        fund1.connect(manager1).getInvestorTokenAmount(who, UNI_ADDRESS),
+        fund2.connect(manager1).getInvestorTokenAmount(who, WETH9_MAINNET),
+        fund2.connect(manager1).getInvestorTokenAmount(who, UNI_ADDRESS),
+      ])
+      return {
+        weth9: balances[0],     // manager1Before.weth9
+        fund1WETH: balances[1], // manager1After.fund1WETH
+        fund1UNI: balances[2],  // investor1After.fund1UNI
+        fund2WETH: balances[3], // investor1Before.fund1WETH
+        fund2UNI: balances[4],  
+      }
+    }
   })
 
   before("Deploy XXXFactory Contract", async function () {
@@ -133,17 +136,17 @@ describe('XXXFund2', () => {
     })
 
     it("ETH -> WETH", async function () {
-      const managerWETHBefore = await WETH9.balanceOf(manager1.address)
-      await WETH9.connect(manager1).deposit({
+      const managerWETHBefore = await weth9.balanceOf(manager1.address)
+      await weth9.connect(manager1).deposit({
         from: manager1.address,
         value: WETH_CHARGE_AMOUNT
       })
-      const managerWETHAfter = await WETH9.balanceOf(manager1.address)
+      const managerWETHAfter = await weth9.balanceOf(manager1.address)
       expect(managerWETHAfter).to.equal(managerWETHBefore.add(WETH_CHARGE_AMOUNT))
     })
 
     it("deposit ETH => receive()", async function () {
-      const fundWETHBefore = await WETH9.balanceOf(fund1Address)
+      const fundWETHBefore = await weth9.balanceOf(fund1Address)
 
       await manager1.sendTransaction({
         to: fund1Address,
@@ -157,7 +160,7 @@ describe('XXXFund2', () => {
       //check rewardTokens
       const rewardTokens = await fund1.connect(manager1).getRewardTokens()
       //check fund balance
-      const fundWETHAfter = await WETH9.balanceOf(fund1Address)
+      const fundWETHAfter = await weth9.balanceOf(fund1Address)
 
       expect(investorTokenCount).to.equal(1)
       expect(managerWETH).to.equal(DEPOSIT_AMOUNT)
@@ -170,7 +173,7 @@ describe('XXXFund2', () => {
       await manager1.getBalance().then((balance: any) => {
           beforeETHBalance = balance
       });
-      const fundWETHBefore = await WETH9.balanceOf(fund1Address)
+      const fundWETHBefore = await weth9.balanceOf(fund1Address)
       const managerWETHBefore = await fund1.connect(manager1).getInvestorTokenAmount(manager1.address, WETH9_MAINNET)
 
       await fund1.connect(manager1).withdraw(WETH9_MAINNET, WITHDRAW_AMOUNT)
@@ -182,7 +185,7 @@ describe('XXXFund2', () => {
       //check rewardTokens
       const rewardTokens = await fund1.connect(manager1).getRewardTokens()
       //check fund balance
-      const fundWETHAfter = await WETH9.balanceOf(fund1Address)
+      const fundWETHAfter = await weth9.balanceOf(fund1Address)
 
       let afterETHBalance = 0
       await manager1.getBalance().then((balance: any) => {
@@ -197,10 +200,10 @@ describe('XXXFund2', () => {
     })
 
     it("deposit WETH", async function () {
-      const fundWETHBefore = await WETH9.balanceOf(fund1Address)
+      const fundWETHBefore = await weth9.balanceOf(fund1Address)
       const managerWETHBefore = await fund1.connect(manager1).getInvestorTokenAmount(manager1.address, WETH9_MAINNET)
 
-      await WETH9.connect(manager1).approve(fund1Address, constants.MaxUint256)
+      await weth9.connect(manager1).approve(fund1Address, constants.MaxUint256)
       await fund1.connect(manager1).deposit(WETH9_MAINNET, DEPOSIT_AMOUNT)
 
       //check investorTokenCount
@@ -210,7 +213,7 @@ describe('XXXFund2', () => {
       //check rewardTokens
       const rewardTokens = await fund1.connect(manager1).getRewardTokens()
       //check fund balance
-      const fundWETHAfter = await WETH9.balanceOf(fund1Address)
+      const fundWETHAfter = await weth9.balanceOf(fund1Address)
 
       expect(investorTokenCount).to.equal(1)
       expect(managerWETHAfter).to.equal(managerWETHBefore.add(DEPOSIT_AMOUNT))
@@ -219,7 +222,7 @@ describe('XXXFund2', () => {
     })
 
     it("withdraw WETH", async function () {
-      const fundWETHBefore = await WETH9.balanceOf(fund1Address)
+      const fundWETHBefore = await weth9.balanceOf(fund1Address)
       const managerWETHBefore = await fund1.connect(manager1).getInvestorTokenAmount(manager1.address, WETH9_MAINNET)
 
       await fund1.connect(manager1).withdraw(WETH9_MAINNET, WITHDRAW_AMOUNT)
@@ -231,7 +234,7 @@ describe('XXXFund2', () => {
       //check rewardTokens
       const rewardTokens = await fund1.connect(manager1).getRewardTokens()
       //check fund balance
-      const fundWETHAfter = await WETH9.balanceOf(fund1Address)
+      const fundWETHAfter = await weth9.balanceOf(fund1Address)
 
       expect(investorTokenCount).to.equal(1)
       expect(managerWETHAfter).to.equal(managerWETHBefore.sub(WITHDRAW_AMOUNT))
@@ -472,7 +475,7 @@ describe('XXXFund2', () => {
         value: DEPOSIT_AMOUNT, // Sends exactly 1.0 ether
       })).to.be.reverted
 
-      await WETH9.connect(investor).approve(fund1Address, constants.MaxUint256)
+      await weth9.connect(investor).approve(fund1Address, constants.MaxUint256)
       
       //deposit, withdraw
       await expect(fund1.connect(investor).deposit(WETH9_MAINNET, DEPOSIT_AMOUNT)).to.be.reverted
@@ -501,17 +504,17 @@ describe('XXXFund2', () => {
     })
 
     it("ETH -> WETH", async function () {
-      const beforeWETHBalance = await WETH9.balanceOf(investor.address)
-      await WETH9.connect(investor).deposit({
+      const beforeWETHBalance = await weth9.balanceOf(investor.address)
+      await weth9.connect(investor).deposit({
                 from: investor.address,
                 value: WETH_CHARGE_AMOUNT
             })
-      const afterWETHBalance = await WETH9.balanceOf(investor.address)
+      const afterWETHBalance = await weth9.balanceOf(investor.address)
       expect(afterWETHBalance).to.equal(beforeWETHBalance.add(WETH_CHARGE_AMOUNT))
     })
 
     it("deposit ETH => receive() ( MANAGER_FEE 1% )", async function () {
-      const fundWETHBefore = await WETH9.balanceOf(fund1Address)
+      const fundWETHBefore = await weth9.balanceOf(fund1Address)
       await investor.sendTransaction({
         to: fund1Address,
         value: DEPOSIT_AMOUNT, // Sends exactly 1.0 ether
@@ -524,7 +527,7 @@ describe('XXXFund2', () => {
       //check rewardTokens
       const rewardTokens = await fund1.connect(investor).getRewardTokens()
       //check fund balance
-      const fundWETHAfter = await WETH9.balanceOf(fund1Address)
+      const fundWETHAfter = await weth9.balanceOf(fund1Address)
 
       expect(investorTokenCount).to.equal(1)
       expect(investorWETH).to.equal(DEPOSIT_AMOUNT)
@@ -537,7 +540,7 @@ describe('XXXFund2', () => {
       await investor.getBalance().then((balance: any) => {
           beforeETHBalance = balance
       });
-      const fundWETHBefore = await WETH9.balanceOf(fund1Address)
+      const fundWETHBefore = await weth9.balanceOf(fund1Address)
       const investorWETHBefore = await fund1.connect(investor).getInvestorTokenAmount(investor.address, WETH9_MAINNET)
  
       await fund1.connect(investor).withdraw(WETH9_MAINNET, WITHDRAW_AMOUNT)
@@ -551,7 +554,7 @@ describe('XXXFund2', () => {
       const fee = WITHDRAW_AMOUNT.mul(MANAGER_FEE).div(100)
       const investorWithdrawAmount = WITHDRAW_AMOUNT.sub(fee)
       //check fund balance
-      const fundWETHAfter = await WETH9.balanceOf(fund1Address)
+      const fundWETHAfter = await weth9.balanceOf(fund1Address)
 
       let afterETHBalance = 0
       await investor.getBalance().then((balance: any) => {
@@ -567,12 +570,12 @@ describe('XXXFund2', () => {
     })
 
     it("deposit WETH ( MANAGER_FEE 1% )", async function () {
-      const fundWETHBefore = await WETH9.balanceOf(fund1Address)
+      const fundWETHBefore = await weth9.balanceOf(fund1Address)
       const investorWETHBefore = await fund1.connect(investor).getInvestorTokenAmount(investor.address, WETH9_MAINNET)
       const rewardTokensBefore = await fund1.connect(investor).getRewardTokens()
       const rewardAmountBefore = rewardTokensBefore[0].amount
 
-      await WETH9.connect(investor).approve(fund1Address, constants.MaxUint256)
+      await weth9.connect(investor).approve(fund1Address, constants.MaxUint256)
       await fund1.connect(investor).deposit(WETH9_MAINNET, DEPOSIT_AMOUNT)
 
       //check investorTokenCount
@@ -583,7 +586,7 @@ describe('XXXFund2', () => {
       const rewardTokensAfter = await fund1.connect(investor).getRewardTokens()
       const rewardAmountAfter = rewardTokensAfter[0].amount
       //check fund balance
-      const fundWETHAfter = await WETH9.balanceOf(fund1Address)
+      const fundWETHAfter = await weth9.balanceOf(fund1Address)
 
       expect(investorTokenCount).to.equal(1)
       expect(investorWETHAfter).to.equal(investorWETHBefore.add(DEPOSIT_AMOUNT))
@@ -592,7 +595,7 @@ describe('XXXFund2', () => {
     })
 
     it("withdraw WETH ( MANAGER_FEE 1% )", async function () {
-      const fundWETHBefore = await WETH9.balanceOf(fund1Address)
+      const fundWETHBefore = await weth9.balanceOf(fund1Address)
       const investorWETHBefore = await fund1.connect(investor).getInvestorTokenAmount(investor.address, WETH9_MAINNET)
       const rewardTokensBefore = await fund1.connect(investor).getRewardTokens()
       const rewardAmountBefore = rewardTokensBefore[0].amount
@@ -609,7 +612,7 @@ describe('XXXFund2', () => {
       const fee = WITHDRAW_AMOUNT.mul(MANAGER_FEE).div(100)
       const investorWithdrawAmount = WITHDRAW_AMOUNT.sub(fee)
       //check fund balance
-      const fundWETHAfter = await WETH9.balanceOf(fund1Address)
+      const fundWETHAfter = await weth9.balanceOf(fund1Address)
 
       expect(investorTokenCount).to.equal(1)
       expect(investorWETHAfter).to.equal(investorWETHBefore.sub(WITHDRAW_AMOUNT))
@@ -702,7 +705,7 @@ describe('XXXFund2', () => {
     //     value: DEPOSIT_AMOUNT, // Sends exactly 1.0 ether
     //   })).to.be.reverted
 
-    //   await WETH9.connect(investor).approve(fund1Address, constants.MaxUint256)
+    //   await weth9.connect(investor).approve(fund1Address, constants.MaxUint256)
       
     //   //deposit, withdraw
     //   await expect(fund1.connect(investor).deposit(WETH9_MAINNET, DEPOSIT_AMOUNT)).to.be.reverted
