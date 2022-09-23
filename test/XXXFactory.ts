@@ -188,7 +188,7 @@ describe('XXXFactory', () => {
       const FactoryContract = await ethers.getContractAt("XXXFactory", FactoryContractAddress)
       FactoryContract.connect(investor).addInvestorFundList(NewFundAddress)
     })
-    it("now check investor => isInvestorFundExist()", async function () {
+    it("check investor registered => isInvestorFundExist()", async function () {
       const FactoryContract = await ethers.getContractAt("XXXFactory", FactoryContractAddress)
       expect(await FactoryContract.connect(investor).isInvestorFundExist(investor.address, NewFundAddress)).to.be.true
     })

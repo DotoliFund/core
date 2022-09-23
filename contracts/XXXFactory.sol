@@ -108,7 +108,7 @@ contract XXXFactory is IXXXFactory {
         }
     }
 
-    function isInvestorFundExist(address investor, address fund) override external view returns (bool) {
+    function isInvestorFundExist(address investor, address fund) override public view returns (bool) {
         uint256 fundCount = getFundCountByInvestor[investor];
         for (uint256 i=0; i<fundCount; i++) {
             if (fund == getFundByInvestor[investor][i]) {
@@ -128,10 +128,9 @@ contract XXXFactory is IXXXFactory {
     }
     function addInvestorFundList(address fund) override external lock {
         require(getFundByManager[msg.sender] != fund, 'addInvestorFundList() => manager cannot add investor fund list');
+        require(!isInvestorFundExist(msg.sender, fund), 'addInvestorFundList() => investor fund already registered');
+        
         uint256 fundCount = getFundCountByInvestor[msg.sender];
-        for (uint256 i=0; i<fundCount; i++) {
-            require(getFundByInvestor[msg.sender][i] != fund, 'addInvestorFundList() => investor fund list already exist');
-        }
         getFundByInvestor[msg.sender][fundCount] = fund;
         getFundCountByInvestor[msg.sender] += 1;
     }
