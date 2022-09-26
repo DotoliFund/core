@@ -10,11 +10,11 @@ async function main() {
   console.log("\n------------------------------------------------------------------------\n");
   // deposit ETH
 
-  console.log("ETH -> WETH : ", ethers.utils.parseEther("0.1"));
+  console.log("ETH -> WETH : ", ethers.utils.parseEther("0.01"));
 
   const transactionHash = await test_account_1.sendTransaction({
     to: newFundAddress,
-    value: ethers.utils.parseEther("0.1"), // Sends exactly 1.0 ether
+    value: ethers.utils.parseEther("0.01"), // Sends exactly 1.0 ether
   });
 
   console.log(1)
@@ -29,9 +29,9 @@ async function main() {
   await fundContract.withdraw(
     test_account_1.address, 
     '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2', 
-    ethers.utils.parseEther("0.1")
+    ethers.utils.parseEther("0.01")
   );
-  console.log("WETH -> ETH : ", ethers.utils.parseEther("0.1"));
+  console.log("WETH -> ETH : ", ethers.utils.parseEther("0.01"));
   console.log("Fund's WETH : ", await WETH9.balanceOf(newFundAddress));
 
 }
