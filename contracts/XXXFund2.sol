@@ -95,6 +95,7 @@ contract XXXFund2 is IXXXFund2 {
     }
 
     function getRewardTokens() external override view returns (Token[] memory){
+        require(msg.sender == manager);
         Token[] memory _rewardTokens = new Token[](rewardTokens.length);
         for (uint i = 0; i < rewardTokens.length; i++) {
             _rewardTokens[i] = rewardTokens[i];
