@@ -5,7 +5,7 @@ import { XXXFactory } from '../typechain-types/contracts/XXXFactory';
 require('dotenv').config()
 
 const WETH9_RINKEBY = '0xc778417E063141139Fce010982780140Aa0cD5Ab'
-const newFundAddress = '0x9Cdd105a4F908A5ee4a24640Ca5080FdA10710cC'
+const newFundAddress = '0xC3A5eda8Ba71afed9e33b9Ead49974387c4af559'
 const newFund2Address = '0x174C310225e606E6c74d5da75e5497e248c90da8'
 
 async function main() {
@@ -15,7 +15,7 @@ async function main() {
   console.log("Account1 balance:", (await account1.getBalance()).toString());
   console.log("Account2 balance:", (await account2.getBalance()).toString());
 
-  const FactoryAddress = '0x373b38CD4f8C3bB195fEc2d735Ea9a106bA7012D'
+  const FactoryAddress = '0x645333C1EB5acE016777efD6f1c3c5a843797876'
   const factory = await ethers.getContractAt("XXXFactory", FactoryAddress)
 
   const fund1 = await ethers.getContractAt("XXXFund2", newFundAddress)
