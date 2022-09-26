@@ -107,7 +107,7 @@ contract XXXFactory is IXXXFactory {
         }
     }
 
-    function isInvestorFundExist(address investor, address fund) override public view returns (bool) {
+    function isSubscribed(address investor, address fund) override public view returns (bool) {
         uint256 fundCount = getFundCountByInvestor[investor];
         for (uint256 i=0; i<fundCount; i++) {
             if (fund == getFundByInvestor[investor][i]) {
@@ -116,7 +116,8 @@ contract XXXFactory is IXXXFactory {
         }
         return false;
     }
-    function getInvestorFundList(address investor) override external view returns (address[] memory){
+
+    function subscribedFunds(address investor) override external view returns (address[] memory){
         uint256 fundCount = getFundCountByInvestor[investor];
         address[] memory funds;
         funds = new address[](fundCount);
@@ -125,9 +126,10 @@ contract XXXFactory is IXXXFactory {
         }
         return funds;
     }
-    function addInvestorFundList(address fund) override external lock {
+    
+    function subscribe(address fund) override external lock {
         require(getFundByManager[msg.sender] != fund, 'manager cannot add investor fund list');
-        require(!isInvestorFundExist(msg.sender, fund), 'investor fund already registered');
+        require(!isSubscribed(msg.sender, fund), 'investor fund already registered');
         
         uint256 fundCount = getFundCountByInvestor[msg.sender];
         getFundByInvestor[msg.sender][fundCount] = fund;

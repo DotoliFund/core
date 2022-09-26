@@ -103,16 +103,16 @@ describe('XXXFactory', () => {
       expect(await factory.connect(manager1).getFundByManager(manager1.address)).to.equal(fund1Address)
     })
 
-    it("isInvestorFundExist()", async function () {
-      expect(await factory.connect(manager1).isInvestorFundExist(fund1Address,manager1.address)).to.be.false
+    it("isSubscribed()", async function () {
+      expect(await factory.connect(manager1).isSubscribed(fund1Address,manager1.address)).to.be.false
     })
 
-    it("getInvestorFundList()", async function () {
-      expect(await factory.connect(manager1).getInvestorFundList(manager1.address)).to.be.empty
+    it("subscribedFunds()", async function () {
+      expect(await factory.connect(manager1).subscribedFunds(manager1.address)).to.be.empty
     })
 
-    it("addInvestorFundList()", async function () {
-      await expect(factory.connect(manager1).addInvestorFundList(fund1Address)).to.be.reverted
+    it("subscribe()", async function () {
+      await expect(factory.connect(manager1).subscribe(fund1Address)).to.be.reverted
     })
 
   })
@@ -140,34 +140,34 @@ describe('XXXFactory', () => {
       expect(await factory.connect(investor).getFundByManager(investor.address)).to.equal(NULL_ADDRESS)
     })
 
-    it("isInvestorFundExist()", async function () {
-      expect(await factory.connect(investor).isInvestorFundExist(fund1Address,investor.address)).to.be.false
+    it("isSubscribed()", async function () {
+      expect(await factory.connect(investor).isSubscribed(fund1Address,investor.address)).to.be.false
     })
 
-    //investor is different from not investor at addInvestorFundList(), isInvestorFundExist()
-    it("getInvestorFundList()", async function () {
-      expect(await factory.connect(investor).getInvestorFundList(investor.address)).to.have.lengthOf(0)
+    //investor is different from not investor at subscribe(), isSubscribed()
+    it("subscribedFunds()", async function () {
+      expect(await factory.connect(investor).subscribedFunds(investor.address)).to.have.lengthOf(0)
     })
 
-    it("not investor yet => isInvestorFundExist()", async function () {
-      expect(await factory.connect(investor).isInvestorFundExist(investor.address, fund1Address)).to.be.false
+    it("not investor yet => isSubscribed()", async function () {
+      expect(await factory.connect(investor).isSubscribed(investor.address, fund1Address)).to.be.false
     })
 
-    it("register investor => addInvestorFundList()", async function () {
-      await factory.connect(investor).addInvestorFundList(fund1Address)
+    it("register investor => subscribe()", async function () {
+      await factory.connect(investor).subscribe(fund1Address)
     })
 
-    it("check investor registered => isInvestorFundExist()", async function () {
-      const isRegistered = await factory.connect(investor).isInvestorFundExist(investor.address, fund1Address)
+    it("check investor registered => isSubscribed()", async function () {
+      const isRegistered = await factory.connect(investor).isSubscribed(investor.address, fund1Address)
       expect(isRegistered).to.be.true    
     })
 
-    it("getInvestorFundList()", async function () {
-      expect(await factory.connect(investor).getInvestorFundList(investor.address)).to.have.lengthOf(1)
+    it("subscribedFunds()", async function () {
+      expect(await factory.connect(investor).subscribedFunds(investor.address)).to.have.lengthOf(1)
     })
 
-    it("addInvestorFundList() must be fail : duplicate", async function () {
-      await expect(factory.connect(investor).addInvestorFundList(fund1Address)).to.be.reverted
+    it("subscribe() must be fail : duplicate", async function () {
+      await expect(factory.connect(investor).subscribe(fund1Address)).to.be.reverted
     })
 
   })
@@ -194,16 +194,16 @@ describe('XXXFactory', () => {
       expect(await factory.connect(notInvestor).getFundByManager(notInvestor.address)).to.equal(NULL_ADDRESS)
     })
 
-    it("isInvestorFundExist()", async function () {
-      expect(await factory.connect(notInvestor).isInvestorFundExist(fund1Address,notInvestor.address)).to.be.false
+    it("isSubscribed()", async function () {
+      expect(await factory.connect(notInvestor).isSubscribed(fund1Address,notInvestor.address)).to.be.false
     })
 
-    it("getInvestorFundList()", async function () {
-      expect(await factory.connect(notInvestor).getInvestorFundList(notInvestor.address)).to.be.empty
+    it("subscribedFunds()", async function () {
+      expect(await factory.connect(notInvestor).subscribedFunds(notInvestor.address)).to.be.empty
     })
 
-    it("addInvestorFundList()", async function () {
-      await factory.connect(notInvestor).addInvestorFundList(fund1Address)
+    it("subscribe()", async function () {
+      await factory.connect(notInvestor).subscribe(fund1Address)
     })
   })
 })

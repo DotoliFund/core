@@ -5,8 +5,8 @@ import { XXXFactory } from '../typechain-types/contracts/XXXFactory';
 require('dotenv').config()
 
 const WETH9_RINKEBY = '0xc778417E063141139Fce010982780140Aa0cD5Ab'
-const newFundAddress = '0xC3A5eda8Ba71afed9e33b9Ead49974387c4af559'
-const newFund2Address = '0x174C310225e606E6c74d5da75e5497e248c90da8'
+const newFundAddress = '0x2657113bCbA69B12F63f130A304ebc49D995DB23'
+const newFund2Address = '0x2657113bCbA69B12F63f130A304ebc49D995DB23'
 
 async function main() {
   const [account1, account2] = await ethers.getSigners();
@@ -26,7 +26,7 @@ async function main() {
   console.log("\n------------------------------------------------------------------------\n");
 
   console.log("addInvestorFundList()\n");
-  //await factory.connect(account1).addInvestorFundList(newFund2Address);
+  await factory.connect(account1).addInvestorFundList(newFundAddress);
   //await factory.connect(account2).addInvestorFundList(newFundAddress);
 
   console.log("\n------------------------------------------------------------------------\n");

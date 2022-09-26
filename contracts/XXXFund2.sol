@@ -16,8 +16,8 @@ import "hardhat/console.sol";
 contract XXXFund2 is IXXXFund2 {
     using Path for bytes;
 
-    //address WETH9 = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
-    address WETH9 = 0xc778417E063141139Fce010982780140Aa0cD5Ab;
+    address WETH9 = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
+    //address WETH9 = 0xc778417E063141139Fce010982780140Aa0cD5Ab;
 
     address public factory;
     address public manager;
@@ -48,8 +48,8 @@ contract XXXFund2 is IXXXFund2 {
             // when call IWETH9(WETH9).withdraw(amount) in this contract, go into here.
 
         } else {
-            bool _isInvestorFundExist = IXXXFactory(factory).isInvestorFundExist(msg.sender, address(this));
-            require(_isInvestorFundExist || msg.sender == manager,
+            bool _isSubscribed = IXXXFactory(factory).isSubscribed(msg.sender, address(this));
+            require(_isSubscribed || msg.sender == manager,
                 'receive() => account is not exist in manager list nor investor list');
 
             IWETH9(WETH9).deposit{value: msg.value}();
@@ -172,8 +172,8 @@ contract XXXFund2 is IXXXFund2 {
 
     // this low-level function should be called from a contract which performs important safety checks
     function deposit(address _token, uint256 _amount) external payable override lock {
-        bool _isInvestorFundExist = IXXXFactory(factory).isInvestorFundExist(msg.sender, address(this));
-        require(_isInvestorFundExist || msg.sender == manager,
+        bool _isSubscribed = IXXXFactory(factory).isSubscribed(msg.sender, address(this));
+        require(_isSubscribed || msg.sender == manager,
             'deposit() => account is not exist in manager list nor investor list');
         require(IXXXFactory(factory).isWhiteListToken(_token), 'deposit() => not whitelist token');
         
@@ -190,8 +190,8 @@ contract XXXFund2 is IXXXFund2 {
     }
 
     function withdraw(address _token, uint256 _amount) external payable override lock {
-        bool _isInvestorFundExist = IXXXFactory(factory).isInvestorFundExist(msg.sender, address(this));
-        require(_isInvestorFundExist || msg.sender == manager,
+        bool _isSubscribed = IXXXFactory(factory).isSubscribed(msg.sender, address(this));
+        require(_isSubscribed || msg.sender == manager,
             'withdraw() => account is not exist in manager list nor investor list');
         //check if investor has valid token amount
         require(isValidTokenAmount(msg.sender, _token, _amount), 'withdraw() => invalid token amount');

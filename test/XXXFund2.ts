@@ -477,7 +477,7 @@ describe('XXXFund2', () => {
   describe('user : manager1, investor1', () => {
 
     it("investor1 not register yet => manager1", async function () {
-      expect(await factory.connect(investor1).isInvestorFundExist(investor1.address, fund1Address)).to.be.false
+      expect(await factory.connect(investor1).isSubscribed(investor1.address, fund1Address)).to.be.false
     })
 
     it("investor1 not register yet => deposit, withdraw swap fail", async function () {
@@ -506,11 +506,11 @@ describe('XXXFund2', () => {
     })
 
     it("investor1 register => manager1", async function () {
-      await factory.connect(investor1).addInvestorFundList(fund1Address)
+      await factory.connect(investor1).subscribe(fund1Address)
     })
 
     it("check investor1 registered", async function () {
-      const isRegistered = await factory.connect(investor1).isInvestorFundExist(investor1.address, fund1Address)
+      const isRegistered = await factory.connect(investor1).isSubscribed(investor1.address, fund1Address)
       expect(isRegistered).to.be.true
     })
 
@@ -850,11 +850,11 @@ describe('XXXFund2', () => {
   describe('user : manager1, manager2 (investor : manager1, manager : manager2)', () => {
 
     it("manager1 not register yet => manager2 ", async function () {
-      expect(await factory.connect(manager1).isInvestorFundExist(manager1.address, fund2Address)).to.be.false
+      expect(await factory.connect(manager1).isSubscribed(manager1.address, fund2Address)).to.be.false
     })
 
     it("manager2 not register yet => manager1", async function () {
-      expect(await factory.connect(manager2).isInvestorFundExist(manager2.address, fund1Address)).to.be.false
+      expect(await factory.connect(manager2).isSubscribed(manager2.address, fund1Address)).to.be.false
     })
 
     it("when manager1 not register to manager2, deposit, withdraw swap fail", async function () {
@@ -908,16 +908,16 @@ describe('XXXFund2', () => {
     })
 
     it("manager1 register to manager2", async function () {
-      await factory.connect(manager1).addInvestorFundList(fund2Address)
+      await factory.connect(manager1).subscribe(fund2Address)
     })
 
     it("manager2 register to manager1", async function () {
-      await factory.connect(manager2).addInvestorFundList(fund1Address)
+      await factory.connect(manager2).subscribe(fund1Address)
     })
 
     it("now check manager1, manager2 registered eash other", async function () {
-      expect(await factory.connect(manager1).isInvestorFundExist(manager1.address, fund2Address)).to.be.true
-      expect(await factory.connect(manager2).isInvestorFundExist(manager2.address, fund1Address)).to.be.true
+      expect(await factory.connect(manager1).isSubscribed(manager1.address, fund2Address)).to.be.true
+      expect(await factory.connect(manager2).isSubscribed(manager2.address, fund1Address)).to.be.true
     })
 
     it("ETH -> WETH", async function () {
