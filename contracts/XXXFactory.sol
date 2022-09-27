@@ -16,8 +16,8 @@ contract XXXFactory is IXXXFactory {
     address[] whiteListTokens;
 
     mapping(address => address) public getFundByManager;
-    mapping(address => mapping(uint256 => address)) public getFundByInvestor;
-    mapping(address => uint256) public getFundCountByInvestor;
+    mapping(address => mapping(uint256 => address)) private getFundByInvestor;
+    mapping(address => uint256) private getFundCountByInvestor;
 
     uint256 private unlocked = 1;
     modifier lock() {
@@ -62,6 +62,7 @@ contract XXXFactory is IXXXFactory {
     function getSwapRouterAddress() override external view returns (address) {
         return swapRouterAddress;
     }
+    
     function setSwapRouterAddress(address _swapRouterAddress) override external {
         require(msg.sender == owner);
         swapRouterAddress = _swapRouterAddress;
@@ -70,6 +71,7 @@ contract XXXFactory is IXXXFactory {
     function getManagerFee() override external view returns (uint256) {
         return managerFee;
     }
+
     function setManagerFee(uint256 _managerFee) override external {
         require(msg.sender == owner);
         managerFee = _managerFee;
@@ -83,6 +85,7 @@ contract XXXFactory is IXXXFactory {
         }
         return false;
     }
+
     function getWhiteListTokens() override public view returns (address[] memory) {
         uint256 _whiteListTokenCount = whiteListTokens.length;
         address[] memory _whiteListTokens = new address[](_whiteListTokenCount);
@@ -91,12 +94,14 @@ contract XXXFactory is IXXXFactory {
         }
         return _whiteListTokens;
     }
+
     function addWhiteListToken(address _token) override public {
         require(msg.sender == owner);
         if (!isWhiteListToken(_token)) {
             whiteListTokens.push(_token);
         }
     }
+
     function removeWhiteListToken(address _token) override public {
         require(msg.sender == owner);
         for (uint256 i=0; i<whiteListTokens.length; i++) {
@@ -117,12 +122,12 @@ contract XXXFactory is IXXXFactory {
         return false;
     }
 
-    function subscribedFunds(address investor) override external view returns (address[] memory){
-        uint256 fundCount = getFundCountByInvestor[investor];
+    function subscribedFunds() override external view returns (address[] memory){
+        uint256 fundCount = getFundCountByInvestor[msg.sender];
         address[] memory funds;
         funds = new address[](fundCount);
         for (uint256 i=0; i<fundCount; i++) {
-            funds[i] = getFundByInvestor[investor][i];
+            funds[i] = getFundByInvestor[msg.sender][i];
         }
         return funds;
     }

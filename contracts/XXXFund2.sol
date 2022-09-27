@@ -23,11 +23,11 @@ contract XXXFund2 is IXXXFund2 {
     address public manager;
 
     //investor info
-    mapping(address => mapping(uint256 => Token)) public investorTokens;
-    mapping(address => uint256) public investorTokenCount;
+    mapping(address => mapping(uint256 => Token)) private investorTokens;
+    mapping(address => uint256) private investorTokenCount;
 
     //fund manager profit rewards added, only if the investor receives a profit.
-    Token[] public rewardTokens;
+    Token[] private rewardTokens;
 
     uint256 private unlocked = 1;
     modifier lock() {
@@ -74,10 +74,12 @@ contract XXXFund2 is IXXXFund2 {
     }
 
     function getInvestorTokenCount(address investor) external override view returns (uint256){
+        require(msg.sender == manager || msg.sender == investor, 'getInvestorTokens() => invalid message sender');
         return investorTokenCount[investor];
     }
 
     function getInvestorTokens(address investor) external override view returns (Token[] memory){
+        require(msg.sender == manager || msg.sender == investor, 'getInvestorTokens() => invalid message sender');
         uint256 tokenCount = investorTokenCount[investor];
         Token[] memory _investorTokens = new Token[](tokenCount);
         for (uint256 i; i<tokenCount; i++) {
@@ -87,6 +89,7 @@ contract XXXFund2 is IXXXFund2 {
     }
 
     function getInvestorTokenAmount(address investor, address token) public override view returns (uint256){
+        require(msg.sender == manager || msg.sender == investor, 'getInvestorTokenAmount() => invalid message sender');
         for (uint256 i=0; i<investorTokenCount[investor]; i++) {
             if (investorTokens[investor][i].tokenAddress == token) {
                 return investorTokens[investor][i].amount;
@@ -129,7 +132,13 @@ contract XXXFund2 is IXXXFund2 {
         return isNewToken;
     }
 
-    function handleSwap(address investor, address swapFrom, address swapTo, uint256 swapFromAmount, uint256 swapToAmount) private {
+    function handleSwap(
+        address investor, 
+        address swapFrom, 
+        address swapTo, 
+        uint256 swapFromAmount, 
+        uint256 swapToAmount
+    ) private {
         //update investor info
         //decrease part of swap (decrease swapFrom token reduce by swapFromAmount)
         bool isNewInvestorToken = decreaseInvestorTokenBalance(investor, swapFrom, swapFromAmount);

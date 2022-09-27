@@ -88,12 +88,12 @@ describe('XXXFund2', () => {
       const balances = await Promise.all([
         weth9.balanceOf(who),
         uni.balanceOf(who),
-        fund1.connect(manager1).investorTokenCount(manager1.address),
-        fund1.connect(manager1).getInvestorTokenAmount(who, WETH9_MAINNET),
-        fund1.connect(manager1).getInvestorTokenAmount(who, UNI_ADDRESS),
-        fund2.connect(manager1).investorTokenCount(manager1.address),
-        fund2.connect(manager1).getInvestorTokenAmount(who, WETH9_MAINNET),
-        fund2.connect(manager1).getInvestorTokenAmount(who, UNI_ADDRESS),
+        fund1.connect(who).getInvestorTokenCount(who),
+        fund1.connect(who).getInvestorTokenAmount(who, WETH9_MAINNET),
+        fund1.connect(who).getInvestorTokenAmount(who, UNI_ADDRESS),
+        fund2.connect(who).getInvestorTokenCount(who),
+        fund2.connect(who).getInvestorTokenAmount(who, WETH9_MAINNET),
+        fund2.connect(who).getInvestorTokenAmount(who, UNI_ADDRESS),
         who == manager1.address ? fund1.connect(who).getRewardTokens() : who == manager2.address ? fund2.connect(who).getRewardTokens() : [],
       ])
       return {

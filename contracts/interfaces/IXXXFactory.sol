@@ -37,7 +37,7 @@ interface IXXXFactory {
     //function getFundByManager(address manager) external view returns (address);
     
     function isSubscribed(address investor, address fund) external view returns (bool);
-    function subscribedFunds(address investor) external view returns (address[] memory);
+    function subscribedFunds() external view returns (address[] memory);
     function subscribe(address fund) external;
 
 }
