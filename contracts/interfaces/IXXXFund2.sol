@@ -13,7 +13,6 @@ interface IXXXFund2 {
     }
 
     event Initialize(address _manager);
-    event Create(address fund, address manager);
     event Deposit(address indexed investor, address _token, uint256 _amount);
     event Withdraw(address indexed investor, address _token, uint256 _amount);
     event Swap(
