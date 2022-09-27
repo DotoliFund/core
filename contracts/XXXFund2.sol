@@ -70,7 +70,7 @@ contract XXXFund2 is IXXXFund2 {
         require(msg.sender == factory, 'initialize() => FORBIDDEN'); // sufficient check
         manager = _manager;
 
-        emit Create(address(this), manager);
+        emit Initialize(_manager);
     }
 
     function getInvestorTokenCount(address investor) external override view returns (uint256){

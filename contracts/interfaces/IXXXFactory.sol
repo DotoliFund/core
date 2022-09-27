@@ -10,12 +10,14 @@ interface IXXXFactory {
     /// @param newOwner The owner after the owner was changed
     event OwnerChanged(address indexed oldOwner, address indexed newOwner);
 
+    event FundCreated(address indexed, address indexed);
+
     /// @notice Returns the current owner of the factory
     /// @dev Can be changed by the current owner via setOwner
     /// @return The address of the factory owner
     function owner() external view returns (address);
 
-    function createFund(address manager) external returns (address fund);
+    function createFund() external returns (address fund);
 
     /// @notice Updates the owner of the factory
     /// @dev Must be called by the current owner

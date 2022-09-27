@@ -62,7 +62,7 @@ describe('XXXFactory', () => {
   })
 
   it("create 1st fund", async function () {
-    await factory.connect(manager1).createFund(manager1.address)
+    await factory.connect(manager1).createFund()
     const fundBytecode = (await ethers.getContractFactory('XXXFund2')).bytecode
     const expectedFundAddress = getCreate2Address(factoryContractAddress, manager1.address, fundBytecode)
     const savedFundAddress = await factory.connect(manager1).getFundByManager(manager1.address)
@@ -72,7 +72,7 @@ describe('XXXFactory', () => {
   })
 
   it("create 2nd fund", async function () {
-    await factory.connect(manager2).createFund(manager2.address)
+    await factory.connect(manager2).createFund()
     const fundBytecode = (await ethers.getContractFactory('XXXFund2')).bytecode
     const expectedFundAddress = getCreate2Address(factoryContractAddress, manager2.address, fundBytecode)
     const savedFundAddress = await factory.connect(manager2).getFundByManager(manager2.address)

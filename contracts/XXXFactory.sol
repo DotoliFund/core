@@ -42,15 +42,12 @@ contract XXXFactory is IXXXFactory {
         //console.log("msg.sender : ", msg.sender);
     }
 
-    function createFund(address manager) override external returns (address fund) {
+    function createFund() override external returns (address fund) {
         require(getFundByManager[msg.sender] == address(0), 'createFund() => FUND_EXISTS');
-
         fund = address(new XXXFund2{salt: keccak256(abi.encode(address(this), msg.sender))}());
         getFundByManager[msg.sender] = fund;
         IXXXFund2(fund).initialize(msg.sender);
-
-        //console.log("createFund() => fund address : ", fund);
-        return fund;
+        emit FundCreated(msg.sender, fund);
     }
 
     function setOwner(address _owner) override external {
