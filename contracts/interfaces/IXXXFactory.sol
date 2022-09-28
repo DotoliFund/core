@@ -9,7 +9,7 @@ interface IXXXFactory {
     /// @param oldOwner The owner before the owner was changed
     /// @param newOwner The owner after the owner was changed
     event OwnerChanged(address indexed oldOwner, address indexed newOwner);
-
+    event Subscribe(address indexed);
     event FundCreated(address indexed, address indexed);
 
     /// @notice Returns the current owner of the factory
@@ -34,9 +34,6 @@ interface IXXXFactory {
     function getWhiteListTokens() external view returns (address[] memory);
     function addWhiteListToken(address _token) external;
     function removeWhiteListToken(address _token) external;
-
-    //TODO : remove getFundByManager in app
-    //function getFundByManager(address manager) external view returns (address);
     
     function isSubscribed(address investor, address fund) external view returns (bool);
     function subscribedFunds() external view returns (address[] memory);

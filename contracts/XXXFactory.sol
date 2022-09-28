@@ -136,5 +136,7 @@ contract XXXFactory is IXXXFactory {
         uint256 fundCount = getFundCountByInvestor[msg.sender];
         getFundByInvestor[msg.sender][fundCount] = fund;
         getFundCountByInvestor[msg.sender] += 1;
+
+        emit Subscribe(fund);
     }
 }
