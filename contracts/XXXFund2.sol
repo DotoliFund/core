@@ -54,7 +54,7 @@ contract XXXFund2 is IXXXFund2 {
 
             IWETH9(WETH9).deposit{value: msg.value}();
 
-            bool isNewInvestorToken = increaseInvestorTokenBalance(msg.sender, WETH9, msg.value);
+            bool isNewInvestorToken = increaseInvestorToken(msg.sender, WETH9, msg.value);
             if (isNewInvestorToken) {
                 uint256 newTokenIndex = investorTokenCount[msg.sender];
                 investorTokens[msg.sender][newTokenIndex].tokenAddress = WETH9;
@@ -107,7 +107,7 @@ contract XXXFund2 is IXXXFund2 {
         return _rewardTokens;
     }
 
-    function increaseInvestorTokenBalance(address investor, address _token, uint256 _amount) private returns (bool){
+    function increaseInvestorToken(address investor, address _token, uint256 _amount) private returns (bool){
         bool isNewToken = true;
         for (uint256 i=0; i<investorTokenCount[investor]; i++) {
             if (investorTokens[investor][i].tokenAddress == _token) {
@@ -119,7 +119,7 @@ contract XXXFund2 is IXXXFund2 {
         return isNewToken;
     }
 
-    function decreaseInvestorTokenBalance(address investor, address _token, uint256 _amount) private returns (bool){
+    function decreaseInvestorToken(address investor, address _token, uint256 _amount) private returns (bool){
         bool isNewToken = true;
         for (uint256 i=0; i<investorTokenCount[investor]; i++) {
             if (investorTokens[investor][i].tokenAddress == _token) {
@@ -141,10 +141,10 @@ contract XXXFund2 is IXXXFund2 {
     ) private {
         //update investor info
         //decrease part of swap (decrease swapFrom token reduce by swapFromAmount)
-        bool isNewInvestorToken = decreaseInvestorTokenBalance(investor, swapFrom, swapFromAmount);
+        bool isNewInvestorToken = decreaseInvestorToken(investor, swapFrom, swapFromAmount);
         require(isNewInvestorToken == false, 'handleSwap() => Invalid investor token withdraw attempt');
         //increase part of swap (increase swapTo token increase by swapToAmount)
-        isNewInvestorToken = increaseInvestorTokenBalance(investor, swapTo, swapToAmount);
+        isNewInvestorToken = increaseInvestorToken(investor, swapTo, swapToAmount);
         if (isNewInvestorToken) {
             uint256 newTokenIndex = investorTokenCount[investor];
             investorTokens[investor][newTokenIndex].tokenAddress = swapTo;
@@ -153,19 +153,19 @@ contract XXXFund2 is IXXXFund2 {
         }
     }
 
-    function isValidTokenAmount(address investor, address _token, uint256 _amount) private view returns (bool) {
-        bool _isValidTokenAmount = false;
+    function isTokenSufficient(address investor, address _token, uint256 _amount) private view returns (bool) {
+        bool _isTokenSufficient = false;
         for (uint256 i=0; i<investorTokenCount[investor]; i++) {
             if (investorTokens[investor][i].tokenAddress == _token) {
                 require(investorTokens[investor][i].amount >= _amount, 'withdraw: Invalid withdraw token amount');
-                _isValidTokenAmount = true;
+                _isTokenSufficient = true;
                 break;
             }
         }
-        return _isValidTokenAmount;
+        return _isTokenSufficient;
     }
 
-    function increaseManagerReward(address _token, uint256 _amount) private returns (bool){
+    function increaseReward(address _token, uint256 _amount) private returns (bool){
         bool isNewToken = true;
         for (uint256 i=0; i<rewardTokens.length; i++) {
             if (rewardTokens[i].tokenAddress == _token) {
@@ -188,7 +188,7 @@ contract XXXFund2 is IXXXFund2 {
         
         IERC20(_token).transferFrom(msg.sender, address(this), _amount);
         
-        bool isNewInvestorToken = increaseInvestorTokenBalance(msg.sender, _token, _amount);
+        bool isNewInvestorToken = increaseInvestorToken(msg.sender, _token, _amount);
         if (isNewInvestorToken) {
             uint256 newTokenIndex = investorTokenCount[msg.sender];
             investorTokens[msg.sender][newTokenIndex].tokenAddress = _token;
@@ -203,13 +203,13 @@ contract XXXFund2 is IXXXFund2 {
         require(_isSubscribed || msg.sender == manager,
             'withdraw() => account is not exist in manager list nor investor list');
         //check if investor has valid token amount
-        require(isValidTokenAmount(msg.sender, _token, _amount), 'withdraw() => invalid token amount');
+        require(isTokenSufficient(msg.sender, _token, _amount), 'withdraw() => invalid token amount');
         
         uint256 managerFee = IXXXFactory(factory).getManagerFee();
 
         if (msg.sender == manager) {
             // manager withdraw is no need manager fee
-            decreaseInvestorTokenBalance(msg.sender, _token, _amount);
+            decreaseInvestorToken(msg.sender, _token, _amount);
             if (_token == WETH9) {
                 IWETH9(WETH9).withdraw(_amount);
                 (bool success, ) = (msg.sender).call{value: _amount}(new bytes(0));
@@ -220,8 +220,8 @@ contract XXXFund2 is IXXXFund2 {
         } else {
             //if investor has a profit, send manager reward.
             uint256 rewardAmount = _amount * managerFee / 100;
-            decreaseInvestorTokenBalance(msg.sender, _token, _amount);
-            increaseManagerReward(_token, rewardAmount);
+            decreaseInvestorToken(msg.sender, _token, _amount);
+            increaseReward(_token, rewardAmount);
             if (_token == WETH9) {
                 IWETH9(WETH9).withdraw(_amount - rewardAmount);
                 (bool success, ) = (msg.sender).call{value: _amount - rewardAmount}(new bytes(0));
