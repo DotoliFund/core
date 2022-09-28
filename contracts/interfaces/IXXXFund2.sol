@@ -22,6 +22,9 @@ interface IXXXFund2 {
         uint256 amountIn,
         uint256 amountOut
     );
+    event IncreaseInvestorToken(address indexed investor, address _token, uint256 _amount);
+    event DecreaseInvestorToken(address indexed investor, address _token, uint256 _amount);
+
 
     enum V3TradeType{
         EXACT_INPUT,

@@ -51,17 +51,8 @@ contract XXXFund2 is IXXXFund2 {
             bool _isSubscribed = IXXXFactory(factory).isSubscribed(msg.sender, address(this));
             require(_isSubscribed || msg.sender == manager,
                 'receive() => account is not exist in manager list nor investor list');
-
             IWETH9(WETH9).deposit{value: msg.value}();
-
-            bool isNewInvestorToken = increaseInvestorToken(msg.sender, WETH9, msg.value);
-            if (isNewInvestorToken) {
-                uint256 newTokenIndex = investorTokenCount[msg.sender];
-                investorTokens[msg.sender][newTokenIndex].tokenAddress = WETH9;
-                investorTokens[msg.sender][newTokenIndex].amount = msg.value;
-                investorTokenCount[msg.sender] += 1;
-            }
-
+            increaseInvestorToken(msg.sender, WETH9, msg.value);
             emit Deposit(msg.sender, WETH9, msg.value);
         }
     }
@@ -107,21 +98,28 @@ contract XXXFund2 is IXXXFund2 {
         return _rewardTokens;
     }
 
-    function increaseInvestorToken(address investor, address _token, uint256 _amount) private returns (bool){
+    function increaseInvestorToken(address investor, address _token, uint256 _amount) private {
         bool isNewToken = true;
-        for (uint256 i=0; i<investorTokenCount[investor]; i++) {
+        uint256 tokenCount = investorTokenCount[investor];
+        for (uint256 i=0; i<tokenCount; i++) {
             if (investorTokens[investor][i].tokenAddress == _token) {
                 isNewToken = false;
                 investorTokens[investor][i].amount += _amount;
                 break;
             }
         }
-        return isNewToken;
+        if (isNewToken) {
+            investorTokens[investor][tokenCount].tokenAddress = _token;
+            investorTokens[investor][tokenCount].amount = _amount;
+            investorTokenCount[investor] += 1;            
+        }
+        emit IncreaseInvestorToken(investor, _token, _amount);
     }
 
-    function decreaseInvestorToken(address investor, address _token, uint256 _amount) private returns (bool){
+    function decreaseInvestorToken(address investor, address _token, uint256 _amount) private {
         bool isNewToken = true;
-        for (uint256 i=0; i<investorTokenCount[investor]; i++) {
+        uint256 tokenCount = investorTokenCount[investor];
+        for (uint256 i=0; i<tokenCount; i++) {
             if (investorTokens[investor][i].tokenAddress == _token) {
                 isNewToken = false;
                 require(investorTokens[investor][i].amount >= _amount, 'decreaseTokenAmount() => decrease token amount is more than you have');
@@ -129,7 +127,8 @@ contract XXXFund2 is IXXXFund2 {
                 break;
             }
         }
-        return isNewToken;
+        require(isNewToken == false, 'decreaseTokenAmount() => token is not exist');
+        emit DecreaseInvestorToken(investor, _token, _amount);
     }
 
     function handleSwap(
@@ -141,16 +140,9 @@ contract XXXFund2 is IXXXFund2 {
     ) private {
         //update investor info
         //decrease part of swap (decrease swapFrom token reduce by swapFromAmount)
-        bool isNewInvestorToken = decreaseInvestorToken(investor, swapFrom, swapFromAmount);
-        require(isNewInvestorToken == false, 'handleSwap() => Invalid investor token withdraw attempt');
+        decreaseInvestorToken(investor, swapFrom, swapFromAmount);
         //increase part of swap (increase swapTo token increase by swapToAmount)
-        isNewInvestorToken = increaseInvestorToken(investor, swapTo, swapToAmount);
-        if (isNewInvestorToken) {
-            uint256 newTokenIndex = investorTokenCount[investor];
-            investorTokens[investor][newTokenIndex].tokenAddress = swapTo;
-            investorTokens[investor][newTokenIndex].amount = swapToAmount;
-            investorTokenCount[investor] += 1;
-        }
+        increaseInvestorToken(investor, swapTo, swapToAmount);
     }
 
     function isTokenSufficient(address investor, address _token, uint256 _amount) private view returns (bool) {
@@ -185,16 +177,10 @@ contract XXXFund2 is IXXXFund2 {
         require(_isSubscribed || msg.sender == manager,
             'deposit() => account is not exist in manager list nor investor list');
         require(IXXXFactory(factory).isWhiteListToken(_token), 'deposit() => not whitelist token');
-        
+
         IERC20(_token).transferFrom(msg.sender, address(this), _amount);
-        
-        bool isNewInvestorToken = increaseInvestorToken(msg.sender, _token, _amount);
-        if (isNewInvestorToken) {
-            uint256 newTokenIndex = investorTokenCount[msg.sender];
-            investorTokens[msg.sender][newTokenIndex].tokenAddress = _token;
-            investorTokens[msg.sender][newTokenIndex].amount = _amount;
-            investorTokenCount[msg.sender] += 1;
-        }
+
+        increaseInvestorToken(msg.sender, _token, _amount);
         emit Deposit(msg.sender, _token, _amount);
     }
 
