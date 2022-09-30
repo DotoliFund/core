@@ -50,10 +50,10 @@ contract XXXFactory is IXXXFactory {
         emit FundCreated(msg.sender, fund);
     }
 
-    function setOwner(address _owner) override external {
+    function setOwner(address newOwner) override external {
         require(msg.sender == owner);
-        emit OwnerChanged(owner, _owner);
-        owner = _owner;
+        emit OwnerChanged(owner, newOwner);
+        owner = newOwner;
     }
 
     function getSwapRouterAddress() override external view returns (address) {
@@ -137,6 +137,6 @@ contract XXXFactory is IXXXFactory {
         getFundByInvestor[msg.sender][fundCount] = fund;
         getFundCountByInvestor[msg.sender] += 1;
 
-        emit Subscribe(fund);
+        emit Subscribe(msg.sender, fund);
     }
 }

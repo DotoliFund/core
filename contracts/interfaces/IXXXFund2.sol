@@ -12,9 +12,9 @@ interface IXXXFund2 {
         uint256 amount;
     }
 
-    event Initialize(address _manager);
-    event Deposit(address indexed investor, address _token, uint256 _amount);
-    event Withdraw(address indexed investor, address _token, uint256 _amount);
+    event Initialize(address manager);
+    event Deposit(address indexed investor, address token, uint256 amount);
+    event Withdraw(address indexed investor, address token, uint256 amount);
     event Swap(
         address indexed manager,
         address tokenIn,
@@ -22,10 +22,10 @@ interface IXXXFund2 {
         uint256 amountIn,
         uint256 amountOut
     );
-    event DepositReward(address indexed investor, address _token, uint256 _amount);
-    event WithdrawReward(address _token, uint256 _amount);
-    event IncreaseInvestorToken(address indexed investor, address _token, uint256 _amount);
-    event DecreaseInvestorToken(address indexed investor, address _token, uint256 _amount);
+    event DepositReward(address indexed investor, address token, uint256 amount);
+    event WithdrawReward(address token, uint256 amount);
+    event IncreaseInvestorToken(address indexed investor, address token, uint256 amount);
+    event DecreaseInvestorToken(address indexed investor, address token, uint256 amount);
 
 
     enum V3TradeType{
