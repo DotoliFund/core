@@ -157,7 +157,7 @@ contract XXXFund2 is IXXXFund2 {
         return _isTokenSufficient;
     }
 
-    function increaseReward(address _token, uint256 _amount) private returns (bool){
+    function depositReward(address investor, address _token, uint256 _amount) private lock {
         bool isNewToken = true;
         for (uint256 i=0; i<rewardTokens.length; i++) {
             if (rewardTokens[i].tokenAddress == _token) {
@@ -169,6 +169,29 @@ contract XXXFund2 is IXXXFund2 {
         if (isNewToken) {
             rewardTokens.push(Token(_token, _amount));
         }
+        emit DepositReward(investor, _token, _amount);
+    }
+
+    function withdrawReward(address _token, uint256 _amount) external payable override lock {
+        require(msg.sender == manager, 'withdrawReward() => only manager can withdraw reward');
+        bool isNewToken = true;
+        for (uint256 i=0; i<rewardTokens.length; i++) {
+            if (rewardTokens[i].tokenAddress == _token) {
+                isNewToken = false;
+                require(rewardTokens[i].amount >= _amount, 'withdrawReward() => token is not exist');
+                if (_token == WETH9) {
+                    IWETH9(WETH9).withdraw(_amount);
+                    (bool success, ) = (msg.sender).call{value: _amount}(new bytes(0));
+                    require(success, 'withdraw() => sending ETH to manager failed');
+                } else {
+                    IERC20(_token).transfer(msg.sender, _amount);
+                }
+                rewardTokens[i].amount -= _amount;
+                break;
+            }
+        }
+        require(isNewToken == false, 'withdrawReward() => token is not exist');
+        emit WithdrawReward(_token, _amount);
     }
 
     // this low-level function should be called from a contract which performs important safety checks
@@ -195,7 +218,6 @@ contract XXXFund2 is IXXXFund2 {
 
         if (msg.sender == manager) {
             // manager withdraw is no need manager fee
-            decreaseInvestorToken(msg.sender, _token, _amount);
             if (_token == WETH9) {
                 IWETH9(WETH9).withdraw(_amount);
                 (bool success, ) = (msg.sender).call{value: _amount}(new bytes(0));
@@ -203,11 +225,10 @@ contract XXXFund2 is IXXXFund2 {
             } else {
                 IERC20(_token).transfer(msg.sender, _amount);
             }
+            decreaseInvestorToken(msg.sender, _token, _amount);
         } else {
             //if investor has a profit, send manager reward.
             uint256 rewardAmount = _amount * managerFee / 100;
-            decreaseInvestorToken(msg.sender, _token, _amount);
-            increaseReward(_token, rewardAmount);
             if (_token == WETH9) {
                 IWETH9(WETH9).withdraw(_amount - rewardAmount);
                 (bool success, ) = (msg.sender).call{value: _amount - rewardAmount}(new bytes(0));
@@ -215,6 +236,8 @@ contract XXXFund2 is IXXXFund2 {
             } else {
                 IERC20(_token).transfer(msg.sender, _amount - rewardAmount);
             }
+            depositReward(msg.sender, _token, rewardAmount);
+            decreaseInvestorToken(msg.sender, _token, _amount);
         }
         emit Withdraw(msg.sender, _token, _amount);
     }

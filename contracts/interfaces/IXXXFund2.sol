@@ -12,7 +12,7 @@ interface IXXXFund2 {
         uint256 amount;
     }
 
-    event Initialize(address indexed _manager);
+    event Initialize(address _manager);
     event Deposit(address indexed investor, address _token, uint256 _amount);
     event Withdraw(address indexed investor, address _token, uint256 _amount);
     event Swap(
@@ -22,6 +22,8 @@ interface IXXXFund2 {
         uint256 amountIn,
         uint256 amountOut
     );
+    event DepositReward(address indexed investor, address _token, uint256 _amount);
+    event WithdrawReward(address _token, uint256 _amount);
     event IncreaseInvestorToken(address indexed investor, address _token, uint256 _amount);
     event DecreaseInvestorToken(address indexed investor, address _token, uint256 _amount);
 
@@ -62,6 +64,8 @@ interface IXXXFund2 {
     function swap(
         V3TradeParams[] calldata trades
     ) external payable;
+
+    function withdrawReward(address _token, uint256 _amount) external payable;
 
     function getInvestorTokenCount(address investor) external returns (uint256);
     function getInvestorTokens(address investor) external returns (Token[] memory);
