@@ -157,7 +157,7 @@ contract XXXFund2 is IXXXFund2 {
         return _isTokenSufficient;
     }
 
-    function depositReward(address investor, address _token, uint256 _amount) private lock {
+    function depositReward(address investor, address _token, uint256 _amount) private {
         bool isNewToken = true;
         for (uint256 i=0; i<rewardTokens.length; i++) {
             if (rewardTokens[i].tokenAddress == _token) {
