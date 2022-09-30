@@ -22,10 +22,12 @@ interface IXXXFund2 {
         uint256 amountIn,
         uint256 amountOut
     );
-    event DepositReward(address indexed investor, address token, uint256 amount);
-    event WithdrawReward(address token, uint256 amount);
+    event FeeIn(address indexed investor, address token, uint256 amount);
+    event FeeOut(address token, uint256 amount);
     event IncreaseInvestorToken(address indexed investor, address token, uint256 amount);
     event DecreaseInvestorToken(address indexed investor, address token, uint256 amount);
+    event IncreaseManagerToken(address indexed manager, address token, uint256 amount);
+    event DecreaseManagerToken(address indexed manager, address token, uint256 amount);
 
 
     enum V3TradeType{
@@ -65,10 +67,14 @@ interface IXXXFund2 {
         V3TradeParams[] calldata trades
     ) external payable;
 
-    function withdrawReward(address _token, uint256 _amount) external payable;
+    function feeOut(address _token, uint256 _amount) external payable;
+
+    function getManagerTokenCount() external returns (uint256);
+    function getManagerTokens() external returns (Token[] memory);
+    function getFeeTokens() external returns (Token[] memory);
 
     function getInvestorTokenCount(address investor) external returns (uint256);
     function getInvestorTokens(address investor) external returns (Token[] memory);
-    function getInvestorTokenAmount(address investor, address token) external returns (uint256);
-    function getRewardTokens() external returns (Token[] memory);
+
+    function getTokenAmount(address investor, address token) external returns (uint256);
 }
