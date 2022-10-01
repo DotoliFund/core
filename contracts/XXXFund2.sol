@@ -28,8 +28,7 @@ contract XXXFund2 is IXXXFund2 {
     Token[] private feeTokens;
 
     //investor info
-    mapping(address => mapping(uint256 => Token)) private investorTokens;
-    mapping(address => uint256) private investorTokenCount;
+    mapping(address => Token[]) private investorTokens;
 
     uint256 private unlocked = 1;
     modifier lock() {
@@ -94,12 +93,12 @@ contract XXXFund2 is IXXXFund2 {
 
     function getInvestorTokenCount(address investor) external override view returns (uint256){
         require(msg.sender == manager || msg.sender == investor, 'getInvestorTokens() => invalid message sender');
-        return investorTokenCount[investor];
+        return investorTokens[investor].length;
     }
 
     function getInvestorTokens(address investor) external override view returns (Token[] memory){
         require(msg.sender == manager || msg.sender == investor, 'getInvestorTokens() => invalid message sender');
-        uint256 tokenCount = investorTokenCount[investor];
+        uint256 tokenCount = investorTokens[investor].length;
         Token[] memory _investorTokens = new Token[](tokenCount);
         for (uint256 i; i<tokenCount; i++) {
             _investorTokens[i] = investorTokens[investor][i];
@@ -118,7 +117,7 @@ contract XXXFund2 is IXXXFund2 {
             }
         } else {
             //investor
-            for (uint256 i=0; i<investorTokenCount[investor]; i++) {
+            for (uint256 i=0; i<investorTokens[investor].length; i++) {
                 if (investorTokens[investor][i].tokenAddress == token) {
                     return investorTokens[investor][i].amount;
                 }
@@ -158,7 +157,7 @@ contract XXXFund2 is IXXXFund2 {
 
     function increaseInvestorToken(address investor, address _token, uint256 _amount) private {
         bool isNewToken = true;
-        uint256 tokenCount = investorTokenCount[investor];
+        uint256 tokenCount = investorTokens[investor].length;
         for (uint256 i=0; i<tokenCount; i++) {
             if (investorTokens[investor][i].tokenAddress == _token) {
                 isNewToken = false;
@@ -167,16 +166,14 @@ contract XXXFund2 is IXXXFund2 {
             }
         }
         if (isNewToken) {
-            investorTokens[investor][tokenCount].tokenAddress = _token;
-            investorTokens[investor][tokenCount].amount = _amount;
-            investorTokenCount[investor] += 1;            
+            investorTokens[investor].push(Token(_token, _amount));         
         }
         emit IncreaseInvestorToken(investor, _token, _amount);
     }
 
     function decreaseInvestorToken(address investor, address _token, uint256 _amount) private {
         bool isNewToken = true;
-        uint256 tokenCount = investorTokenCount[investor];
+        uint256 tokenCount = investorTokens[investor].length;
         for (uint256 i=0; i<tokenCount; i++) {
             if (investorTokens[investor][i].tokenAddress == _token) {
                 isNewToken = false;
@@ -225,7 +222,7 @@ contract XXXFund2 is IXXXFund2 {
 
     function isInvestorTokenSufficient(address investor, address _token, uint256 _amount) private view returns (bool) {
         bool _isTokenSufficient = false;
-        for (uint256 i=0; i<investorTokenCount[investor]; i++) {
+        for (uint256 i=0; i<investorTokens[investor].length; i++) {
             if (investorTokens[investor][i].tokenAddress == _token) {
                 require(investorTokens[investor][i].amount >= _amount, 'isInvestorTokenSufficient() => not enough token');
                 _isTokenSufficient = true;
