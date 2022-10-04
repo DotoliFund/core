@@ -50,15 +50,17 @@ contract XXXFund2 is IXXXFund2 {
             if (msg.sender == manager) {
                 IWETH9(WETH9).deposit{value: msg.value}();
                 increaseManagerToken(WETH9, msg.value);
+                uint256 priceETH = getAmountETH(WETH9);
                 uint256 priceUSD = getAmountUSD(WETH9);
-                emit ManagerDeposit(msg.sender, WETH9, msg.value, 10**18, priceUSD);
+                emit ManagerDeposit(msg.sender, WETH9, msg.value, priceETH, priceUSD);
             } else {
                 bool _isSubscribed = IXXXFactory(factory).isSubscribed(msg.sender, address(this));
                 require(_isSubscribed, 'receive() => account is not subscribed');
                 IWETH9(WETH9).deposit{value: msg.value}();
                 increaseInvestorToken(msg.sender, WETH9, msg.value);
+                uint256 priceETH = getAmountETH(WETH9);
                 uint256 priceUSD = getAmountUSD(WETH9);
-                emit InvestorDeposit(msg.sender, WETH9, msg.value, 10**18, priceUSD);
+                emit InvestorDeposit(msg.sender, WETH9, msg.value, priceETH, priceUSD);
             }
         }
     }
@@ -618,18 +620,22 @@ contract XXXFund2 is IXXXFund2 {
     }
 
     function getAmountETH(address token) private view returns (uint256 amountOut) {
-        getPrice(
-            token,
-            WETH9, //WETH9
-            3000, 
-            WETH9, //WETH9
-            10 ** 18, 
-            10
-        );
+        if (token == WETH9) {
+            return 10**18;
+        } else {
+            return getPrice(
+                token,
+                WETH9, //WETH9
+                3000, 
+                WETH9, //WETH9
+                10 ** 18, 
+                10
+            );
+        }
     }
 
     function getAmountUSD(address token) private view returns (uint256 amountOut) {
-        getPrice(
+        return getPrice(
             token,
             0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48, //USDC
             3000, 
