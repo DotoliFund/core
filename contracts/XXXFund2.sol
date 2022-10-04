@@ -315,7 +315,7 @@ contract XXXFund2 is IXXXFund2 {
             }
             feeIn(msg.sender, _token, feeAmount);
             decreaseInvestorToken(msg.sender, _token, _amount);
-            emit InvestorWithdraw(msg.sender, _token, _amount - feeAmount, feeAmount);
+            emit InvestorWithdraw(msg.sender, _token, _amount, feeAmount);
         }
     }
 
