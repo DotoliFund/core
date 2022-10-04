@@ -13,19 +13,59 @@ interface IXXXFund2 {
     }
 
     event Initialize(address manager);
-    event ManagerDeposit(address indexed manager, address token, uint256 amount);
-    event ManagerWithdraw(address indexed manager, address token, uint256 amount);
-    event ManagerFeeIn(address indexed investor, address indexed manager, address token, uint256 amount);
-    event ManagerFeeOut(address indexed manager, address token, uint256 amount);
-    event InvestorDeposit(address indexed investor, address token, uint256 amount);
-    event InvestorWithdraw(address indexed investor, address token, uint256 amount, uint256 feeAmount);
+    event ManagerDeposit(
+        address indexed manager, 
+        address token, 
+        uint256 amount, 
+        uint256 priceETH, 
+        uint256 priceUSD
+    );
+    event ManagerWithdraw(
+        address indexed manager, 
+        address token, 
+        uint256 amount, 
+        uint256 priceETH, 
+        uint256 priceUSD
+    );
+    event ManagerFeeIn(
+        address indexed investor, 
+        address indexed manager, 
+        address token, 
+        uint256 amount, 
+        uint256 priceETH, 
+        uint256 priceUSD
+    );
+    event ManagerFeeOut(
+        address indexed manager,
+        address token, 
+        uint256 amount, 
+        uint256 priceETH, 
+        uint256 priceUSD
+    );
+    event InvestorDeposit(
+        address indexed investor, 
+        address token, 
+        uint256 amount, 
+        uint256 priceETH, 
+        uint256 priceUSD
+    );
+    event InvestorWithdraw(
+        address indexed investor, 
+        address token, 
+        uint256 amount, 
+        uint256 feeAmount, 
+        uint256 priceETH, 
+        uint256 priceUSD
+    );
     event Swap(
         address indexed manager,
         address indexed investor,
         address tokenIn,
         address tokenOut,
         uint256 amountIn,
-        uint256 amountOut
+        uint256 amountOut,
+        uint256 priceETH, 
+        uint256 priceUSD
     );
     
     enum V3TradeType{
