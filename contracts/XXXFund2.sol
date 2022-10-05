@@ -530,20 +530,12 @@ contract XXXFund2 is IXXXFund2 {
         }
     }
 
-    function getAmountETH(address token, uint256 amount) private view returns (uint256 amountETH) {
-        amountETH = PriceOracle.getPriceETH(UNISWAP_V3_FACTORY, token, WETH9) * amount;
-    }
-
-    function getAmountUSD(address token, uint256 amount) private view returns (uint256 amountUSD) {
-        amountUSD = PriceOracle.getPriceUSD(UNISWAP_V3_FACTORY, token, USDC) * amount;
-    }
-
     function getVolumeETH(Token[] memory tokens) private view returns (uint256 volumeETH) {
         volumeETH = 0;
         for (uint256 i=0; i<tokens.length; i++) {
             address token = tokens[i].tokenAddress;
             uint256 amount = tokens[i].amount;
-            volumeETH += getAmountETH(token, amount);
+            volumeETH += PriceOracle.getPriceETH(UNISWAP_V3_FACTORY, token, WETH9) * amount;
         }
     }
 
@@ -552,7 +544,7 @@ contract XXXFund2 is IXXXFund2 {
         for (uint256 i=0; i<tokens.length; i++) {
             address token = tokens[i].tokenAddress;
             uint256 amount = tokens[i].amount;
-            volumeUSD += getAmountUSD(token, amount);
+            volumeUSD += PriceOracle.getPriceUSD(UNISWAP_V3_FACTORY, token, USDC) * amount;
         }    
     }
 }
