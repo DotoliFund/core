@@ -4,8 +4,9 @@ pragma solidity =0.7.6;
 pragma abicoder v2;
 
 import '@uniswap/swap-router-contracts/contracts/interfaces/ISwapRouter02.sol';
+import './ISwapRouter.sol';
 
-interface IXXXFund2 {
+interface IXXXFund2 is ISwapRouter{
 
     struct Token {
         address tokenAddress;
@@ -67,35 +68,6 @@ interface IXXXFund2 {
         uint256 volumeETH, 
         uint256 volumeUSD
     );
-    
-    enum V3TradeType{
-        EXACT_INPUT,
-        EXACT_OUTPUT
-    }
-
-    enum V3SwapType{
-        SINGLE_HOP,
-        MULTI_HOP
-    }
-
-    // /**
-    //  * V3TradeParams for producing the arguments to send calls to the router.
-    //  */
-    struct V3TradeParams {
-        V3TradeType tradeType;
-        V3SwapType swapType;
-        address investor;
-        address tokenIn;
-        address tokenOut;
-        address recipient;
-        uint24 fee;
-        uint256 amountIn;
-        uint256 amountOut;
-        uint256 amountInMaximum;
-        uint256 amountOutMinimum;
-        uint160 sqrtPriceLimitX96;
-        bytes path;
-    }
 
     function initialize(address _manager) external;    
 
@@ -107,6 +79,7 @@ interface IXXXFund2 {
 
     function feeOut(address _token, uint256 _amount) external payable;
 
+    function getFundTokens() external returns (Token[] memory);
     function getManagerTokens() external returns (Token[] memory);
     function getFeeTokens() external returns (Token[] memory);
     function getInvestorTokens(address investor) external returns (Token[] memory);

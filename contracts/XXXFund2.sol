@@ -8,12 +8,12 @@ import './interfaces/IXXXFund2.sol';
 import './interfaces/IXXXFactory.sol';
 import './interfaces/IERC20.sol';
 import '@uniswap/v3-periphery/contracts/libraries/Path.sol';
-import '@uniswap/swap-router-contracts/contracts/interfaces/ISwapRouter02.sol';
 import './libraries/PriceOracle.sol';
+import './SwapRouter.sol';
 
 import "hardhat/console.sol";
 
-contract XXXFund2 is IXXXFund2 {
+contract XXXFund2 is IXXXFund2, SwapRouter {
     using Path for bytes;
 
     address UNISWAP_V3_FACTORY = 0x1F98431c8aD98523631AE4a59f267346ea31F984;
@@ -326,141 +326,42 @@ contract XXXFund2 is IXXXFund2 {
         );
     }
 
-    function getLastTokenFromPath(bytes memory path) private returns (address) {
-        address _tokenOut;
-
-        while (true) {
-            bool hasMultiplePools = path.hasMultiplePools();
-
-            if (hasMultiplePools) {
-                path = path.skipToken();
-            } else {
-                (address tokenIn, address tokenOut, uint24 fee) = path.decodeFirstPool();
-                _tokenOut = tokenOut;
-                break;
-            }
-        }
-        return _tokenOut;
-    }
-
-    function exactInputSingle(address swapRouter, V3TradeParams memory trade) private returns (uint256 amountOut)
-    {
-        require(IXXXFactory(factory).isWhiteListToken(trade.tokenOut), 
-            'exactInputSingle() => not whitelist token');
-
-        uint256 tokenBalance = getUserTokenAmount(trade.investor, trade.tokenIn);
-        require(tokenBalance >= trade.amountIn, 'exactInputSingle() => invalid inputAmount');
-
-        // approve
-        IERC20(trade.tokenIn).approve(swapRouter, trade.amountIn);
-
-        // Naively set amountOutMinimum to 0. In production, use an oracle or other data source to choose a safer value for amountOutMinimum.
-        // We also set the sqrtPriceLimitx96 to be 0 to ensure we swap our exact input amount.
-        ISwapRouter02.ExactInputSingleParams memory params =
-            IV3SwapRouter.ExactInputSingleParams({
-                tokenIn: trade.tokenIn,
-                tokenOut: trade.tokenOut,
-                fee: trade.fee,
-                recipient: address(this),
-                amountIn: trade.amountIn,
-                amountOutMinimum: trade.amountOutMinimum,
-                sqrtPriceLimitX96: 0
-            });
-        amountOut = ISwapRouter02(swapRouter).exactInputSingle(params);
-        handleSwap(trade.investor, trade.tokenIn, trade.tokenOut, trade.amountIn, amountOut);
-    }
-
-    function exactInput(address swapRouter, V3TradeParams memory trade) private returns (uint256 amountOut)
-    {
-        address tokenOut = getLastTokenFromPath(trade.path);
-        (address tokenIn, , ) = trade.path.decodeFirstPool();
-
-        require(IXXXFactory(factory).isWhiteListToken(tokenOut), 
-            'exactInput() => not whitelist token');
-
-        uint256 tokenBalance = getUserTokenAmount(trade.investor, tokenIn);
-        require(tokenBalance >= trade.amountIn, 'exactInput() => invalid inputAmount');
-
-        // approve
-        IERC20(tokenIn).approve(swapRouter, trade.amountIn);
-
-        ISwapRouter02.ExactInputParams memory params =
-            IV3SwapRouter.ExactInputParams({
-                path: trade.path,
-                recipient: address(this),
-                amountIn: trade.amountIn,
-                amountOutMinimum: trade.amountOutMinimum
-            });
-        amountOut = ISwapRouter02(swapRouter).exactInput(params);
-        handleSwap(trade.investor, tokenIn, tokenOut, trade.amountIn, amountOut);
-    }
-
-    function exactOutputSingle(address swapRouter, V3TradeParams memory trade) private returns (uint256 amountIn)
-    {
-        require(IXXXFactory(factory).isWhiteListToken(trade.tokenOut), 
-            'exactOutputSingle() => not whitelist token');
-
-        uint256 tokenBalance = getUserTokenAmount(trade.investor, trade.tokenIn);
-        require(tokenBalance >= trade.amountInMaximum, 'exactOutputSingle() => invalid inputAmount');
-
-        // approve
-        IERC20(trade.tokenIn).approve(swapRouter, trade.amountInMaximum);
-
-        ISwapRouter02.ExactOutputSingleParams memory params =
-            IV3SwapRouter.ExactOutputSingleParams({
-                tokenIn: trade.tokenIn,
-                tokenOut: trade.tokenOut,
-                fee: trade.fee,
-                recipient: address(this),
-                amountOut: trade.amountOut,
-                amountInMaximum: trade.amountInMaximum,
-                sqrtPriceLimitX96: 0
-            });
-        amountIn = ISwapRouter02(swapRouter).exactOutputSingle(params);
-        handleSwap(trade.investor, trade.tokenIn, trade.tokenOut, amountIn, trade.amountOut);
-    }
-
-    function exactOutput(address swapRouter, V3TradeParams memory trade) private returns (uint256 amountIn)
-    {
-        address tokenIn = getLastTokenFromPath(trade.path);
-        (address tokenOut, , ) = trade.path.decodeFirstPool();
-
-        require(IXXXFactory(factory).isWhiteListToken(tokenOut), 
-            'exactOutput() => not whitelist token');
-
-        uint256 tokenBalance = getUserTokenAmount(trade.investor, tokenIn);
-        require(tokenBalance >= trade.amountInMaximum, 'exactOutput() => invalid inputAmount');
-
-        // approve
-        IERC20(tokenIn).approve(swapRouter, trade.amountInMaximum);
-
-        ISwapRouter02.ExactOutputParams memory params =
-            IV3SwapRouter.ExactOutputParams({
-                path: trade.path,
-                recipient: address(this),
-                amountOut: trade.amountOut,
-                amountInMaximum: trade.amountInMaximum
-            });
-        amountIn = ISwapRouter02(swapRouter).exactOutput(params);
-        handleSwap(trade.investor, tokenIn, tokenOut, amountIn, trade.amountOut);
-    }
-
     function swap(V3TradeParams[] calldata trades) external payable override lock {
         require(msg.sender == manager, 'swap() => invalid sender');
         address swapRouter = IXXXFactory(factory).getSwapRouterAddress();
 
         for(uint256 i=0; i<trades.length; i++) {
+
             if (trades[i].swapType == V3SwapType.SINGLE_HOP) {
+                uint256 tokenBalance = getUserTokenAmount(trades[i].investor, trades[i].tokenIn);
+                require(tokenBalance >= trades[i].amountIn, 'exactInputSingle() => invalid inputAmount');
+
                 if (trades[i].tradeType == V3TradeType.EXACT_INPUT) {
-                    exactInputSingle(swapRouter, trades[i]);
+                    uint256 amountOut = SwapRouter.exactInputSingle(factory, swapRouter, trades[i]);
+                    handleSwap(trades[i].investor, trades[i].tokenIn, trades[i].tokenOut, trades[i].amountIn, amountOut);
                 } else {
-                    exactOutputSingle(swapRouter, trades[i]);
+                    uint256 amountIn = SwapRouter.exactOutputSingle(factory, swapRouter, trades[i]);
+                    handleSwap(trades[i].investor, trades[i].tokenIn, trades[i].tokenOut, amountIn, trades[i].amountOut);
                 }
             } else {
                 if (trades[i].tradeType == V3TradeType.EXACT_INPUT) {
-                    exactInput(swapRouter, trades[i]);
+                    address tokenOut = SwapRouter.getLastTokenFromPath(trades[i].path);
+                    (address tokenIn, , ) = trades[i].path.decodeFirstPool();
+
+                    uint256 tokenBalance = getUserTokenAmount(trades[i].investor, tokenIn);
+                    require(tokenBalance >= trades[i].amountIn, 'exactInput() => invalid inputAmount');
+
+                    uint256 amountOut = SwapRouter.exactInput(factory, swapRouter, trades[i], tokenIn, tokenOut);
+                    handleSwap(trades[i].investor, tokenIn, tokenOut, trades[i].amountIn, amountOut);
                 } else {
-                    exactOutput(swapRouter, trades[i]);
+                    address tokenIn = getLastTokenFromPath(trades[i].path);
+                    (address tokenOut, , ) = trades[i].path.decodeFirstPool();
+
+                    uint256 tokenBalance = getUserTokenAmount(trades[i].investor, tokenIn);
+                    require(tokenBalance >= trades[i].amountInMaximum, 'exactOutput() => invalid inputAmount');
+
+                    uint256 amountIn = SwapRouter.exactOutput(factory, swapRouter, trades[i], tokenIn, tokenOut);
+                    handleSwap(trades[i].investor, tokenIn, tokenOut, amountIn, trades[i].amountOut);
                 }
             }
         }
