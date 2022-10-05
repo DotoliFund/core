@@ -13,19 +13,59 @@ interface IXXXFund2 {
     }
 
     event Initialize(address manager);
-    event ManagerDeposit(address indexed manager, address token, uint256 amount);
-    event ManagerWithdraw(address indexed manager, address token, uint256 amount);
-    event ManagerFeeIn(address indexed investor, address indexed manager, address token, uint256 amount);
-    event ManagerFeeOut(address indexed manager, address token, uint256 amount);
-    event InvestorDeposit(address indexed investor, address token, uint256 amount);
-    event InvestorWithdraw(address indexed investor, address token, uint256 amount, uint256 feeAmount);
+    event ManagerDeposit(
+        address indexed manager, 
+        address token, 
+        uint256 amount, 
+        uint256 amountETH, 
+        uint256 amountUSD
+    );
+    event ManagerWithdraw(
+        address indexed manager, 
+        address token, 
+        uint256 amount, 
+        uint256 amountETH, 
+        uint256 amountUSD
+    );
+    event ManagerFeeIn(
+        address indexed investor, 
+        address indexed manager, 
+        address token, 
+        uint256 amount, 
+        uint256 amountETH, 
+        uint256 amountUSD
+    );
+    event ManagerFeeOut(
+        address indexed manager,
+        address token, 
+        uint256 amount, 
+        uint256 amountETH, 
+        uint256 amountUSD
+    );
+    event InvestorDeposit(
+        address indexed investor, 
+        address token, 
+        uint256 amount, 
+        uint256 amountETH, 
+        uint256 amountUSD
+    );
+    event InvestorWithdraw(
+        address indexed investor, 
+        address token, 
+        uint256 amount, 
+        uint256 feeAmount, 
+        uint256 amountETH, 
+        uint256 amountUSD
+    );
     event Swap(
         address indexed manager,
         address indexed investor,
         address tokenIn,
         address tokenOut,
         uint256 amountIn,
-        uint256 amountOut
+        uint256 amountOut,
+        uint256 amountETH, 
+        uint256 amountUSD
     );
     
     enum V3TradeType{
@@ -75,4 +115,11 @@ interface IXXXFund2 {
     function getInvestorTokens(address investor) external returns (Token[] memory);
 
     function getTokenAmount(address investor, address token) external returns (uint256);
+
+    function getManagerVolumeETH() external returns (uint256 amount);
+    function getManagerVolumeUSD() external returns (uint256 amount);
+    function getManagerFeeVolumeETH(address manager) external returns (uint256 amount);
+    function getManagerFeeVolumeUSD(address manager) external returns (uint256 amount);
+    function getInvestorVolumeETH(address investor) external returns (uint256 amount);
+    function getInvestorVolumeUSD(address investor) external returns (uint256 amount);
 }
