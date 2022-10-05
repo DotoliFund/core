@@ -107,12 +107,9 @@ interface IXXXFund2 {
 
     function feeOut(address _token, uint256 _amount) external payable;
 
-    function getManagerTokenCount() external returns (uint256);
     function getManagerTokens() external returns (Token[] memory);
     function getFeeTokens() external returns (Token[] memory);
-
-    function getInvestorTokenCount(address investor) external returns (uint256);
     function getInvestorTokens(address investor) external returns (Token[] memory);
 
-    function getTokenAmount(address investor, address token) external returns (uint256);
+    function getUserTokenAmount(address investor, address token) external returns (uint256);
 }

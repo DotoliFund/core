@@ -56,10 +56,8 @@ describe('XXXFund2', () => {
   ) => Promise<{
     weth9: BigNumber,
     uni: BigNumber,
-    fund1TokenCount : number,
     fund1WETH: BigNumber,
     fund1UNI: BigNumber,
-    fund2TokenCount : number,
     fund2WETH: BigNumber,
     fund2UNI: BigNumber,
     rewardTokens : string[],
@@ -70,10 +68,8 @@ describe('XXXFund2', () => {
   ) => Promise<{
     weth9: BigNumber,
     uni: BigNumber,
-    fund1TokenCount : number,
     fund1WETH: BigNumber,
     fund1UNI: BigNumber,
-    fund2TokenCount : number,
     fund2WETH: BigNumber,
     fund2UNI: BigNumber,
     rewardTokens : string[],
@@ -102,24 +98,20 @@ describe('XXXFund2', () => {
       const balances = await Promise.all([
         weth9.balanceOf(who),
         uni.balanceOf(who),
-        fund1.connect(who).getManagerTokenCount(),
-        fund1.connect(who).getTokenAmount(who, WETH9_MAINNET),
-        fund1.connect(who).getTokenAmount(who, UNI_ADDRESS),
-        fund2.connect(who).getManagerTokenCount(),
-        fund2.connect(who).getTokenAmount(who, WETH9_MAINNET),
-        fund2.connect(who).getTokenAmount(who, UNI_ADDRESS),
+        fund1.connect(who).getUserTokenAmount(who, WETH9_MAINNET),
+        fund1.connect(who).getUserTokenAmount(who, UNI_ADDRESS),
+        fund2.connect(who).getUserTokenAmount(who, WETH9_MAINNET),
+        fund2.connect(who).getUserTokenAmount(who, UNI_ADDRESS),
         who == manager1.address ? fund1.connect(who).getFeeTokens() : who == manager2.address ? fund2.connect(who).getFeeTokens() : [],
       ])
       return {
         weth9: balances[0],     // const manager1Before = getManagerAccount(manager1) => manager1Before.weth9
         uni: balances[1],       // const investor1Before = getManagerAccount(investor1) => investor1Before.uni
-        fund1TokenCount: balances[2],
-        fund1WETH: balances[3], // const manager1After = getManagerAccount(manager1)  => manager1After.fund1WETH
-        fund1UNI: balances[4],  // const investor1After = getManagerAccount(investor1)  => investor1After.fund1UNI
-        fund2TokenCount: balances[5],        
-        fund2WETH: balances[6], // const investor1Before = getManagerAccount(investor1)  => investor1Before.fund1WETH
-        fund2UNI: balances[7],
-        rewardTokens: balances[8],
+        fund1WETH: balances[2], // const manager1After = getManagerAccount(manager1)  => manager1After.fund1WETH
+        fund1UNI: balances[3],  // const investor1After = getManagerAccount(investor1)  => investor1After.fund1UNI
+        fund2WETH: balances[4], // const investor1Before = getManagerAccount(investor1)  => investor1Before.fund1WETH
+        fund2UNI: balances[5],
+        rewardTokens: balances[6],
       }
     }
 
@@ -127,24 +119,20 @@ describe('XXXFund2', () => {
       const balances = await Promise.all([
         weth9.balanceOf(who),
         uni.balanceOf(who),
-        fund1.connect(who).getInvestorTokenCount(who),
-        fund1.connect(who).getTokenAmount(who, WETH9_MAINNET),
-        fund1.connect(who).getTokenAmount(who, UNI_ADDRESS),
-        fund2.connect(who).getInvestorTokenCount(who),
-        fund2.connect(who).getTokenAmount(who, WETH9_MAINNET),
-        fund2.connect(who).getTokenAmount(who, UNI_ADDRESS),
+        fund1.connect(who).getUserTokenAmount(who, WETH9_MAINNET),
+        fund1.connect(who).getUserTokenAmount(who, UNI_ADDRESS),
+        fund2.connect(who).getUserTokenAmount(who, WETH9_MAINNET),
+        fund2.connect(who).getUserTokenAmount(who, UNI_ADDRESS),
         who == manager1.address ? fund1.connect(who).getFeeTokens() : who == manager2.address ? fund2.connect(who).getFeeTokens() : [],
       ])
       return {
         weth9: balances[0],     // const manager1Before = getInvestorAccount(manager1) => manager1Before.weth9
         uni: balances[1],       // const investor1Before = getInvestorAccount(investor1) => investor1Before.uni
-        fund1TokenCount: balances[2],
-        fund1WETH: balances[3], // const manager1After = getInvestorAccount(manager1)  => manager1After.fund1WETH
-        fund1UNI: balances[4],  // const investor1After = getInvestorAccount(investor1)  => investor1After.fund1UNI
-        fund2TokenCount: balances[5],        
-        fund2WETH: balances[6], // const investor1Before = getInvestorAccount(investor1)  => investor1Before.fund1WETH
-        fund2UNI: balances[7],
-        rewardTokens: balances[8],
+        fund1WETH: balances[2], // const manager1After = getInvestorAccount(manager1)  => manager1After.fund1WETH
+        fund1UNI: balances[3],  // const investor1After = getInvestorAccount(investor1)  => investor1After.fund1UNI
+        fund2WETH: balances[4], // const investor1Before = getInvestorAccount(investor1)  => investor1Before.fund1WETH
+        fund2UNI: balances[5],
+        rewardTokens: balances[6],
       }
     }
 
@@ -227,7 +215,6 @@ describe('XXXFund2', () => {
       const manager1After = await getManagerAccount(manager1.address)
       const fund1After = await getFundAccount(fund1.address)
 
-      expect(manager1After.fund1TokenCount).to.equal(1)
       expect(manager1After.fund1WETH).to.equal(DEPOSIT_AMOUNT)
       expect(manager1After.rewardTokens).to.be.empty
       expect(fund1After.weth9).to.equal(fund1Before.weth9.add(DEPOSIT_AMOUNT))
@@ -242,7 +229,6 @@ describe('XXXFund2', () => {
       const fund1After = await getFundAccount(fund1.address)
       const manager1After = await getManagerAccount(manager1.address)
 
-      expect(manager1After.fund1TokenCount).to.equal(1)
       expect(manager1After.fund1WETH).to.equal(manager1Before.fund1WETH.sub(WITHDRAW_AMOUNT))
       expect(manager1After.rewardTokens).to.be.empty
       expect(fund1After.weth9).to.equal(fund1Before.weth9.sub(WITHDRAW_AMOUNT))
@@ -258,7 +244,6 @@ describe('XXXFund2', () => {
       const fund1After = await getFundAccount(fund1.address)
       const manager1After = await getManagerAccount(manager1.address)
 
-      expect(manager1After.fund1TokenCount).to.equal(1)
       expect(manager1After.fund1WETH).to.equal(manager1Before.fund1WETH.add(DEPOSIT_AMOUNT))
       expect(manager1After.rewardTokens).to.be.empty
       expect(fund1After.weth9).to.equal(fund1Before.weth9.add(DEPOSIT_AMOUNT))
@@ -273,7 +258,6 @@ describe('XXXFund2', () => {
       const fund1After = await getFundAccount(fund1.address)
       const manager1After = await getManagerAccount(manager1.address)
 
-      expect(manager1After.fund1TokenCount).to.equal(1)
       expect(manager1After.fund1WETH).to.equal(manager1Before.fund1WETH.sub(WITHDRAW_AMOUNT))
       expect(manager1After.rewardTokens).to.be.empty
       expect(fund1After.weth9).to.equal(fund1Before.weth9.sub(WITHDRAW_AMOUNT))

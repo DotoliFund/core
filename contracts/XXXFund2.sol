@@ -29,8 +29,8 @@ contract XXXFund2 is IXXXFund2 {
 
     // tokens
     Token[] public managerTokens;
-    Token[] private feeTokens; //manager fee
-    mapping(address => Token[]) private investorTokens;
+    Token[] public feeTokens; //manager fee
+    mapping(address => Token[]) public investorTokens;
     
     uint256 private unlocked = 1;
     modifier lock() {
@@ -53,8 +53,8 @@ contract XXXFund2 is IXXXFund2 {
         } else {
             if (msg.sender == manager) {
                 IWETH9(WETH9).deposit{value: msg.value}();
-                increaseManagerToken(WETH9, msg.value);
-                increaseFundToken(WETH9, msg.value);
+                increaseToken(managerTokens, WETH9, msg.value);
+                increaseToken(fundTokens, WETH9, msg.value);
                 uint256 volumeETH = getVolumeETH(managerTokens);
                 uint256 volumeUSD = getVolumeUSD(managerTokens);
                 emit ManagerDeposit(msg.sender, WETH9, msg.value, volumeETH, volumeUSD);
@@ -62,8 +62,8 @@ contract XXXFund2 is IXXXFund2 {
                 bool _isSubscribed = IXXXFactory(factory).isSubscribed(msg.sender, address(this));
                 require(_isSubscribed, 'receive() => account is not subscribed');
                 IWETH9(WETH9).deposit{value: msg.value}();
-                increaseInvestorToken(msg.sender, WETH9, msg.value);
-                increaseFundToken(WETH9, msg.value);
+                increaseToken(investorTokens[msg.sender], WETH9, msg.value);
+                increaseToken(fundTokens, WETH9, msg.value);
                 uint256 volumeETH = getVolumeETH(investorTokens[msg.sender]);
                 uint256 volumeUSD = getVolumeUSD(investorTokens[msg.sender]);
                 emit InvestorDeposit(msg.sender, WETH9, msg.value, volumeETH, volumeUSD);
@@ -77,11 +77,16 @@ contract XXXFund2 is IXXXFund2 {
         emit Initialize(_manager);
     }
 
-    function getManagerTokenCount() external override view returns (uint256){
-        return managerTokens.length;
+    function getFundTokens() external override view returns (Token[] memory) {
+        uint256 tokenCount = fundTokens.length;
+        Token[] memory _fundTokens = new Token[](tokenCount);
+        for (uint256 i; i<tokenCount; i++) {
+            _fundTokens[i] = fundTokens[i];
+        }
+        return _fundTokens;
     }
 
-    function getManagerTokens() external override view returns (Token[] memory){
+    function getManagerTokens() external override view returns (Token[] memory) {
         uint256 tokenCount = managerTokens.length;
         Token[] memory _managerTokens = new Token[](tokenCount);
         for (uint256 i; i<tokenCount; i++) {
@@ -90,8 +95,7 @@ contract XXXFund2 is IXXXFund2 {
         return _managerTokens;
     }
 
-    function getFeeTokens() external override view returns (Token[] memory){
-        require(msg.sender == manager);
+    function getFeeTokens() external override view returns (Token[] memory) {
         Token[] memory _feeTokens = new Token[](feeTokens.length);
         for (uint i = 0; i < feeTokens.length; i++) {
             _feeTokens[i] = feeTokens[i];
@@ -99,13 +103,7 @@ contract XXXFund2 is IXXXFund2 {
         return _feeTokens;
     }
 
-    function getInvestorTokenCount(address investor) external override view returns (uint256){
-        require(msg.sender == manager || msg.sender == investor, 'getInvestorTokens() => invalid message sender');
-        return investorTokens[investor].length;
-    }
-
-    function getInvestorTokens(address investor) external override view returns (Token[] memory){
-        require(msg.sender == manager || msg.sender == investor, 'getInvestorTokens() => invalid message sender');
+    function getInvestorTokens(address investor) external override view returns (Token[] memory) {
         uint256 tokenCount = investorTokens[investor].length;
         Token[] memory _investorTokens = new Token[](tokenCount);
         for (uint256 i; i<tokenCount; i++) {
@@ -114,8 +112,7 @@ contract XXXFund2 is IXXXFund2 {
         return _investorTokens;
     }
 
-    function getTokenAmount(address investor, address token) public override view returns (uint256){
-        require(msg.sender == manager || msg.sender == investor, 'getTokenAmount() => invalid investor');
+    function getUserTokenAmount(address investor, address token) public override view returns (uint256) {
         if (investor == manager) {
             //manager
             for (uint256 i=0; i<managerTokens.length; i++) {
@@ -134,88 +131,31 @@ contract XXXFund2 is IXXXFund2 {
         return 0;
     }
 
-    function increaseFundToken(address _token, uint256 _amount) private {
+    function increaseToken(Token[] storage tokens, address token, uint256 amount) private {
         bool isNewToken = true;
-        for (uint256 i=0; i<fundTokens.length; i++) {
-            if (fundTokens[i].tokenAddress == _token) {
+        for (uint256 i=0; i<tokens.length; i++) {
+            if (tokens[i].tokenAddress == token) {
                 isNewToken = false;
-                fundTokens[i].amount += _amount;
+                tokens[i].amount += amount;
                 break;
             }
         }
         if (isNewToken) {
-            fundTokens.push(Token(_token, _amount));      
+            tokens.push(Token(token, amount));      
         }
     }
 
-    function decreaseFundToken(address _token, uint256 _amount) private {
+    function decreaseToken(Token[] storage tokens, address token, uint256 amount) private {
         bool isNewToken = true;
-        for (uint256 i=0; i<fundTokens.length; i++) {
-            if (fundTokens[i].tokenAddress == _token) {
+        for (uint256 i=0; i<tokens.length; i++) {
+            if (tokens[i].tokenAddress == token) {
                 isNewToken = false;
-                fundTokens[i].amount += _amount;
+                require(tokens[i].amount >= amount, 'decreaseToken() => not enough token');
+                tokens[i].amount -= amount;
                 break;
             }
         }
-        if (isNewToken) {
-            fundTokens.push(Token(_token, _amount));      
-        }
-    }
-
-    function increaseManagerToken(address _token, uint256 _amount) private {
-        bool isNewToken = true;
-        for (uint256 i=0; i<managerTokens.length; i++) {
-            if (managerTokens[i].tokenAddress == _token) {
-                isNewToken = false;
-                managerTokens[i].amount += _amount;
-                break;
-            }
-        }
-        if (isNewToken) {
-            managerTokens.push(Token(_token, _amount));      
-        }
-    }
-
-    function decreaseManagerToken(address _token, uint256 _amount) private {
-        bool isNewToken = true;
-        for (uint256 i=0; i<managerTokens.length; i++) {
-            if (managerTokens[i].tokenAddress == _token) {
-                isNewToken = false;
-                require(managerTokens[i].amount >= _amount, 'decreaseManagerToken() => not enough token');
-                managerTokens[i].amount -= _amount;
-                break;
-            }
-        }
-        require(isNewToken == false, 'decreaseManagerToken() => token is not exist');
-    }
-
-    function increaseInvestorToken(address investor, address _token, uint256 _amount) private {
-        bool isNewToken = true;
-        uint256 tokenCount = investorTokens[investor].length;
-        for (uint256 i=0; i<tokenCount; i++) {
-            if (investorTokens[investor][i].tokenAddress == _token) {
-                isNewToken = false;
-                investorTokens[investor][i].amount += _amount;
-                break;
-            }
-        }
-        if (isNewToken) {
-            investorTokens[investor].push(Token(_token, _amount));         
-        }
-    }
-
-    function decreaseInvestorToken(address investor, address _token, uint256 _amount) private {
-        bool isNewToken = true;
-        uint256 tokenCount = investorTokens[investor].length;
-        for (uint256 i=0; i<tokenCount; i++) {
-            if (investorTokens[investor][i].tokenAddress == _token) {
-                isNewToken = false;
-                require(investorTokens[investor][i].amount >= _amount, 'decreaseInvestorToken() => not enough token');
-                investorTokens[investor][i].amount -= _amount;
-                break;
-            }
-        }
-        require(isNewToken == false, 'decreaseInvestorToken() => token is not exist');
+        require(isNewToken == false, 'decreaseToken() => token is not exist');
     }
 
     function isManagerTokenSufficient(address _token, uint256 _amount) private view returns (bool) {
@@ -278,7 +218,7 @@ contract XXXFund2 is IXXXFund2 {
             }
         }
         require(isNewToken == false, 'feeOut() => token is not exist');
-        decreaseFundToken(_token, _amount);
+        decreaseToken(fundTokens, _token, _amount);
         uint256 volumeETH = getVolumeETH(feeTokens);
         uint256 volumeUSD = getVolumeUSD(feeTokens);
         emit ManagerFeeOut(manager, _token, _amount, volumeETH, volumeUSD);
@@ -294,14 +234,14 @@ contract XXXFund2 is IXXXFund2 {
         IERC20(_token).transferFrom(msg.sender, address(this), _amount);
 
         if (msg.sender == manager) {
-            increaseManagerToken(_token, _amount);
-            increaseFundToken(_token, _amount);
+            increaseToken(managerTokens, _token, _amount);
+            increaseToken(fundTokens, _token, _amount);
             uint256 volumeETH = getVolumeETH(managerTokens);
             uint256 volumeUSD = getVolumeUSD(managerTokens);
             emit ManagerDeposit(msg.sender, _token, _amount, volumeETH, volumeUSD);
         } else {
-            increaseInvestorToken(msg.sender, _token, _amount);
-            increaseFundToken(_token, _amount);
+            increaseToken(investorTokens[msg.sender], _token, _amount);
+            increaseToken(fundTokens, _token, _amount);
             uint256 volumeETH = getVolumeETH(investorTokens[msg.sender]);
             uint256 volumeUSD = getVolumeUSD(investorTokens[msg.sender]);
             emit InvestorDeposit(msg.sender, _token, _amount, volumeETH, volumeUSD);
@@ -315,9 +255,7 @@ contract XXXFund2 is IXXXFund2 {
         uint256 managerFee = IXXXFactory(factory).getManagerFee();
 
         if (msg.sender == manager) {
-            //check if manager has valid token amount
             require(isManagerTokenSufficient(_token, _amount), 'withdraw() => invalid token amount');
-            
             // manager withdraw is no need manager fee
             if (_token == WETH9) {
                 IWETH9(WETH9).withdraw(_amount);
@@ -326,15 +264,13 @@ contract XXXFund2 is IXXXFund2 {
             } else {
                 IERC20(_token).transfer(msg.sender, _amount);
             }
-            decreaseManagerToken(_token, _amount);
-            decreaseFundToken(_token, _amount);
+            decreaseToken(managerTokens, _token, _amount);
+            decreaseToken(fundTokens, _token, _amount);
             uint256 volumeETH = getVolumeETH(managerTokens);
             uint256 volumeUSD = getVolumeUSD(managerTokens);
             emit ManagerWithdraw(msg.sender, _token, _amount, volumeETH, volumeUSD);
         } else {
-            //check if investor has valid token amount
             require(isInvestorTokenSufficient(msg.sender, _token, _amount), 'withdraw() => invalid token amount');
-
             //if investor has a profit, send manager fee.
             uint256 feeAmount = _amount * managerFee / 100;
             if (_token == WETH9) {
@@ -345,8 +281,8 @@ contract XXXFund2 is IXXXFund2 {
                 IERC20(_token).transfer(msg.sender, _amount - feeAmount);
             }
             feeIn(msg.sender, _token, feeAmount);
-            decreaseInvestorToken(msg.sender, _token, _amount);
-            decreaseFundToken(_token, _amount);
+            decreaseToken(investorTokens[msg.sender], _token, _amount);
+            decreaseToken(fundTokens, _token, _amount);
             uint256 volumeETH = getVolumeETH(investorTokens[msg.sender]);
             uint256 volumeUSD = getVolumeUSD(investorTokens[msg.sender]);
             emit InvestorWithdraw(msg.sender, _token, _amount, feeAmount, volumeETH, volumeUSD);
@@ -365,19 +301,19 @@ contract XXXFund2 is IXXXFund2 {
         //update manager info
         if (investor == manager) {
             //update manager info
-            decreaseManagerToken(swapFrom, swapFromAmount);
-            increaseManagerToken(swapTo, swapToAmount);
+            decreaseToken(managerTokens, swapFrom, swapFromAmount);
+            increaseToken(managerTokens, swapTo, swapToAmount);
             volumeETH = getVolumeETH(managerTokens);
             volumeUSD = getVolumeUSD(managerTokens);
         } else {
             //update investor info
-            decreaseInvestorToken(investor, swapFrom, swapFromAmount);
-            increaseInvestorToken(investor, swapTo, swapToAmount);
+            decreaseToken(investorTokens[investor], swapFrom, swapFromAmount);
+            increaseToken(investorTokens[investor], swapTo, swapToAmount);
             volumeETH = getVolumeETH(investorTokens[investor]);
             volumeUSD = getVolumeUSD(investorTokens[investor]);
         }
-        decreaseFundToken(swapFrom, swapFromAmount);
-        increaseFundToken(swapTo, swapToAmount);
+        decreaseToken(fundTokens, swapFrom, swapFromAmount);
+        increaseToken(fundTokens, swapTo, swapToAmount);
         emit Swap(
             manager,
             investor,
@@ -412,7 +348,7 @@ contract XXXFund2 is IXXXFund2 {
         require(IXXXFactory(factory).isWhiteListToken(trade.tokenOut), 
             'exactInputSingle() => not whitelist token');
 
-        uint256 tokenBalance = getTokenAmount(trade.investor, trade.tokenIn);
+        uint256 tokenBalance = getUserTokenAmount(trade.investor, trade.tokenIn);
         require(tokenBalance >= trade.amountIn, 'exactInputSingle() => invalid inputAmount');
 
         // approve
@@ -442,7 +378,7 @@ contract XXXFund2 is IXXXFund2 {
         require(IXXXFactory(factory).isWhiteListToken(tokenOut), 
             'exactInput() => not whitelist token');
 
-        uint256 tokenBalance = getTokenAmount(trade.investor, tokenIn);
+        uint256 tokenBalance = getUserTokenAmount(trade.investor, tokenIn);
         require(tokenBalance >= trade.amountIn, 'exactInput() => invalid inputAmount');
 
         // approve
@@ -464,7 +400,7 @@ contract XXXFund2 is IXXXFund2 {
         require(IXXXFactory(factory).isWhiteListToken(trade.tokenOut), 
             'exactOutputSingle() => not whitelist token');
 
-        uint256 tokenBalance = getTokenAmount(trade.investor, trade.tokenIn);
+        uint256 tokenBalance = getUserTokenAmount(trade.investor, trade.tokenIn);
         require(tokenBalance >= trade.amountInMaximum, 'exactOutputSingle() => invalid inputAmount');
 
         // approve
@@ -492,7 +428,7 @@ contract XXXFund2 is IXXXFund2 {
         require(IXXXFactory(factory).isWhiteListToken(tokenOut), 
             'exactOutput() => not whitelist token');
 
-        uint256 tokenBalance = getTokenAmount(trade.investor, tokenIn);
+        uint256 tokenBalance = getUserTokenAmount(trade.investor, tokenIn);
         require(tokenBalance >= trade.amountInMaximum, 'exactOutput() => invalid inputAmount');
 
         // approve
