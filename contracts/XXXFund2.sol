@@ -56,18 +56,18 @@ contract XXXFund2 is IXXXFund2 {
             if (msg.sender == manager) {
                 IWETH9(WETH9).deposit{value: msg.value}();
                 increaseManagerToken(WETH9, msg.value);
-                uint256 amountETH = PriceOracle.getPriceETH(UNISWAP_V3_FACTORY, WETH9, WETH9) * msg.value;
-                uint256 amountUSD = PriceOracle.getPriceUSD(UNISWAP_V3_FACTORY, WETH9, USDC) * msg.value;
                 increaseFundToken(WETH9, msg.value);
+                uint256 amountETH = getAmountETH(WETH9, msg.value);
+                uint256 amountUSD = getAmountUSD(WETH9, msg.value);
                 emit ManagerDeposit(msg.sender, WETH9, msg.value, amountETH, amountUSD);
             } else {
                 bool _isSubscribed = IXXXFactory(factory).isSubscribed(msg.sender, address(this));
                 require(_isSubscribed, 'receive() => account is not subscribed');
                 IWETH9(WETH9).deposit{value: msg.value}();
                 increaseInvestorToken(msg.sender, WETH9, msg.value);
-                uint256 amountETH = PriceOracle.getPriceETH(UNISWAP_V3_FACTORY, WETH9, WETH9) * msg.value;
-                uint256 amountUSD = PriceOracle.getPriceUSD(UNISWAP_V3_FACTORY, WETH9, USDC) * msg.value;
                 increaseFundToken(WETH9, msg.value);
+                uint256 amountETH = getAmountETH(WETH9, msg.value);
+                uint256 amountUSD = getAmountUSD(WETH9, msg.value);
                 emit InvestorDeposit(msg.sender, WETH9, msg.value, amountETH, amountUSD);
             }
         }
@@ -220,28 +220,6 @@ contract XXXFund2 is IXXXFund2 {
         require(isNewToken == false, 'decreaseInvestorToken() => token is not exist');
     }
 
-    function handleSwap(
-        address investor, 
-        address swapFrom, 
-        address swapTo, 
-        uint256 swapFromAmount, 
-        uint256 swapToAmount
-    ) private {
-        //decrease part of swap (decrease swapFrom token reduce by swapFromAmount)
-        //increase part of swap (increase swapTo token increase by swapToAmount)
-
-        //update manager info
-        if (investor == manager) {
-            //update manager info
-            decreaseManagerToken(swapFrom, swapFromAmount);
-            increaseManagerToken(swapTo, swapToAmount);
-        } else {
-            //update investor info
-            decreaseInvestorToken(investor, swapFrom, swapFromAmount);
-            increaseInvestorToken(investor, swapTo, swapToAmount);
-        }
-    }
-
     function isManagerTokenSufficient(address _token, uint256 _amount) private view returns (bool) {
         bool _isTokenSufficient = false;
         for (uint256 i=0; i<managerTokens.length; i++) {
@@ -278,8 +256,8 @@ contract XXXFund2 is IXXXFund2 {
         if (isNewToken) {
             feeTokens.push(Token(_token, _amount));
         }
-        uint256 amountETH = PriceOracle.getPriceETH(UNISWAP_V3_FACTORY, _token, WETH9) * _amount;
-        uint256 amountUSD = PriceOracle.getPriceUSD(UNISWAP_V3_FACTORY, _token, USDC) * _amount;
+        uint256 amountETH = getAmountETH(_token, _amount);
+        uint256 amountUSD = getAmountUSD(_token, _amount);
         emit ManagerFeeIn(investor, manager, _token, _amount, amountETH, amountUSD);
     }
 
@@ -302,8 +280,8 @@ contract XXXFund2 is IXXXFund2 {
             }
         }
         require(isNewToken == false, 'feeOut() => token is not exist');
-        uint256 amountETH = PriceOracle.getPriceETH(UNISWAP_V3_FACTORY, _token, WETH9) * _amount;
-        uint256 amountUSD = PriceOracle.getPriceUSD(UNISWAP_V3_FACTORY, _token, USDC) * _amount;
+        uint256 amountETH = getAmountETH(_token, _amount);
+        uint256 amountUSD = getAmountUSD(_token, _amount);
         decreaseFundToken(_token, _amount);
         emit ManagerFeeOut(manager, _token, _amount, amountETH, amountUSD);
     }
@@ -317,8 +295,8 @@ contract XXXFund2 is IXXXFund2 {
 
         IERC20(_token).transferFrom(msg.sender, address(this), _amount);
 
-        uint256 amountETH = PriceOracle.getPriceETH(UNISWAP_V3_FACTORY, _token, WETH9) * _amount;
-        uint256 amountUSD = PriceOracle.getPriceUSD(UNISWAP_V3_FACTORY, _token, USDC) * _amount;
+        uint256 amountETH = getAmountETH(_token, _amount);
+        uint256 amountUSD = getAmountUSD(_token, _amount);
 
         if (msg.sender == manager) {
             increaseManagerToken(_token, _amount);
@@ -350,8 +328,8 @@ contract XXXFund2 is IXXXFund2 {
                 IERC20(_token).transfer(msg.sender, _amount);
             }
             decreaseManagerToken(_token, _amount);
-            uint256 amountETH = PriceOracle.getPriceETH(UNISWAP_V3_FACTORY, _token, WETH9) * _amount;
-            uint256 amountUSD = PriceOracle.getPriceUSD(UNISWAP_V3_FACTORY, _token, USDC) * _amount;
+            uint256 amountETH = getAmountETH(_token, _amount);
+            uint256 amountUSD = getAmountUSD(_token, _amount);
             decreaseFundToken(_token, _amount);
             emit ManagerWithdraw(msg.sender, _token, _amount, amountETH, amountUSD);
         } else {
@@ -369,11 +347,47 @@ contract XXXFund2 is IXXXFund2 {
             }
             feeIn(msg.sender, _token, feeAmount);
             decreaseInvestorToken(msg.sender, _token, _amount);
-            uint256 amountETH = PriceOracle.getPriceETH(UNISWAP_V3_FACTORY, _token, WETH9) * _amount;
-            uint256 amountUSD = PriceOracle.getPriceUSD(UNISWAP_V3_FACTORY, _token, USDC) * _amount;
+            uint256 amountETH = getAmountETH(_token, _amount); 
+            uint256 amountUSD = getAmountUSD(_token, _amount);
             decreaseFundToken(_token, _amount);
             emit InvestorWithdraw(msg.sender, _token, _amount, feeAmount, amountETH, amountUSD);
         }
+    }
+
+    function handleSwap(
+        address investor, 
+        address swapFrom, 
+        address swapTo, 
+        uint256 swapFromAmount, 
+        uint256 swapToAmount
+    ) private {
+        //decrease part of swap (decrease swapFrom token reduce by swapFromAmount)
+        //increase part of swap (increase swapTo token increase by swapToAmount)
+
+        //update manager info
+        if (investor == manager) {
+            //update manager info
+            decreaseManagerToken(swapFrom, swapFromAmount);
+            increaseManagerToken(swapTo, swapToAmount);
+        } else {
+            //update investor info
+            decreaseInvestorToken(investor, swapFrom, swapFromAmount);
+            increaseInvestorToken(investor, swapTo, swapToAmount);
+        }
+        uint256 volumeETH = getAmountETH(swapTo, swapToAmount);
+        uint256 volumeUSD = getAmountUSD(swapTo, swapToAmount);
+        decreaseFundToken(swapFrom, swapFromAmount);
+        increaseFundToken(swapTo, swapToAmount);
+        emit Swap(
+            manager,
+            investor,
+            swapFrom, 
+            swapTo, 
+            swapFromAmount, 
+            swapToAmount,
+            volumeETH,
+            volumeUSD
+        );
     }
 
     function getLastTokenFromPath(bytes memory path) private returns (address) {
@@ -401,10 +415,10 @@ contract XXXFund2 is IXXXFund2 {
         uint256 tokenBalance = getTokenAmount(trade.investor, trade.tokenIn);
         require(tokenBalance >= trade.amountIn, 'exactInputSingle() => invalid inputAmount');
 
-        address _swapRouterAddress = IXXXFactory(factory).getSwapRouterAddress();
+        address swapRouterAddress = IXXXFactory(factory).getSwapRouterAddress();
 
         // approve
-        IERC20(trade.tokenIn).approve(_swapRouterAddress, trade.amountIn);
+        IERC20(trade.tokenIn).approve(swapRouterAddress, trade.amountIn);
 
         // Naively set amountOutMinimum to 0. In production, use an oracle or other data source to choose a safer value for amountOutMinimum.
         // We also set the sqrtPriceLimitx96 to be 0 to ensure we swap our exact input amount.
@@ -418,23 +432,9 @@ contract XXXFund2 is IXXXFund2 {
                 amountOutMinimum: trade.amountOutMinimum,
                 sqrtPriceLimitX96: 0
             });
-        amountOut = ISwapRouter02(_swapRouterAddress).exactInputSingle(params);
+        amountOut = ISwapRouter02(swapRouterAddress).exactInputSingle(params);
 
         handleSwap(trade.investor, trade.tokenIn, trade.tokenOut, trade.amountIn, amountOut);
-        uint256 tokenOutAmountETH = PriceOracle.getPriceETH(UNISWAP_V3_FACTORY, trade.tokenOut, WETH9) * amountOut;
-        uint256 tokenOutAmountUSD = PriceOracle.getPriceUSD(UNISWAP_V3_FACTORY, trade.tokenOut, USDC) * amountOut;
-        decreaseFundToken(trade.tokenIn, trade.amountIn);
-        increaseFundToken(trade.tokenOut, amountOut);
-        emit Swap(
-            manager,
-            trade.investor,
-            trade.tokenIn,
-            trade.tokenOut,
-            trade.amountIn,
-            amountOut,
-            tokenOutAmountETH,
-            tokenOutAmountUSD
-        );
     }
 
     function exactInput(V3TradeParams memory trade) private returns (uint256 amountOut)
@@ -445,14 +445,13 @@ contract XXXFund2 is IXXXFund2 {
         require(IXXXFactory(factory).isWhiteListToken(tokenOut), 
             'exactInput() => not whitelist token');
 
-        
         uint256 tokenBalance = getTokenAmount(trade.investor, tokenIn);
         require(tokenBalance >= trade.amountIn, 'exactInput() => invalid inputAmount');
 
-        address _swapRouterAddress = IXXXFactory(factory).getSwapRouterAddress();
+        address swapRouterAddress = IXXXFactory(factory).getSwapRouterAddress();
 
         // approve
-        IERC20(tokenIn).approve(_swapRouterAddress, trade.amountIn);
+        IERC20(tokenIn).approve(swapRouterAddress, trade.amountIn);
 
         ISwapRouter02.ExactInputParams memory params =
             IV3SwapRouter.ExactInputParams({
@@ -461,23 +460,9 @@ contract XXXFund2 is IXXXFund2 {
                 amountIn: trade.amountIn,
                 amountOutMinimum: trade.amountOutMinimum
             });
-        amountOut = ISwapRouter02(_swapRouterAddress).exactInput(params);
+        amountOut = ISwapRouter02(swapRouterAddress).exactInput(params);
 
         handleSwap(trade.investor, tokenIn, tokenOut, trade.amountIn, amountOut);
-        uint256 tokenOutAmountETH = PriceOracle.getPriceETH(UNISWAP_V3_FACTORY, tokenOut, WETH9) * amountOut;
-        uint256 tokenOutAmountUSD = PriceOracle.getPriceUSD(UNISWAP_V3_FACTORY, tokenOut, USDC) * amountOut;
-        decreaseFundToken(tokenIn, trade.amountIn);
-        increaseFundToken(tokenOut, amountOut);
-        emit Swap(
-            manager, 
-            trade.investor, 
-            tokenIn, 
-            tokenOut, 
-            trade.amountIn, 
-            amountOut,
-            tokenOutAmountETH,
-            tokenOutAmountUSD
-        );
     }
 
     function exactOutputSingle(V3TradeParams memory trade) private returns (uint256 amountIn)
@@ -488,10 +473,10 @@ contract XXXFund2 is IXXXFund2 {
         uint256 tokenBalance = getTokenAmount(trade.investor, trade.tokenIn);
         require(tokenBalance >= trade.amountInMaximum, 'exactOutputSingle() => invalid inputAmount');
 
-        address _swapRouterAddress = IXXXFactory(factory).getSwapRouterAddress();
+        address swapRouterAddress = IXXXFactory(factory).getSwapRouterAddress();
 
         // approve
-        IERC20(trade.tokenIn).approve(_swapRouterAddress, trade.amountInMaximum);
+        IERC20(trade.tokenIn).approve(swapRouterAddress, trade.amountInMaximum);
 
         ISwapRouter02.ExactOutputSingleParams memory params =
             IV3SwapRouter.ExactOutputSingleParams({
@@ -503,23 +488,9 @@ contract XXXFund2 is IXXXFund2 {
                 amountInMaximum: trade.amountInMaximum,
                 sqrtPriceLimitX96: 0
             });
-        amountIn = ISwapRouter02(_swapRouterAddress).exactOutputSingle(params);
+        amountIn = ISwapRouter02(swapRouterAddress).exactOutputSingle(params);
 
         handleSwap(trade.investor, trade.tokenIn, trade.tokenOut, amountIn, trade.amountOut);
-        uint256 tokenOutAmountETH = PriceOracle.getPriceETH(UNISWAP_V3_FACTORY, trade.tokenOut, WETH9) * trade.amountOut;
-        uint256 tokenOutAmountUSD = PriceOracle.getPriceUSD(UNISWAP_V3_FACTORY, trade.tokenOut, USDC) * trade.amountOut;
-        decreaseFundToken(trade.tokenIn, amountIn);
-        increaseFundToken(trade.tokenOut, trade.amountOut);
-        emit Swap(
-            manager, 
-            trade.investor,
-            trade.tokenIn,
-            trade.tokenOut, 
-            amountIn, 
-            trade.amountOut,
-            tokenOutAmountETH,
-            tokenOutAmountUSD
-        );
     }
 
     function exactOutput(V3TradeParams memory trade) private returns (uint256 amountIn)
@@ -533,10 +504,10 @@ contract XXXFund2 is IXXXFund2 {
         uint256 tokenBalance = getTokenAmount(trade.investor, tokenIn);
         require(tokenBalance >= trade.amountInMaximum, 'exactOutput() => invalid inputAmount');
 
-        address _swapRouterAddress = IXXXFactory(factory).getSwapRouterAddress();
+        address swapRouterAddress = IXXXFactory(factory).getSwapRouterAddress();
 
         // approve
-        IERC20(tokenIn).approve(_swapRouterAddress, trade.amountInMaximum);
+        IERC20(tokenIn).approve(swapRouterAddress, trade.amountInMaximum);
 
         ISwapRouter02.ExactOutputParams memory params =
             IV3SwapRouter.ExactOutputParams({
@@ -545,23 +516,9 @@ contract XXXFund2 is IXXXFund2 {
                 amountOut: trade.amountOut,
                 amountInMaximum: trade.amountInMaximum
             });
-        amountIn = ISwapRouter02(_swapRouterAddress).exactOutput(params);
+        amountIn = ISwapRouter02(swapRouterAddress).exactOutput(params);
 
         handleSwap(trade.investor, tokenIn, tokenOut, amountIn, trade.amountOut);
-        uint256 tokenOutAmountETH = PriceOracle.getPriceETH(UNISWAP_V3_FACTORY, tokenOut, WETH9) * trade.amountOut;
-        uint256 tokenOutAmountUSD = PriceOracle.getPriceUSD(UNISWAP_V3_FACTORY, tokenOut, USDC) * trade.amountOut;
-        decreaseFundToken(tokenIn, amountIn);
-        increaseFundToken(tokenOut, trade.amountOut);
-        emit Swap(
-            manager, 
-            trade.investor, 
-            tokenIn, 
-            tokenOut, 
-            amountIn, 
-            trade.amountOut,
-            tokenOutAmountETH,
-            tokenOutAmountUSD
-        );
     }
 
     function swap(
@@ -585,63 +542,11 @@ contract XXXFund2 is IXXXFund2 {
         }
     }
 
-    function getManagerVolumeETH() external override view returns (uint256 amount) {
-        amount = 0;
-        for (uint256 i; i<managerTokens.length; i++) {
-            address token = managerTokens[i].tokenAddress;
-            uint256 tokenAmount = managerTokens[i].amount;
-            uint256 priceETH = PriceOracle.getPriceETH(UNISWAP_V3_FACTORY, token, WETH9);
-            amount += priceETH * tokenAmount;
-        }
+    function getAmountETH(address token, uint256 amount) private view returns (uint256 amountETH) {
+        amountETH = PriceOracle.getPriceETH(UNISWAP_V3_FACTORY, token, WETH9) * amount;
     }
 
-    function getManagerVolumeUSD() external override view returns (uint256 amount) {
-        amount = 0;
-        for (uint256 i; i<managerTokens.length; i++) {
-            address token = managerTokens[i].tokenAddress;
-            uint256 tokenAmount = managerTokens[i].amount;
-            uint256 priceUSD = PriceOracle.getPriceUSD(UNISWAP_V3_FACTORY, token, USDC);
-            amount += priceUSD * tokenAmount;
-        }
-    }
-
-    function getManagerFeeVolumeETH(address manager) external override view returns (uint256 amount) {
-        amount = 0;
-        for (uint256 i; i<feeTokens.length; i++) {
-            address token = feeTokens[i].tokenAddress;
-            uint256 tokenAmount = feeTokens[i].amount;
-            uint256 priceETH = PriceOracle.getPriceETH(UNISWAP_V3_FACTORY, token, WETH9);
-            amount += priceETH * tokenAmount;
-        }
-    }
-
-    function getManagerFeeVolumeUSD(address manager) external override view returns (uint256 amount) {
-        amount = 0;
-        for (uint256 i; i<feeTokens.length; i++) {
-            address token = feeTokens[i].tokenAddress;
-            uint256 tokenAmount = feeTokens[i].amount;
-            uint256 priceUSD = PriceOracle.getPriceUSD(UNISWAP_V3_FACTORY, token, USDC);
-            amount += priceUSD * tokenAmount;
-        }
-    }
-
-    function getInvestorVolumeETH(address investor) external override view returns (uint256 amount) {
-        amount = 0;
-        for (uint256 i; i<investorTokens[investor].length; i++) {
-            address token = investorTokens[investor][i].tokenAddress;
-            uint256 tokenAmount = investorTokens[investor][i].amount;
-            uint256 priceETH = PriceOracle.getPriceETH(UNISWAP_V3_FACTORY, token, WETH9);
-            amount += priceETH * tokenAmount;
-        }
-    }
-
-    function getInvestorVolumeUSD(address investor) external override view returns (uint256 amount) {
-        amount = 0;
-        for (uint256 i; i<investorTokens[investor].length; i++) {
-            address token = investorTokens[investor][i].tokenAddress;
-            uint256 tokenAmount = investorTokens[investor][i].amount;
-            uint256 priceUSD = PriceOracle.getPriceUSD(UNISWAP_V3_FACTORY, token, USDC);
-            amount += priceUSD * tokenAmount;
-        }
+    function getAmountUSD(address token, uint256 amount) private view returns (uint256 amountUSD) {
+        amountUSD = PriceOracle.getPriceUSD(UNISWAP_V3_FACTORY, token, USDC) * amount;
     }
 }

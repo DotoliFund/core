@@ -58,7 +58,7 @@ const config: HardhatUserConfig = {
         url: `https://mainnet.infura.io/v3/${INFURA_API_KEY}`,
         //blockNumber: 14390000
       },
-      allowUnlimitedContractSize: true,
+      //allowUnlimitedContractSize: true,
     },
   },
   namedAccounts: {

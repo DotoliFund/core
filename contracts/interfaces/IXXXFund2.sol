@@ -115,11 +115,4 @@ interface IXXXFund2 {
     function getInvestorTokens(address investor) external returns (Token[] memory);
 
     function getTokenAmount(address investor, address token) external returns (uint256);
-
-    function getManagerVolumeETH() external returns (uint256 amount);
-    function getManagerVolumeUSD() external returns (uint256 amount);
-    function getManagerFeeVolumeETH(address manager) external returns (uint256 amount);
-    function getManagerFeeVolumeUSD(address manager) external returns (uint256 amount);
-    function getInvestorVolumeETH(address investor) external returns (uint256 amount);
-    function getInvestorVolumeUSD(address investor) external returns (uint256 amount);
 }
