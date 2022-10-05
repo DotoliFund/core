@@ -57,18 +57,18 @@ contract XXXFund2 is IXXXFund2 {
                 IWETH9(WETH9).deposit{value: msg.value}();
                 increaseManagerToken(WETH9, msg.value);
                 increaseFundToken(WETH9, msg.value);
-                uint256 amountETH = getAmountETH(WETH9, msg.value);
-                uint256 amountUSD = getAmountUSD(WETH9, msg.value);
-                emit ManagerDeposit(msg.sender, WETH9, msg.value, amountETH, amountUSD);
+                uint256 volumeETH = getVolumeETH(managerTokens);
+                uint256 volumeUSD = getVolumeUSD(managerTokens);
+                emit ManagerDeposit(msg.sender, WETH9, msg.value, volumeETH, volumeUSD);
             } else {
                 bool _isSubscribed = IXXXFactory(factory).isSubscribed(msg.sender, address(this));
                 require(_isSubscribed, 'receive() => account is not subscribed');
                 IWETH9(WETH9).deposit{value: msg.value}();
                 increaseInvestorToken(msg.sender, WETH9, msg.value);
                 increaseFundToken(WETH9, msg.value);
-                uint256 amountETH = getAmountETH(WETH9, msg.value);
-                uint256 amountUSD = getAmountUSD(WETH9, msg.value);
-                emit InvestorDeposit(msg.sender, WETH9, msg.value, amountETH, amountUSD);
+                uint256 volumeETH = getVolumeETH(investorTokens[msg.sender]);
+                uint256 volumeUSD = getVolumeUSD(investorTokens[msg.sender]);
+                emit InvestorDeposit(msg.sender, WETH9, msg.value, volumeETH, volumeUSD);
             }
         }
     }
@@ -256,9 +256,9 @@ contract XXXFund2 is IXXXFund2 {
         if (isNewToken) {
             feeTokens.push(Token(_token, _amount));
         }
-        uint256 amountETH = getAmountETH(_token, _amount);
-        uint256 amountUSD = getAmountUSD(_token, _amount);
-        emit ManagerFeeIn(investor, manager, _token, _amount, amountETH, amountUSD);
+        uint256 volumeETH = getVolumeETH(feeTokens);
+        uint256 volumeUSD = getVolumeUSD(feeTokens);
+        emit ManagerFeeIn(investor, manager, _token, _amount, volumeETH, volumeUSD);
     }
 
     function feeOut(address _token, uint256 _amount) external payable override lock {
@@ -280,10 +280,10 @@ contract XXXFund2 is IXXXFund2 {
             }
         }
         require(isNewToken == false, 'feeOut() => token is not exist');
-        uint256 amountETH = getAmountETH(_token, _amount);
-        uint256 amountUSD = getAmountUSD(_token, _amount);
         decreaseFundToken(_token, _amount);
-        emit ManagerFeeOut(manager, _token, _amount, amountETH, amountUSD);
+        uint256 volumeETH = getVolumeETH(feeTokens);
+        uint256 volumeUSD = getVolumeUSD(feeTokens);
+        emit ManagerFeeOut(manager, _token, _amount, volumeETH, volumeUSD);
     }
 
     // this low-level function should be called from a contract which performs important safety checks
@@ -295,17 +295,18 @@ contract XXXFund2 is IXXXFund2 {
 
         IERC20(_token).transferFrom(msg.sender, address(this), _amount);
 
-        uint256 amountETH = getAmountETH(_token, _amount);
-        uint256 amountUSD = getAmountUSD(_token, _amount);
-
         if (msg.sender == manager) {
             increaseManagerToken(_token, _amount);
             increaseFundToken(_token, _amount);
-            emit ManagerDeposit(msg.sender, _token, _amount, amountETH, amountUSD);
+            uint256 volumeETH = getVolumeETH(managerTokens);
+            uint256 volumeUSD = getVolumeUSD(managerTokens);
+            emit ManagerDeposit(msg.sender, _token, _amount, volumeETH, volumeUSD);
         } else {
             increaseInvestorToken(msg.sender, _token, _amount);
             increaseFundToken(_token, _amount);
-            emit InvestorDeposit(msg.sender, _token, _amount, amountETH, amountUSD);
+            uint256 volumeETH = getVolumeETH(investorTokens[msg.sender]);
+            uint256 volumeUSD = getVolumeUSD(investorTokens[msg.sender]);
+            emit InvestorDeposit(msg.sender, _token, _amount, volumeETH, volumeUSD);
         }
     }
 
@@ -328,10 +329,10 @@ contract XXXFund2 is IXXXFund2 {
                 IERC20(_token).transfer(msg.sender, _amount);
             }
             decreaseManagerToken(_token, _amount);
-            uint256 amountETH = getAmountETH(_token, _amount);
-            uint256 amountUSD = getAmountUSD(_token, _amount);
             decreaseFundToken(_token, _amount);
-            emit ManagerWithdraw(msg.sender, _token, _amount, amountETH, amountUSD);
+            uint256 volumeETH = getVolumeETH(managerTokens);
+            uint256 volumeUSD = getVolumeUSD(managerTokens);
+            emit ManagerWithdraw(msg.sender, _token, _amount, volumeETH, volumeUSD);
         } else {
             //check if investor has valid token amount
             require(isInvestorTokenSufficient(msg.sender, _token, _amount), 'withdraw() => invalid token amount');
@@ -347,10 +348,10 @@ contract XXXFund2 is IXXXFund2 {
             }
             feeIn(msg.sender, _token, feeAmount);
             decreaseInvestorToken(msg.sender, _token, _amount);
-            uint256 amountETH = getAmountETH(_token, _amount); 
-            uint256 amountUSD = getAmountUSD(_token, _amount);
             decreaseFundToken(_token, _amount);
-            emit InvestorWithdraw(msg.sender, _token, _amount, feeAmount, amountETH, amountUSD);
+            uint256 volumeETH = getVolumeETH(investorTokens[msg.sender]);
+            uint256 volumeUSD = getVolumeUSD(investorTokens[msg.sender]);
+            emit InvestorWithdraw(msg.sender, _token, _amount, feeAmount, volumeETH, volumeUSD);
         }
     }
 
@@ -361,21 +362,22 @@ contract XXXFund2 is IXXXFund2 {
         uint256 swapFromAmount, 
         uint256 swapToAmount
     ) private {
-        //decrease part of swap (decrease swapFrom token reduce by swapFromAmount)
-        //increase part of swap (increase swapTo token increase by swapToAmount)
-
+        uint256 volumeETH = 0;
+        uint256 volumeUSD = 0;
         //update manager info
         if (investor == manager) {
             //update manager info
             decreaseManagerToken(swapFrom, swapFromAmount);
             increaseManagerToken(swapTo, swapToAmount);
+            volumeETH = getVolumeETH(managerTokens);
+            volumeUSD = getVolumeUSD(managerTokens);
         } else {
             //update investor info
             decreaseInvestorToken(investor, swapFrom, swapFromAmount);
             increaseInvestorToken(investor, swapTo, swapToAmount);
+            volumeETH = getVolumeETH(investorTokens[investor]);
+            volumeUSD = getVolumeUSD(investorTokens[investor]);
         }
-        uint256 volumeETH = getAmountETH(swapTo, swapToAmount);
-        uint256 volumeUSD = getAmountUSD(swapTo, swapToAmount);
         decreaseFundToken(swapFrom, swapFromAmount);
         increaseFundToken(swapTo, swapToAmount);
         emit Swap(
@@ -407,7 +409,7 @@ contract XXXFund2 is IXXXFund2 {
         return _tokenOut;
     }
 
-    function exactInputSingle(V3TradeParams memory trade) private returns (uint256 amountOut)
+    function exactInputSingle(address swapRouter, V3TradeParams memory trade) private returns (uint256 amountOut)
     {
         require(IXXXFactory(factory).isWhiteListToken(trade.tokenOut), 
             'exactInputSingle() => not whitelist token');
@@ -415,10 +417,8 @@ contract XXXFund2 is IXXXFund2 {
         uint256 tokenBalance = getTokenAmount(trade.investor, trade.tokenIn);
         require(tokenBalance >= trade.amountIn, 'exactInputSingle() => invalid inputAmount');
 
-        address swapRouterAddress = IXXXFactory(factory).getSwapRouterAddress();
-
         // approve
-        IERC20(trade.tokenIn).approve(swapRouterAddress, trade.amountIn);
+        IERC20(trade.tokenIn).approve(swapRouter, trade.amountIn);
 
         // Naively set amountOutMinimum to 0. In production, use an oracle or other data source to choose a safer value for amountOutMinimum.
         // We also set the sqrtPriceLimitx96 to be 0 to ensure we swap our exact input amount.
@@ -432,12 +432,11 @@ contract XXXFund2 is IXXXFund2 {
                 amountOutMinimum: trade.amountOutMinimum,
                 sqrtPriceLimitX96: 0
             });
-        amountOut = ISwapRouter02(swapRouterAddress).exactInputSingle(params);
-
+        amountOut = ISwapRouter02(swapRouter).exactInputSingle(params);
         handleSwap(trade.investor, trade.tokenIn, trade.tokenOut, trade.amountIn, amountOut);
     }
 
-    function exactInput(V3TradeParams memory trade) private returns (uint256 amountOut)
+    function exactInput(address swapRouter, V3TradeParams memory trade) private returns (uint256 amountOut)
     {
         address tokenOut = getLastTokenFromPath(trade.path);
         (address tokenIn, , ) = trade.path.decodeFirstPool();
@@ -448,10 +447,8 @@ contract XXXFund2 is IXXXFund2 {
         uint256 tokenBalance = getTokenAmount(trade.investor, tokenIn);
         require(tokenBalance >= trade.amountIn, 'exactInput() => invalid inputAmount');
 
-        address swapRouterAddress = IXXXFactory(factory).getSwapRouterAddress();
-
         // approve
-        IERC20(tokenIn).approve(swapRouterAddress, trade.amountIn);
+        IERC20(tokenIn).approve(swapRouter, trade.amountIn);
 
         ISwapRouter02.ExactInputParams memory params =
             IV3SwapRouter.ExactInputParams({
@@ -460,12 +457,11 @@ contract XXXFund2 is IXXXFund2 {
                 amountIn: trade.amountIn,
                 amountOutMinimum: trade.amountOutMinimum
             });
-        amountOut = ISwapRouter02(swapRouterAddress).exactInput(params);
-
+        amountOut = ISwapRouter02(swapRouter).exactInput(params);
         handleSwap(trade.investor, tokenIn, tokenOut, trade.amountIn, amountOut);
     }
 
-    function exactOutputSingle(V3TradeParams memory trade) private returns (uint256 amountIn)
+    function exactOutputSingle(address swapRouter, V3TradeParams memory trade) private returns (uint256 amountIn)
     {
         require(IXXXFactory(factory).isWhiteListToken(trade.tokenOut), 
             'exactOutputSingle() => not whitelist token');
@@ -473,10 +469,8 @@ contract XXXFund2 is IXXXFund2 {
         uint256 tokenBalance = getTokenAmount(trade.investor, trade.tokenIn);
         require(tokenBalance >= trade.amountInMaximum, 'exactOutputSingle() => invalid inputAmount');
 
-        address swapRouterAddress = IXXXFactory(factory).getSwapRouterAddress();
-
         // approve
-        IERC20(trade.tokenIn).approve(swapRouterAddress, trade.amountInMaximum);
+        IERC20(trade.tokenIn).approve(swapRouter, trade.amountInMaximum);
 
         ISwapRouter02.ExactOutputSingleParams memory params =
             IV3SwapRouter.ExactOutputSingleParams({
@@ -488,12 +482,11 @@ contract XXXFund2 is IXXXFund2 {
                 amountInMaximum: trade.amountInMaximum,
                 sqrtPriceLimitX96: 0
             });
-        amountIn = ISwapRouter02(swapRouterAddress).exactOutputSingle(params);
-
+        amountIn = ISwapRouter02(swapRouter).exactOutputSingle(params);
         handleSwap(trade.investor, trade.tokenIn, trade.tokenOut, amountIn, trade.amountOut);
     }
 
-    function exactOutput(V3TradeParams memory trade) private returns (uint256 amountIn)
+    function exactOutput(address swapRouter, V3TradeParams memory trade) private returns (uint256 amountIn)
     {
         address tokenIn = getLastTokenFromPath(trade.path);
         (address tokenOut, , ) = trade.path.decodeFirstPool();
@@ -504,10 +497,8 @@ contract XXXFund2 is IXXXFund2 {
         uint256 tokenBalance = getTokenAmount(trade.investor, tokenIn);
         require(tokenBalance >= trade.amountInMaximum, 'exactOutput() => invalid inputAmount');
 
-        address swapRouterAddress = IXXXFactory(factory).getSwapRouterAddress();
-
         // approve
-        IERC20(tokenIn).approve(swapRouterAddress, trade.amountInMaximum);
+        IERC20(tokenIn).approve(swapRouter, trade.amountInMaximum);
 
         ISwapRouter02.ExactOutputParams memory params =
             IV3SwapRouter.ExactOutputParams({
@@ -516,27 +507,26 @@ contract XXXFund2 is IXXXFund2 {
                 amountOut: trade.amountOut,
                 amountInMaximum: trade.amountInMaximum
             });
-        amountIn = ISwapRouter02(swapRouterAddress).exactOutput(params);
-
+        amountIn = ISwapRouter02(swapRouter).exactOutput(params);
         handleSwap(trade.investor, tokenIn, tokenOut, amountIn, trade.amountOut);
     }
 
-    function swap(
-        V3TradeParams[] calldata trades
-    ) external payable override lock {
+    function swap(V3TradeParams[] calldata trades) external payable override lock {
         require(msg.sender == manager, 'swap() => invalid sender');
+        address swapRouter = IXXXFactory(factory).getSwapRouterAddress();
+
         for(uint256 i=0; i<trades.length; i++) {
             if (trades[i].swapType == V3SwapType.SINGLE_HOP) {
                 if (trades[i].tradeType == V3TradeType.EXACT_INPUT) {
-                    exactInputSingle(trades[i]);
+                    exactInputSingle(swapRouter, trades[i]);
                 } else {
-                    exactOutputSingle(trades[i]);
+                    exactOutputSingle(swapRouter, trades[i]);
                 }
             } else {
                 if (trades[i].tradeType == V3TradeType.EXACT_INPUT) {
-                    exactInput(trades[i]);
+                    exactInput(swapRouter, trades[i]);
                 } else {
-                    exactOutput(trades[i]);
+                    exactOutput(swapRouter, trades[i]);
                 }
             }
         }
@@ -548,5 +538,23 @@ contract XXXFund2 is IXXXFund2 {
 
     function getAmountUSD(address token, uint256 amount) private view returns (uint256 amountUSD) {
         amountUSD = PriceOracle.getPriceUSD(UNISWAP_V3_FACTORY, token, USDC) * amount;
+    }
+
+    function getVolumeETH(Token[] memory tokens) private view returns (uint256 volumeETH) {
+        volumeETH = 0;
+        for (uint256 i=0; i<tokens.length; i++) {
+            address token = tokens[i].tokenAddress;
+            uint256 amount = tokens[i].amount;
+            volumeETH += getAmountETH(token, amount);
+        }
+    }
+
+    function getVolumeUSD(Token[] memory tokens) private view returns (uint256 volumeUSD) {
+        volumeUSD = 0;
+        for (uint256 i=0; i<tokens.length; i++) {
+            address token = tokens[i].tokenAddress;
+            uint256 amount = tokens[i].amount;
+            volumeUSD += getAmountUSD(token, amount);
+        }    
     }
 }

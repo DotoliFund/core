@@ -16,46 +16,46 @@ interface IXXXFund2 {
     event ManagerDeposit(
         address indexed manager, 
         address token, 
-        uint256 amount, 
-        uint256 amountETH, 
-        uint256 amountUSD
+        uint256 amount,
+        uint256 volumeETH, 
+        uint256 volumeUSD
     );
     event ManagerWithdraw(
         address indexed manager, 
         address token, 
-        uint256 amount, 
-        uint256 amountETH, 
-        uint256 amountUSD
+        uint256 amount,
+        uint256 volumeETH, 
+        uint256 volumeUSD
     );
     event ManagerFeeIn(
         address indexed investor, 
         address indexed manager, 
         address token, 
-        uint256 amount, 
-        uint256 amountETH, 
-        uint256 amountUSD
+        uint256 amount,
+        uint256 volumeETH, 
+        uint256 volumeUSD
     );
     event ManagerFeeOut(
         address indexed manager,
         address token, 
-        uint256 amount, 
-        uint256 amountETH, 
-        uint256 amountUSD
+        uint256 amount,
+        uint256 volumeETH, 
+        uint256 volumeUSD
     );
     event InvestorDeposit(
         address indexed investor, 
         address token, 
-        uint256 amount, 
-        uint256 amountETH, 
-        uint256 amountUSD
+        uint256 amount,
+        uint256 volumeETH, 
+        uint256 volumeUSD
     );
     event InvestorWithdraw(
         address indexed investor, 
         address token, 
         uint256 amount, 
-        uint256 feeAmount, 
-        uint256 amountETH, 
-        uint256 amountUSD
+        uint256 feeAmount,
+        uint256 volumeETH, 
+        uint256 volumeUSD
     );
     event Swap(
         address indexed manager,
@@ -64,8 +64,8 @@ interface IXXXFund2 {
         address tokenOut,
         uint256 amountIn,
         uint256 amountOut,
-        uint256 amountETH, 
-        uint256 amountUSD
+        uint256 volumeETH, 
+        uint256 volumeUSD
     );
     
     enum V3TradeType{
