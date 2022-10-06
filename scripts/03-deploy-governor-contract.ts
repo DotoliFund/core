@@ -9,8 +9,8 @@ async function main() {
 
   //const XXXTokenAddress = process.env.TOKEN_ADDRESS;
   //const TimeLockAddress = process.env.TIMELOCK_ADDRESS;
-  const XXXTokenAddress = '0xEAE906dC299ccd9Cd94584377d0F96Ce144c942f';
-  const TimeLockAddress = '0x6c406e2328117BD8ca63F83EAeD7696801f87472';
+  const XXXTokenAddress = '0xDf26E13ebF6BD0648BF348006B5F54C062C56633';
+  const TimeLockAddress = '0xcb6cc28551c958CcEa3301B9F581622C436afAa0';
 
   // Governor Values
   const QUORUM_PERCENTAGE = 4 // Need 4% of voters to pass

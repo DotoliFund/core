@@ -9,9 +9,9 @@ async function main() {
 
   const ADDRESS_ZERO = "0x0000000000000000000000000000000000000000"
 
-  const TimeLockAddress = '0x6c406e2328117BD8ca63F83EAeD7696801f87472';
+  const TimeLockAddress = '0xcb6cc28551c958CcEa3301B9F581622C436afAa0';
   const timeLock = await ethers.getContractAt("TimeLock", TimeLockAddress)
-  const XXXGovernorAddress = '0x3cA490bF1cc327dB3eB8B297C43aE3A3922B424d';
+  const XXXGovernorAddress = '0xa905e8497bb85667E72b1B3320A1B84a02A68919';
 
   // would be great to use multicall here...
   const proposerRole = await timeLock.PROPOSER_ROLE()
@@ -22,7 +22,7 @@ async function main() {
   await proposerTx.wait(1)
   const executorTx = await timeLock.grantRole(executorRole, ADDRESS_ZERO)
   await executorTx.wait(1)
-  const revokeTx = await timeLock.revokeRole(adminRole, deployer.address)
+  const revokeTx = await timeLock.revokeRole(adminRole, test_account_1.address)
   await revokeTx.wait(1)
   // Now, anything the timelock wants to do has to go through the governance process
 };
