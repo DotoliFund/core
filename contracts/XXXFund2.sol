@@ -241,7 +241,7 @@ contract XXXFund2 is
 
             if (trades[i].swapType == V3SwapType.SINGLE_HOP) {
                 uint256 tokenBalance = getUserTokenAmount(trades[i].investor, trades[i].tokenIn);
-                require(tokenBalance >= trades[i].amountIn, 'exactInputSingle() => invalid inputAmount');
+                require(tokenBalance >= trades[i].amountIn, 'singleHop => too much input amount');
 
                 if (trades[i].tradeType == V3TradeType.EXACT_INPUT) {
                     uint256 amountOut = exactInputSingle(factory, swapRouter, trades[i]);
@@ -256,7 +256,7 @@ contract XXXFund2 is
                     (address tokenIn, , ) = trades[i].path.decodeFirstPool();
 
                     uint256 tokenBalance = getUserTokenAmount(trades[i].investor, tokenIn);
-                    require(tokenBalance >= trades[i].amountIn, 'exactInput() => invalid inputAmount');
+                    require(tokenBalance >= trades[i].amountIn, 'exactInput() => too much input amount');
 
                     uint256 amountOut = exactInput(factory, swapRouter, trades[i], tokenIn, tokenOut);
                     handleSwap(trades[i].investor, tokenIn, tokenOut, trades[i].amountIn, amountOut);
@@ -265,7 +265,7 @@ contract XXXFund2 is
                     (address tokenOut, , ) = trades[i].path.decodeFirstPool();
 
                     uint256 tokenBalance = getUserTokenAmount(trades[i].investor, tokenIn);
-                    require(tokenBalance >= trades[i].amountInMaximum, 'exactOutput() => invalid inputAmount');
+                    require(tokenBalance >= trades[i].amountInMaximum, 'exactOutput() => too much input amount');
 
                     uint256 amountIn = exactOutput(factory, swapRouter, trades[i], tokenIn, tokenOut);
                     handleSwap(trades[i].investor, tokenIn, tokenOut, amountIn, trades[i].amountOut);
