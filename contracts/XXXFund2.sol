@@ -3,23 +3,24 @@
 pragma solidity =0.7.6;
 pragma abicoder v2;
 
-import './interfaces/external/IWETH9.sol';
 import './interfaces/IXXXFund2.sol';
 import './interfaces/IXXXFactory.sol';
 import './interfaces/IERC20.sol';
 import '@uniswap/v3-periphery/contracts/libraries/Path.sol';
 import './libraries/PriceOracle.sol';
-import './SwapRouter.sol';
+import './base/SwapRouter.sol';
+import './base/Payments.sol';
+import './base/Constants.sol';
 
 import "hardhat/console.sol";
 
-contract XXXFund2 is IXXXFund2, SwapRouter {
+contract XXXFund2 is 
+    IXXXFund2,
+    SwapRouter,
+    Constants,
+    Payments
+{
     using Path for bytes;
-
-    address UNISWAP_V3_FACTORY = 0x1F98431c8aD98523631AE4a59f267346ea31F984;
-    address WETH9 = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
-    //address WETH9 = 0xc778417E063141139Fce010982780140Aa0cD5Ab;
-    address USDC = 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
 
     address public factory;
     address public manager;
@@ -45,11 +46,8 @@ contract XXXFund2 is IXXXFund2, SwapRouter {
     }
 
     receive() external payable {
-
         if (msg.sender == WETH9) {
-            
             // when call IWETH9(WETH9).withdraw(amount) in this contract, go into here.
-
         } else {
             if (msg.sender == manager) {
                 IWETH9(WETH9).deposit{value: msg.value}();
@@ -158,23 +156,11 @@ contract XXXFund2 is IXXXFund2, SwapRouter {
         require(isNewToken == false, 'decreaseToken() => token is not exist');
     }
 
-    function isManagerTokenSufficient(address _token, uint256 _amount) private view returns (bool) {
+    function isTokenAmountSufficient(Token[] memory tokens, address _token, uint256 _amount) private view returns (bool) {
         bool _isTokenSufficient = false;
-        for (uint256 i=0; i<managerTokens.length; i++) {
-            if (managerTokens[i].tokenAddress == _token) {
-                require(managerTokens[i].amount >= _amount, 'isManagerTokenSufficient() => not enough token');
-                _isTokenSufficient = true;
-                break;
-            }
-        }
-        return _isTokenSufficient;
-    }
-
-    function isInvestorTokenSufficient(address investor, address _token, uint256 _amount) private view returns (bool) {
-        bool _isTokenSufficient = false;
-        for (uint256 i=0; i<investorTokens[investor].length; i++) {
-            if (investorTokens[investor][i].tokenAddress == _token) {
-                require(investorTokens[investor][i].amount >= _amount, 'isInvestorTokenSufficient() => not enough token');
+        for (uint256 i=0; i<tokens.length; i++) {
+            if (tokens[i].tokenAddress == _token) {
+                require(tokens[i].amount >= _amount, 'isTokenAmountSufficient() => not enough token');
                 _isTokenSufficient = true;
                 break;
             }
@@ -206,13 +192,7 @@ contract XXXFund2 is IXXXFund2, SwapRouter {
             if (feeTokens[i].tokenAddress == _token) {
                 isNewToken = false;
                 require(feeTokens[i].amount >= _amount, 'feeOut() => token is not exist');
-                if (_token == WETH9) {
-                    IWETH9(WETH9).withdraw(_amount);
-                    (bool success, ) = (msg.sender).call{value: _amount}(new bytes(0));
-                    require(success, 'feeOut() => sending ETH to manager failed');
-                } else {
-                    IERC20(_token).transfer(msg.sender, _amount);
-                }
+                _withdraw(_token, _amount);
                 feeTokens[i].amount -= _amount;
                 break;
             }
@@ -255,31 +235,19 @@ contract XXXFund2 is IXXXFund2, SwapRouter {
         uint256 managerFee = IXXXFactory(factory).getManagerFee();
 
         if (msg.sender == manager) {
-            require(isManagerTokenSufficient(_token, _amount), 'withdraw() => invalid token amount');
+            require(isTokenAmountSufficient(managerTokens, _token, _amount), 'withdraw() => invalid token amount');
             // manager withdraw is no need manager fee
-            if (_token == WETH9) {
-                IWETH9(WETH9).withdraw(_amount);
-                (bool success, ) = (msg.sender).call{value: _amount}(new bytes(0));
-                require(success, 'withdraw() => sending ETH to manager failed');
-            } else {
-                IERC20(_token).transfer(msg.sender, _amount);
-            }
+            _withdraw(_token, _amount);
             decreaseToken(managerTokens, _token, _amount);
             decreaseToken(fundTokens, _token, _amount);
             uint256 volumeETH = getVolumeETH(managerTokens);
             uint256 volumeUSD = getVolumeUSD(managerTokens);
             emit ManagerWithdraw(msg.sender, _token, _amount, volumeETH, volumeUSD);
         } else {
-            require(isInvestorTokenSufficient(msg.sender, _token, _amount), 'withdraw() => invalid token amount');
+            require(isTokenAmountSufficient(investorTokens[msg.sender], _token, _amount), 'withdraw() => invalid token amount');
             //if investor has a profit, send manager fee.
             uint256 feeAmount = _amount * managerFee / 100;
-            if (_token == WETH9) {
-                IWETH9(WETH9).withdraw(_amount - feeAmount);
-                (bool success, ) = (msg.sender).call{value: _amount - feeAmount}(new bytes(0));
-                require(success, 'withdraw() => sending ETH to investor failed');
-            } else {
-                IERC20(_token).transfer(msg.sender, _amount - feeAmount);
-            }
+            _withdraw(_token, _amount - feeAmount);
             feeIn(msg.sender, _token, feeAmount);
             decreaseToken(investorTokens[msg.sender], _token, _amount);
             decreaseToken(fundTokens, _token, _amount);

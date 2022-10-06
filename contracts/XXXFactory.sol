@@ -8,10 +8,8 @@ import './XXXFund2.sol';
 
 import "hardhat/console.sol";
 
-contract XXXFactory is IXXXFactory {
+contract XXXFactory is IXXXFactory, Constants {
     address public override owner;
-    // Uniswap v3 swapRouter
-    address swapRouterAddress = 0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45;
     uint256 managerFee = 1; // 1% of investor profit ex) MANAGER_FEE = 10 -> 10% of investor profit
     address[] whiteListTokens;
 
@@ -31,12 +29,12 @@ contract XXXFactory is IXXXFactory {
         owner = msg.sender;
         emit OwnerChanged(address(0), msg.sender);
 
-        whiteListTokens.push(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2); //WETH mainnet
+        whiteListTokens.push(WETH9); //WETH mainnet
         whiteListTokens.push(0xc778417E063141139Fce010982780140Aa0cD5Ab); //WETH9 rinkeby testnet
-        whiteListTokens.push(0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599); //WBTC
-        whiteListTokens.push(0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48); //USDC
-        whiteListTokens.push(0x6B175474E89094C44Da98b954EedeAC495271d0F); //DAI
-        whiteListTokens.push(0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984); //UNI
+        whiteListTokens.push(WBTC); //WBTC
+        whiteListTokens.push(USDC); //USDC
+        whiteListTokens.push(DAI); //DAI
+        whiteListTokens.push(UNI); //UNI
         whiteListTokens.push(0xEAE906dC299ccd9Cd94584377d0F96Ce144c942f); //XXX
 
         //console.log("msg.sender : ", msg.sender);

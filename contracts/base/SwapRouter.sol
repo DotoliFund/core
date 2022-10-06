@@ -2,9 +2,9 @@
 pragma solidity =0.7.6;
 pragma abicoder v2;
 
-import './interfaces/IERC20.sol';
-import './interfaces/IXXXFactory.sol';
-import './interfaces/ISwapRouter.sol';
+import '../interfaces/IERC20.sol';
+import '../interfaces/IXXXFactory.sol';
+import '../interfaces/ISwapRouter.sol';
 import '@uniswap/swap-router-contracts/contracts/interfaces/ISwapRouter02.sol';
 import '@uniswap/v3-periphery/contracts/libraries/Path.sol';
 

@@ -34,13 +34,4 @@ interface ISwapRouter {
         uint160 sqrtPriceLimitX96;
         bytes path;
     }
-
-    // function exactInputSingle(address factory, address swapRouter, V3TradeParams memory trade) private returns (uint256 amountOut);
-
-    // function exactInput(address factory, address swapRouter, V3TradeParams memory trade, address tokenIn, address tokenOut) private returns (uint256 amountOut);
-
-    // function exactOutputSingle(address factory, address swapRouter, V3TradeParams memory trade) private returns (uint256 amountIn);
-
-    // function exactOutput(address factory, address swapRouter, V3TradeParams memory trade, address tokenIn, address tokenOut) private returns (uint256);
-
 }
