@@ -273,4 +273,32 @@ contract XXXFund2 is
             }
         }
     }
+
+    function getFundVolumeETH() external override view returns (uint256 volumeETH) {
+        return getVolumeETH(fundTokens);
+    }
+    function getFundVolumeUSD() external override view returns (uint256 volumeUSD) {
+        return getVolumeUSD(fundTokens);
+    }
+
+    function getManagerVolumeETH() external override view returns (uint256 volumeETH) {
+        return getVolumeETH(managerTokens);
+    }
+    function getManagerVolumeUSD() external override view returns (uint256 volumeUSD) {
+        return getVolumeUSD(managerTokens);
+    }
+
+    function getInvestorVolumeETH(address investor) external override view returns (uint256 volumeETH) {
+        return getVolumeETH(investorTokens[investor]);
+    }
+    function getInvestorVolumeUSD(address investor) external override view returns (uint256 volumeUSD) {
+        return getVolumeUSD(investorTokens[investor]);
+    }
+
+    function getManagerFeeVolumeETH() external override view returns (uint256 volumeETH) {
+        return getVolumeETH(feeTokens);
+    }
+    function getManagerFeeVolumeUSD() external override view returns (uint256 volumeUSD) {
+        return getVolumeUSD(feeTokens);
+    }
 }

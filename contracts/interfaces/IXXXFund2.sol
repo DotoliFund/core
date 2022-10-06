@@ -79,5 +79,18 @@ interface IXXXFund2 is ISwapRouter, IToken {
     function getFeeTokens() external returns (Token[] memory);
     function getInvestorTokens(address investor) external returns (Token[] memory);
 
+    // for Test : external -> internal
     function getUserTokenAmount(address investor, address token) external returns (uint256);
+
+    function getFundVolumeETH() external returns (uint256);
+    function getFundVolumeUSD() external returns (uint256);
+
+    function getManagerVolumeETH() external returns (uint256);
+    function getManagerVolumeUSD() external returns (uint256);
+
+    function getInvestorVolumeETH(address investor) external returns (uint256);
+    function getInvestorVolumeUSD(address investor) external returns (uint256);
+    
+    function getManagerFeeVolumeETH() external returns (uint256);
+    function getManagerFeeVolumeUSD() external returns (uint256);
 }

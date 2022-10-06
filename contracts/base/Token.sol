@@ -74,32 +74,4 @@ abstract contract Token is IToken, Constants {
             volumeUSD += PriceOracle.getPriceUSD(UNISWAP_V3_FACTORY, token, USDC) * amount;
         }    
     }
-
-    function getFundVolumeETH(Token[] memory tokens) external override view returns (uint256 volumeETH) {
-        return getVolumeETH(tokens);
-    }
-    function getFundVolumeUSD(Token[] memory tokens) external override view returns (uint256 volumeUSD) {
-        return getVolumeUSD(tokens);
-    }
-
-    function getManagerVolumeETH(Token[] memory tokens) external override view returns (uint256 volumeETH) {
-        return getVolumeETH(tokens);
-    }
-    function getManagerVolumeUSD(Token[] memory tokens) external override view returns (uint256 volumeUSD) {
-        return getVolumeUSD(tokens);
-    }
-
-    function getInvestorVolumeETH(Token[] memory tokens) external override view returns (uint256 volumeETH) {
-        return getVolumeETH(tokens);
-    }
-    function getInvestorVolumeUSD(Token[] memory tokens) external override view returns (uint256 volumeUSD) {
-        return getVolumeUSD(tokens);
-    }
-
-    function getManagerFeeVolumeETH(Token[] memory tokens) external override view returns (uint256 volumeETH) {
-        return getVolumeETH(tokens);
-    }
-    function getManagerFeeVolumeUSD(Token[] memory tokens) external override view returns (uint256 volumeUSD) {
-        return getVolumeUSD(tokens);
-    }
 }
