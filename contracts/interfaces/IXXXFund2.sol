@@ -3,15 +3,10 @@
 pragma solidity =0.7.6;
 pragma abicoder v2;
 
-import '@uniswap/swap-router-contracts/contracts/interfaces/ISwapRouter02.sol';
 import './ISwapRouter.sol';
+import './IToken.sol';
 
-interface IXXXFund2 is ISwapRouter{
-
-    struct Token {
-        address tokenAddress;
-        uint256 amount;
-    }
+interface IXXXFund2 is ISwapRouter, IToken {
 
     event Initialize(address manager);
     event ManagerDeposit(

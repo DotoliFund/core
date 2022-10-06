@@ -12,7 +12,7 @@ import '@uniswap/v3-periphery/contracts/libraries/Path.sol';
 abstract contract SwapRouter is ISwapRouter {
     using Path for bytes;
 
-    function getLastTokenFromPath(bytes memory path) internal returns (address) {
+    function getLastTokenFromPath(bytes memory path) internal view returns (address) {
         address _tokenOut;
 
         while (true) {
