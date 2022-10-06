@@ -13,45 +13,45 @@ interface IXXXFund2 is ISwapRouter, IToken {
         address indexed manager, 
         address token, 
         uint256 amount,
-        uint256 volumeETH, 
-        uint256 volumeUSD
+        uint256 amountETH, 
+        uint256 amountUSD
     );
     event ManagerWithdraw(
         address indexed manager, 
         address token, 
         uint256 amount,
-        uint256 volumeETH, 
-        uint256 volumeUSD
+        uint256 amountETH, 
+        uint256 amountUSD
     );
     event ManagerFeeIn(
         address indexed investor, 
         address indexed manager, 
         address token, 
         uint256 amount,
-        uint256 volumeETH, 
-        uint256 volumeUSD
+        uint256 amountETH, 
+        uint256 amountUSD
     );
     event ManagerFeeOut(
         address indexed manager,
         address token, 
         uint256 amount,
-        uint256 volumeETH, 
-        uint256 volumeUSD
+        uint256 amountETH, 
+        uint256 amountUSD
     );
     event InvestorDeposit(
         address indexed investor, 
         address token, 
         uint256 amount,
-        uint256 volumeETH, 
-        uint256 volumeUSD
+        uint256 amountETH, 
+        uint256 amountUSD
     );
     event InvestorWithdraw(
         address indexed investor, 
         address token, 
         uint256 amount, 
         uint256 feeAmount,
-        uint256 volumeETH, 
-        uint256 volumeUSD
+        uint256 amountETH, 
+        uint256 amountUSD
     );
     event Swap(
         address indexed manager,
@@ -60,8 +60,8 @@ interface IXXXFund2 is ISwapRouter, IToken {
         address tokenOut,
         uint256 amountIn,
         uint256 amountOut,
-        uint256 volumeETH, 
-        uint256 volumeUSD
+        uint256 amountETH, 
+        uint256 amountUSD
     );
 
     function initialize(address _manager) external;    

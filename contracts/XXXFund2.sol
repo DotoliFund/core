@@ -224,9 +224,9 @@ contract XXXFund2 is
         emit Swap(
             manager,
             investor,
-            swapFrom, 
-            swapTo, 
-            swapFromAmount, 
+            swapFrom,
+            swapTo,
+            swapFromAmount,
             swapToAmount,
             amountETH,
             amountUSD
