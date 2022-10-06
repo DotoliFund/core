@@ -9,8 +9,6 @@ import '@uniswap/swap-router-contracts/contracts/interfaces/ISwapRouter02.sol';
 import '@uniswap/v3-periphery/contracts/libraries/Path.sol';
 
 /// @title Uniswap V3 Swap Router
-/// @notice Router for stateless execution of swaps against Uniswap V3
-
 abstract contract SwapRouter is ISwapRouter {
     using Path for bytes;
 

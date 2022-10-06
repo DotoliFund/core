@@ -305,21 +305,21 @@ contract XXXFund2 is
                 require(tokenBalance >= trades[i].amountIn, 'exactInputSingle() => invalid inputAmount');
 
                 if (trades[i].tradeType == V3TradeType.EXACT_INPUT) {
-                    uint256 amountOut = SwapRouter.exactInputSingle(factory, swapRouter, trades[i]);
+                    uint256 amountOut = exactInputSingle(factory, swapRouter, trades[i]);
                     handleSwap(trades[i].investor, trades[i].tokenIn, trades[i].tokenOut, trades[i].amountIn, amountOut);
                 } else {
-                    uint256 amountIn = SwapRouter.exactOutputSingle(factory, swapRouter, trades[i]);
+                    uint256 amountIn = exactOutputSingle(factory, swapRouter, trades[i]);
                     handleSwap(trades[i].investor, trades[i].tokenIn, trades[i].tokenOut, amountIn, trades[i].amountOut);
                 }
             } else {
                 if (trades[i].tradeType == V3TradeType.EXACT_INPUT) {
-                    address tokenOut = SwapRouter.getLastTokenFromPath(trades[i].path);
+                    address tokenOut = getLastTokenFromPath(trades[i].path);
                     (address tokenIn, , ) = trades[i].path.decodeFirstPool();
 
                     uint256 tokenBalance = getUserTokenAmount(trades[i].investor, tokenIn);
                     require(tokenBalance >= trades[i].amountIn, 'exactInput() => invalid inputAmount');
 
-                    uint256 amountOut = SwapRouter.exactInput(factory, swapRouter, trades[i], tokenIn, tokenOut);
+                    uint256 amountOut = exactInput(factory, swapRouter, trades[i], tokenIn, tokenOut);
                     handleSwap(trades[i].investor, tokenIn, tokenOut, trades[i].amountIn, amountOut);
                 } else {
                     address tokenIn = getLastTokenFromPath(trades[i].path);
@@ -328,7 +328,7 @@ contract XXXFund2 is
                     uint256 tokenBalance = getUserTokenAmount(trades[i].investor, tokenIn);
                     require(tokenBalance >= trades[i].amountInMaximum, 'exactOutput() => invalid inputAmount');
 
-                    uint256 amountIn = SwapRouter.exactOutput(factory, swapRouter, trades[i], tokenIn, tokenOut);
+                    uint256 amountIn = exactOutput(factory, swapRouter, trades[i], tokenIn, tokenOut);
                     handleSwap(trades[i].investor, tokenIn, tokenOut, amountIn, trades[i].amountOut);
                 }
             }

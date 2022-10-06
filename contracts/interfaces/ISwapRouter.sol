@@ -2,8 +2,6 @@
 pragma solidity =0.7.6;
 pragma abicoder v2;
 
-/// @title Router token swapping functionality
-/// @notice Functions for swapping tokens via Uniswap V3
 interface ISwapRouter {
 
     enum V3TradeType{
