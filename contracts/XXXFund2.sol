@@ -57,7 +57,7 @@ contract XXXFund2 is
                 increaseToken(fundTokens, WETH9, msg.value);
                 uint256 amountETH = PriceOracle.getPriceETH(UNISWAP_V3_FACTORY, WETH9, WETH9) * msg.value;
                 uint256 amountUSD = PriceOracle.getPriceUSD(UNISWAP_V3_FACTORY, WETH9, USDC) * msg.value;
-                emit ManagerDeposit(msg.sender, WETH9, msg.value, amountETH, amountUSD);
+                emit ManagerDeposit(address(this), msg.sender, WETH9, msg.value, amountETH, amountUSD);
             } else {
                 bool _isSubscribed = IXXXFactory(factory).isSubscribed(msg.sender, address(this));
                 require(_isSubscribed, 'receive() => account is not subscribed');
@@ -66,7 +66,7 @@ contract XXXFund2 is
                 increaseToken(fundTokens, WETH9, msg.value);
                 uint256 amountETH = PriceOracle.getPriceETH(UNISWAP_V3_FACTORY, WETH9, WETH9) * msg.value;
                 uint256 amountUSD = PriceOracle.getPriceUSD(UNISWAP_V3_FACTORY, WETH9, USDC) * msg.value;
-                emit InvestorDeposit(msg.sender, WETH9, msg.value, amountETH, amountUSD);
+                emit InvestorDeposit(address(this), msg.sender, WETH9, msg.value, amountETH, amountUSD);
             }
         }
     }
@@ -74,7 +74,7 @@ contract XXXFund2 is
     function initialize(address _manager) override external {
         require(msg.sender == factory, 'initialize() => FORBIDDEN'); // sufficient check
         manager = _manager;
-        emit Initialize(_manager);
+        emit Initialize(address(this), _manager);
     }
 
     function getFundTokens() external override view returns (Token[] memory) {
@@ -125,7 +125,7 @@ contract XXXFund2 is
         }
         uint256 amountETH = PriceOracle.getPriceETH(UNISWAP_V3_FACTORY, _token, WETH9) * _amount;
         uint256 amountUSD = PriceOracle.getPriceUSD(UNISWAP_V3_FACTORY, _token, USDC) * _amount;
-        emit ManagerFeeIn(investor, manager, _token, _amount, amountETH, amountUSD);
+        emit ManagerFeeIn(address(this), investor, manager, _token, _amount, amountETH, amountUSD);
     }
 
     function feeOut(address _token, uint256 _amount) external payable override lock {
@@ -144,7 +144,7 @@ contract XXXFund2 is
         decreaseToken(fundTokens, _token, _amount);
         uint256 amountETH = PriceOracle.getPriceETH(UNISWAP_V3_FACTORY, _token, WETH9) * _amount;
         uint256 amountUSD = PriceOracle.getPriceUSD(UNISWAP_V3_FACTORY, _token, USDC) * _amount;
-        emit ManagerFeeOut(manager, _token, _amount, amountETH, amountUSD);
+        emit ManagerFeeOut(address(this), manager, _token, _amount, amountETH, amountUSD);
     }
 
     // this low-level function should be called from a contract which performs important safety checks
@@ -161,13 +161,13 @@ contract XXXFund2 is
             increaseToken(fundTokens, _token, _amount);
             uint256 amountETH = PriceOracle.getPriceETH(UNISWAP_V3_FACTORY, _token, WETH9) * _amount;
             uint256 amountUSD = PriceOracle.getPriceUSD(UNISWAP_V3_FACTORY, _token, USDC) * _amount;
-            emit ManagerDeposit(msg.sender, _token, _amount, amountETH, amountUSD);
+            emit ManagerDeposit(address(this), msg.sender, _token, _amount, amountETH, amountUSD);
         } else {
             increaseToken(investorTokens[msg.sender], _token, _amount);
             increaseToken(fundTokens, _token, _amount);
             uint256 amountETH = PriceOracle.getPriceETH(UNISWAP_V3_FACTORY, _token, WETH9) * _amount;
             uint256 amountUSD = PriceOracle.getPriceUSD(UNISWAP_V3_FACTORY, _token, USDC) * _amount;
-            emit InvestorDeposit(msg.sender, _token, _amount, amountETH, amountUSD);
+            emit InvestorDeposit(address(this), msg.sender, _token, _amount, amountETH, amountUSD);
         }
     }
 
@@ -185,7 +185,7 @@ contract XXXFund2 is
             decreaseToken(fundTokens, _token, _amount);
             uint256 amountETH = PriceOracle.getPriceETH(UNISWAP_V3_FACTORY, _token, WETH9) * _amount;
             uint256 amountUSD = PriceOracle.getPriceUSD(UNISWAP_V3_FACTORY, _token, USDC) * _amount;
-            emit ManagerWithdraw(msg.sender, _token, _amount, amountETH, amountUSD);
+            emit ManagerWithdraw(address(this), msg.sender, _token, _amount, amountETH, amountUSD);
         } else {
             require(isTokenEnough(investorTokens[msg.sender], _token, _amount), 'withdraw() => invalid token amount');
             //if investor has a profit, send manager fee.
@@ -196,7 +196,7 @@ contract XXXFund2 is
             decreaseToken(fundTokens, _token, _amount);
             uint256 amountETH = PriceOracle.getPriceETH(UNISWAP_V3_FACTORY, _token, WETH9) * _amount;
             uint256 amountUSD = PriceOracle.getPriceUSD(UNISWAP_V3_FACTORY, _token, USDC) * _amount;
-            emit InvestorWithdraw(msg.sender, _token, _amount, feeAmount, amountETH, amountUSD);
+            emit InvestorWithdraw(address(this), msg.sender, _token, _amount, feeAmount, amountETH, amountUSD);
         }
     }
 
@@ -222,6 +222,7 @@ contract XXXFund2 is
         uint256 amountETH = PriceOracle.getPriceETH(UNISWAP_V3_FACTORY, swapTo, WETH9) * swapToAmount;
         uint256 amountUSD = PriceOracle.getPriceUSD(UNISWAP_V3_FACTORY, swapTo, USDC) * swapToAmount;
         emit Swap(
+            address(this),
             manager,
             investor,
             swapFrom,

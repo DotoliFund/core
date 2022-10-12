@@ -8,8 +8,9 @@ import './IToken.sol';
 
 interface IXXXFund2 is ISwapRouter, IToken {
 
-    event Initialize(address manager);
+    event Initialize(address indexed fund, address manager);
     event ManagerDeposit(
+        address indexed fund,
         address indexed manager, 
         address token, 
         uint256 amount,
@@ -17,6 +18,7 @@ interface IXXXFund2 is ISwapRouter, IToken {
         uint256 amountUSD
     );
     event ManagerWithdraw(
+        address indexed fund,
         address indexed manager, 
         address token, 
         uint256 amount,
@@ -24,6 +26,7 @@ interface IXXXFund2 is ISwapRouter, IToken {
         uint256 amountUSD
     );
     event ManagerFeeIn(
+        address indexed fund,
         address indexed investor, 
         address indexed manager, 
         address token, 
@@ -32,6 +35,7 @@ interface IXXXFund2 is ISwapRouter, IToken {
         uint256 amountUSD
     );
     event ManagerFeeOut(
+        address indexed fund,
         address indexed manager,
         address token, 
         uint256 amount,
@@ -39,6 +43,7 @@ interface IXXXFund2 is ISwapRouter, IToken {
         uint256 amountUSD
     );
     event InvestorDeposit(
+        address indexed fund,
         address indexed investor, 
         address token, 
         uint256 amount,
@@ -46,6 +51,7 @@ interface IXXXFund2 is ISwapRouter, IToken {
         uint256 amountUSD
     );
     event InvestorWithdraw(
+        address indexed fund,
         address indexed investor, 
         address token, 
         uint256 amount, 
@@ -54,6 +60,7 @@ interface IXXXFund2 is ISwapRouter, IToken {
         uint256 amountUSD
     );
     event Swap(
+        address indexed fund,
         address indexed manager,
         address indexed investor,
         address tokenIn,
