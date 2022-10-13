@@ -45,7 +45,7 @@ contract XXXFactory is IXXXFactory, Constants {
         fund = address(new XXXFund2{salt: keccak256(abi.encode(address(this), msg.sender))}());
         getFundByManager[msg.sender] = fund;
         IXXXFund2(fund).initialize(msg.sender);
-        emit FundCreated(msg.sender, fund);
+        emit FundCreated(fund, msg.sender);
     }
 
     function setOwner(address newOwner) override external {
@@ -135,6 +135,6 @@ contract XXXFactory is IXXXFactory, Constants {
         getFundByInvestor[msg.sender][fundCount] = fund;
         getFundCountByInvestor[msg.sender] += 1;
 
-        emit Subscribe(msg.sender, fund);
+        emit Subscribe(fund, msg.sender);
     }
 }
