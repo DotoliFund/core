@@ -45,6 +45,12 @@ contract XXXFactory is IXXXFactory, Constants {
         fund = address(new XXXFund2{salt: keccak256(abi.encode(address(this), msg.sender))}());
         getFundByManager[msg.sender] = fund;
         IXXXFund2(fund).initialize(msg.sender);
+
+        //subscribe
+        uint256 fundCount = getFundCountByInvestor[msg.sender];
+        getFundByInvestor[msg.sender][fundCount] = fund;
+        getFundCountByInvestor[msg.sender] += 1;
+
         emit FundCreated(fund, msg.sender);
     }
 
@@ -128,13 +134,11 @@ contract XXXFactory is IXXXFactory, Constants {
     }
     
     function subscribe(address fund) override external lock {
-        require(getFundByManager[msg.sender] != fund, 'manager cannot add investor fund list');
         require(!isSubscribed(msg.sender, fund), 'investor fund already registered');
-        
         uint256 fundCount = getFundCountByInvestor[msg.sender];
+        address manager = IXXXFund2(fund).manager();
         getFundByInvestor[msg.sender][fundCount] = fund;
         getFundCountByInvestor[msg.sender] += 1;
-
-        emit Subscribe(fund, msg.sender);
+        emit Subscribe(fund, manager, msg.sender);
     }
 }

@@ -9,22 +9,6 @@ import './IToken.sol';
 interface IXXXFund2 is ISwapRouter, IToken {
 
     event Initialize(address indexed fund, address manager);
-    event ManagerDeposit(
-        address indexed fund,
-        address indexed manager, 
-        address token, 
-        uint256 amount,
-        uint256 amountETH, 
-        uint256 amountUSD
-    );
-    event ManagerWithdraw(
-        address indexed fund,
-        address indexed manager, 
-        address token, 
-        uint256 amount,
-        uint256 amountETH, 
-        uint256 amountUSD
-    );
     event ManagerFeeIn(
         address indexed fund,
         address indexed investor, 
@@ -42,16 +26,18 @@ interface IXXXFund2 is ISwapRouter, IToken {
         uint256 amountETH, 
         uint256 amountUSD
     );
-    event InvestorDeposit(
+    event Deposit(
         address indexed fund,
+        address indexed manager,
         address indexed investor, 
         address token, 
         uint256 amount,
         uint256 amountETH, 
         uint256 amountUSD
     );
-    event InvestorWithdraw(
+    event Withdraw(
         address indexed fund,
+        address indexed manager,
         address indexed investor, 
         address token, 
         uint256 amount, 
@@ -71,8 +57,9 @@ interface IXXXFund2 is ISwapRouter, IToken {
         uint256 amountUSD
     );
 
-    function initialize(address _manager) external;    
+    function manager() external view returns (address);
 
+    function initialize(address _manager) external;    
     function deposit(address _token, uint256 _amount) external payable;
     function withdraw(address _token, uint256 _amount) external payable;
     function swap(
@@ -82,18 +69,14 @@ interface IXXXFund2 is ISwapRouter, IToken {
     function feeOut(address _token, uint256 _amount) external payable;
 
     function getFundTokens() external returns (Token[] memory);
-    function getManagerTokens() external returns (Token[] memory);
     function getFeeTokens() external returns (Token[] memory);
     function getInvestorTokens(address investor) external returns (Token[] memory);
 
-    // for Test : external -> internal
-    function getUserTokenAmount(address investor, address token) external returns (uint256);
+    // TODO : for Test, external -> internal
+    function getInvestorTokenAmount(address investor, address token) external returns (uint256);
 
     function getFundVolumeETH() external returns (uint256);
     function getFundVolumeUSD() external returns (uint256);
-
-    function getManagerVolumeETH() external returns (uint256);
-    function getManagerVolumeUSD() external returns (uint256);
 
     function getInvestorVolumeETH(address investor) external returns (uint256);
     function getInvestorVolumeUSD(address investor) external returns (uint256);

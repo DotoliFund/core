@@ -9,7 +9,7 @@ interface IXXXFactory {
     /// @param oldOwner The owner before the owner was changed
     /// @param newOwner The owner after the owner was changed
     event OwnerChanged(address indexed oldOwner, address indexed newOwner);
-    event Subscribe(address indexed fund, address indexed investor);
+    event Subscribe(address indexed fund, address indexed manager, address indexed investor);
     event FundCreated(address indexed fund, address indexed manager);
 
     /// @notice Returns the current owner of the factory

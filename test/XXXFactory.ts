@@ -104,11 +104,11 @@ describe('XXXFactory', () => {
     })
 
     it("isSubscribed()", async function () {
-      expect(await factory.connect(manager1).isSubscribed(fund1Address,manager1.address)).to.be.false
+      expect(await factory.connect(manager1).isSubscribed(manager1.address, fund1Address)).to.be.true
     })
 
     it("subscribedFunds()", async function () {
-      expect(await factory.connect(manager1).subscribedFunds()).to.be.empty
+      expect(await factory.connect(manager1).subscribedFunds()).to.have.lengthOf(1)
     })
 
     it("subscribe()", async function () {
