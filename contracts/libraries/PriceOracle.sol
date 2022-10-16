@@ -91,14 +91,18 @@ library PriceOracle {
     }
 
     function getPriceUSD(address factory, address token, address usd) internal view returns (uint256 amount) {
-        return getPrice(
-        	factory,
-            token,
-            usd, //0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48, //USDC
-            3000, 
-            token, //token
-            IERC20(token).decimals(),
-            10
-        );
+        if (token == usd) {
+            return 10**6;
+        } else {
+            return getPrice(
+            	factory,
+                token,
+                usd, //0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48, //USDC
+                3000, 
+                token, //token
+                IERC20(token).decimals(),
+                10
+            );
+        }
     }
 }
