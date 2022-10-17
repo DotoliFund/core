@@ -10,7 +10,7 @@ import '../interfaces/IERC20.sol';
 /// @notice Provides functions to integrate with V3 pool oracle
 library PriceOracle {
 
-    function getLargestLiquidityPool(
+    function getBestPool(
         address factory,
         address token0, 
         address token1
@@ -70,7 +70,7 @@ library PriceOracle {
         return pool;
     }
 
-    function getLargestPoolPrice(
+    function getBestPoolPrice(
         address factory,
         address _token0, 
         address _token1,
@@ -82,7 +82,7 @@ library PriceOracle {
         address token1 = _token1;
         require(tokenIn == token0 || tokenIn == token1, "getPrice() => invalid token");
 
-        address pool = getLargestLiquidityPool(factory, token0, token1);
+        address pool = getBestPool(factory, token0, token1);
         require(pool != address(0), "getPrice() => pool doesn't exist");
 
         address tokenOut = tokenIn == token0 ? token1 : token0;
@@ -128,11 +128,11 @@ library PriceOracle {
         );
     }
 
-    function getLargestPoolPriceETH(address factory, address token, address weth) internal view returns (uint256 amount) {
+    function getBestPoolPriceETH(address factory, address token, address weth) internal view returns (uint256 amount) {
         if (token == weth) {
             return 10**18;
         } else {
-            return getLargestPoolPrice(
+            return getBestPoolPrice(
                 factory,
                 token,
                 weth, //weth
@@ -143,11 +143,11 @@ library PriceOracle {
         }
     }
 
-    function getLargestPoolPriceUSD(address factory, address token, address usd) internal view returns (uint256 amount) {
+    function getBestPoolPriceUSD(address factory, address token, address usd) internal view returns (uint256 amount) {
         if (token == usd) {
             return 10**6;
         } else {
-            return getLargestPoolPrice(
+            return getBestPoolPrice(
                 factory,
                 token,
                 usd, //0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48, //USDC
@@ -158,100 +158,100 @@ library PriceOracle {
         }
     }
 
-    function getPrice(
-    	address factory,
-        address _token0, 
-        address _token1, 
-        uint24 _fee,
-        address tokenIn,
-        uint128 amountIn,
-        uint32 secondsAgo
-    ) internal view returns (uint256 amountOut) {
-        address token0 = _token0;
-        address token1 = _token1;
-        uint24 fee = _fee;
+    // function getPrice(
+    // 	address factory,
+    //     address _token0, 
+    //     address _token1, 
+    //     uint24 _fee,
+    //     address tokenIn,
+    //     uint128 amountIn,
+    //     uint32 secondsAgo
+    // ) internal view returns (uint256 amountOut) {
+    //     address token0 = _token0;
+    //     address token1 = _token1;
+    //     uint24 fee = _fee;
 
-        address pool = IUniswapV3Factory(factory).getPool(
-            _token0,
-            _token1,
-            _fee
-        );
-        require(pool != address(0), "getPrice() => pool doesn't exist");
+    //     address pool = IUniswapV3Factory(factory).getPool(
+    //         _token0,
+    //         _token1,
+    //         _fee
+    //     );
+    //     require(pool != address(0), "getPrice() => pool doesn't exist");
 
-        require(tokenIn == token0 || tokenIn == token1, "getPrice() => invalid token");
+    //     require(tokenIn == token0 || tokenIn == token1, "getPrice() => invalid token");
 
-        address tokenOut = tokenIn == token0 ? token1 : token0;
+    //     address tokenOut = tokenIn == token0 ? token1 : token0;
 
-        // (int24 tick, ) = OracleLibrary.consult(pool, secondsAgo);
+    //     // (int24 tick, ) = OracleLibrary.consult(pool, secondsAgo);
 
-        // Code copied from OracleLibrary.sol, consult()
-        uint32[] memory secondsAgos = new uint32[](2);
-        secondsAgos[0] = secondsAgo;
-        secondsAgos[1] = 0;
+    //     // Code copied from OracleLibrary.sol, consult()
+    //     uint32[] memory secondsAgos = new uint32[](2);
+    //     secondsAgos[0] = secondsAgo;
+    //     secondsAgos[1] = 0;
 
-        // int56 since tick * time = int24 * uint32
-        // 56 = 24 + 32
-        (int56[] memory tickCumulatives, ) = IUniswapV3Pool(pool).observe(
-            secondsAgos
-        );
+    //     // int56 since tick * time = int24 * uint32
+    //     // 56 = 24 + 32
+    //     (int56[] memory tickCumulatives, ) = IUniswapV3Pool(pool).observe(
+    //         secondsAgos
+    //     );
 
-        int56 tickCumulativesDelta = tickCumulatives[1] - tickCumulatives[0];
+    //     int56 tickCumulativesDelta = tickCumulatives[1] - tickCumulatives[0];
 
-        // int56 / uint32 = int24
-        int24 tick = int24(tickCumulativesDelta / secondsAgo);
-        // Always round to negative infinity
-        /*
-        int doesn't round down when it is negative
-        int56 a = -3
-        -3 / 10 = -3.3333... so round down to -4
-        but we get
-        a / 10 = -3
-        so if tickCumulativeDelta < 0 and division has remainder, then round
-        down
-        */
-        if (
-            tickCumulativesDelta < 0 && (tickCumulativesDelta % secondsAgo != 0)
-        ) {
-            tick--;
-        }
+    //     // int56 / uint32 = int24
+    //     int24 tick = int24(tickCumulativesDelta / secondsAgo);
+    //     // Always round to negative infinity
+    //     /*
+    //     int doesn't round down when it is negative
+    //     int56 a = -3
+    //     -3 / 10 = -3.3333... so round down to -4
+    //     but we get
+    //     a / 10 = -3
+    //     so if tickCumulativeDelta < 0 and division has remainder, then round
+    //     down
+    //     */
+    //     if (
+    //         tickCumulativesDelta < 0 && (tickCumulativesDelta % secondsAgo != 0)
+    //     ) {
+    //         tick--;
+    //     }
 
-        amountOut = OracleLibrary.getQuoteAtTick(
-            tick,
-            amountIn,
-            tokenIn,
-            tokenOut
-        );
-    }
+    //     amountOut = OracleLibrary.getQuoteAtTick(
+    //         tick,
+    //         amountIn,
+    //         tokenIn,
+    //         tokenOut
+    //     );
+    // }
 
-    function getPriceETH(address factory, address token, address weth, uint24 fee) internal view returns (uint256 amount) {
-        if (token == weth) {
-            return 10**18;
-        } else {
-            return getPrice(
-            	factory,
-                token,
-                weth, //weth
-                fee, 
-                token, //token
-                IERC20(token).decimals(), 
-                10
-            );
-        }
-    }
+    // function getPriceETH(address factory, address token, address weth, uint24 fee) internal view returns (uint256 amount) {
+    //     if (token == weth) {
+    //         return 10**18;
+    //     } else {
+    //         return getPrice(
+    //         	factory,
+    //             token,
+    //             weth, //weth
+    //             fee, 
+    //             token, //token
+    //             IERC20(token).decimals(), 
+    //             10
+    //         );
+    //     }
+    // }
 
-    function getPriceUSD(address factory, address token, address usd) internal view returns (uint256 amount) {
-        if (token == usd) {
-            return 10**6;
-        } else {
-            return getPrice(
-            	factory,
-                token,
-                usd, //0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48, //USDC
-                fee, 
-                token, //token
-                IERC20(token).decimals(),
-                10
-            );
-        }
-    }
+    // function getPriceUSD(address factory, address token, address usd, uint24 fee) internal view returns (uint256 amount) {
+    //     if (token == usd) {
+    //         return 10**6;
+    //     } else {
+    //         return getPrice(
+    //         	factory,
+    //             token,
+    //             usd, //0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48, //USDC
+    //             fee, 
+    //             token, //token
+    //             IERC20(token).decimals(),
+    //             10
+    //         );
+    //     }
+    // }
 }
