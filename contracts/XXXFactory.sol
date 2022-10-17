@@ -29,13 +29,13 @@ contract XXXFactory is IXXXFactory, Constants {
         owner = msg.sender;
         emit OwnerChanged(address(0), msg.sender);
 
+        //TODO : change testnet WETH, USDC
         whiteListTokens.push(WETH9); //WETH mainnet
-        whiteListTokens.push(0xc778417E063141139Fce010982780140Aa0cD5Ab); //WETH9 rinkeby testnet
         whiteListTokens.push(WBTC); //WBTC
         whiteListTokens.push(USDC); //USDC
         whiteListTokens.push(DAI); //DAI
         whiteListTokens.push(UNI); //UNI
-        whiteListTokens.push(0xEAE906dC299ccd9Cd94584377d0F96Ce144c942f); //XXX
+        whiteListTokens.push(XXX); //XXX
 
         //console.log("msg.sender : ", msg.sender);
     }
