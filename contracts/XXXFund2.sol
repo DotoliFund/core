@@ -42,8 +42,9 @@ contract XXXFund2 is
         unlocked = 1;
     }
 
-    constructor() {
+    constructor(address _manager) {
         factory = msg.sender;
+        manager = _manager;
     }
 
     receive() external payable {
@@ -59,12 +60,6 @@ contract XXXFund2 is
             uint256 amountUSD = PriceOracle.getBestPoolPriceUSD(UNISWAP_V3_FACTORY, WETH9, USDC) * msg.value;
             emit Deposit(address(this), manager, msg.sender, WETH9, msg.value, amountETH, amountUSD);
         }
-    }
-
-    function initialize(address _manager) override external {
-        require(msg.sender == factory, 'initialize() => FORBIDDEN'); // sufficient check
-        manager = _manager;
-        emit Initialize(address(this), _manager);
     }
 
     function getFundTokens() external override view returns (Token[] memory) {
