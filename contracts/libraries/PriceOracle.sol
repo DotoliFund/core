@@ -128,31 +128,31 @@ library PriceOracle {
         );
     }
 
-    function getBestPoolPriceETH(address factory, address token, address weth) internal view returns (uint256 amount) {
+    function getBestPoolPriceETH(address factory, address token, uint128 amountIn, address weth) internal view returns (uint256 amount) {
         if (token == weth) {
             return 10**18;
         } else {
             return getBestPoolPrice(
                 factory,
                 token,
-                weth, //weth
-                token, //token
-                IERC20(token).decimals(), 
+                weth,
+                token,
+                amountIn, 
                 10
             );
         }
     }
 
-    function getBestPoolPriceUSD(address factory, address token, address usd) internal view returns (uint256 amount) {
+    function getBestPoolPriceUSD(address factory, address token, uint128 amountIn, address usd) internal view returns (uint256 amount) {
         if (token == usd) {
             return 10**6;
         } else {
             return getBestPoolPrice(
                 factory,
                 token,
-                usd, //0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48, //USDC
-                token, //token
-                IERC20(token).decimals(),
+                usd,
+                token,
+                amountIn,
                 10
             );
         }

@@ -54,7 +54,7 @@ abstract contract Token is IToken, Constants {
     }
 
     function getETHPriceByUSD() internal view returns (uint256 ETHPriceByUSD) {
-        return PriceOracle.getBestPoolPriceUSD(UNISWAP_V3_FACTORY, WETH9, USDC);
+        return PriceOracle.getBestPoolPriceUSD(UNISWAP_V3_FACTORY, WETH9, uint128(10**18), USDC);
     }
 
     function getVolumeETH(Token[] memory tokens) internal view returns (uint256 volumeETH) {
@@ -62,7 +62,7 @@ abstract contract Token is IToken, Constants {
         for (uint256 i=0; i<tokens.length; i++) {
             address token = tokens[i].tokenAddress;
             uint256 amount = tokens[i].amount;
-            volumeETH += PriceOracle.getBestPoolPriceETH(UNISWAP_V3_FACTORY, token, WETH9) * amount;
+            volumeETH += PriceOracle.getBestPoolPriceETH(UNISWAP_V3_FACTORY, token, uint128(amount), WETH9) * amount;
         }
     }
 
@@ -71,7 +71,7 @@ abstract contract Token is IToken, Constants {
         for (uint256 i=0; i<tokens.length; i++) {
             address token = tokens[i].tokenAddress;
             uint256 amount = tokens[i].amount;
-            volumeUSD += PriceOracle.getBestPoolPriceUSD(UNISWAP_V3_FACTORY, token, USDC) * amount;
+            volumeUSD += PriceOracle.getBestPoolPriceUSD(UNISWAP_V3_FACTORY, token, uint128(amount), USDC) * amount;
         }    
     }
 }

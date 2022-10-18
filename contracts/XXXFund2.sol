@@ -13,6 +13,7 @@ import './base/Payments.sol';
 import './base/Constants.sol';
 import './base/Token.sol';
 
+//TODO : remove console
 import "hardhat/console.sol";
 
 contract XXXFund2 is 
@@ -55,8 +56,8 @@ contract XXXFund2 is
             IWETH9(WETH9).deposit{value: msg.value}();
             increaseToken(investorTokens[msg.sender], WETH9, msg.value);
             increaseToken(fundTokens, WETH9, msg.value);
-            uint256 amountETH = PriceOracle.getBestPoolPriceETH(UNISWAP_V3_FACTORY, WETH9, WETH9) * msg.value;
-            uint256 amountUSD = PriceOracle.getBestPoolPriceUSD(UNISWAP_V3_FACTORY, WETH9, USDC) * msg.value;
+            uint256 amountETH = PriceOracle.getBestPoolPriceETH(UNISWAP_V3_FACTORY, WETH9, uint128(msg.value), WETH9) * msg.value;
+            uint256 amountUSD = PriceOracle.getBestPoolPriceUSD(UNISWAP_V3_FACTORY, WETH9, uint128(msg.value), USDC) * msg.value;
             emit Deposit(address(this), manager, msg.sender, WETH9, msg.value, amountETH, amountUSD);
         }
     }
@@ -103,8 +104,8 @@ contract XXXFund2 is
         if (isNewToken) {
             feeTokens.push(Token(_token, _amount));
         }
-        uint256 amountETH = PriceOracle.getBestPoolPriceETH(UNISWAP_V3_FACTORY, _token, WETH9) * _amount;
-        uint256 amountUSD = PriceOracle.getBestPoolPriceUSD(UNISWAP_V3_FACTORY, _token, USDC) * _amount;
+        uint256 amountETH = PriceOracle.getBestPoolPriceETH(UNISWAP_V3_FACTORY, _token, uint128(_amount), WETH9) * _amount;
+        uint256 amountUSD = PriceOracle.getBestPoolPriceUSD(UNISWAP_V3_FACTORY, _token, uint128(_amount), USDC) * _amount;
         emit ManagerFeeIn(address(this), investor, manager, _token, _amount, amountETH, amountUSD);
     }
 
@@ -122,8 +123,8 @@ contract XXXFund2 is
         }
         require(isNewToken == false, 'feeOut() => token is not exist');
         decreaseToken(fundTokens, _token, _amount);
-        uint256 amountETH = PriceOracle.getBestPoolPriceETH(UNISWAP_V3_FACTORY, _token, WETH9) * _amount;
-        uint256 amountUSD = PriceOracle.getBestPoolPriceUSD(UNISWAP_V3_FACTORY, _token, USDC) * _amount;
+        uint256 amountETH = PriceOracle.getBestPoolPriceETH(UNISWAP_V3_FACTORY, _token, uint128(_amount), WETH9) * _amount;
+        uint256 amountUSD = PriceOracle.getBestPoolPriceUSD(UNISWAP_V3_FACTORY, _token, uint128(_amount), USDC) * _amount;
         emit ManagerFeeOut(address(this), manager, _token, _amount, amountETH, amountUSD);
     }
 
@@ -138,8 +139,8 @@ contract XXXFund2 is
 
         increaseToken(investorTokens[msg.sender], _token, _amount);
         increaseToken(fundTokens, _token, _amount);
-        uint256 amountETH = PriceOracle.getBestPoolPriceETH(UNISWAP_V3_FACTORY, _token, WETH9) * _amount;
-        uint256 amountUSD = PriceOracle.getBestPoolPriceUSD(UNISWAP_V3_FACTORY, _token, USDC) * _amount;
+        uint256 amountETH = PriceOracle.getBestPoolPriceETH(UNISWAP_V3_FACTORY, _token, uint128(_amount), WETH9) * _amount;
+        uint256 amountUSD = PriceOracle.getBestPoolPriceUSD(UNISWAP_V3_FACTORY, _token, uint128(_amount), USDC) * _amount;
         emit Deposit(address(this), manager, msg.sender, _token, _amount, amountETH, amountUSD);
     }
 
@@ -166,8 +167,8 @@ contract XXXFund2 is
         }
         decreaseToken(investorTokens[msg.sender], _token, _amount);
         decreaseToken(fundTokens, _token, withdrawAmount);
-        uint256 amountETH = PriceOracle.getBestPoolPriceETH(UNISWAP_V3_FACTORY, _token, WETH9) * withdrawAmount;
-        uint256 amountUSD = PriceOracle.getBestPoolPriceUSD(UNISWAP_V3_FACTORY, _token, USDC) * withdrawAmount;
+        uint256 amountETH = PriceOracle.getBestPoolPriceETH(UNISWAP_V3_FACTORY, _token, uint128(_amount), WETH9) * withdrawAmount;
+        uint256 amountUSD = PriceOracle.getBestPoolPriceUSD(UNISWAP_V3_FACTORY, _token, uint128(_amount), USDC) * withdrawAmount;
         emit Withdraw(address(this), manager, msg.sender, _token, withdrawAmount, feeAmount, amountETH, amountUSD);
     }
 
@@ -183,8 +184,8 @@ contract XXXFund2 is
         increaseToken(investorTokens[investor], swapTo, swapToAmount);
         decreaseToken(fundTokens, swapFrom, swapFromAmount);
         increaseToken(fundTokens, swapTo, swapToAmount);
-        uint256 amountETH = PriceOracle.getBestPoolPriceETH(UNISWAP_V3_FACTORY, swapTo, WETH9) * swapToAmount;
-        uint256 amountUSD = PriceOracle.getBestPoolPriceUSD(UNISWAP_V3_FACTORY, swapTo, USDC) * swapToAmount;
+        uint256 amountETH = PriceOracle.getBestPoolPriceETH(UNISWAP_V3_FACTORY, swapTo, uint128(swapToAmount), WETH9) * swapToAmount;
+        uint256 amountUSD = PriceOracle.getBestPoolPriceUSD(UNISWAP_V3_FACTORY, swapTo, uint128(swapToAmount), USDC) * swapToAmount;
         emit Swap(
             address(this),
             manager,
