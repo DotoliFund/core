@@ -44,12 +44,13 @@ contract XXXFactory is IXXXFactory, Constants {
         require(getFundByManager[msg.sender] == address(0), 'createFund() => FUND_EXISTS');
         fund = address(new XXXFund2{salt: keccak256(abi.encode(address(this), msg.sender))}());
         getFundByManager[msg.sender] = fund;
+        IXXXFund2(fund).initialize(msg.sender);
 
         //subscribe
         uint256 fundCount = getFundCountByInvestor[msg.sender];
         getFundByInvestor[msg.sender][fundCount] = fund;
         getFundCountByInvestor[msg.sender] += 1;
-        
+
         emit FundCreated(fund, msg.sender);
     }
 

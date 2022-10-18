@@ -8,6 +8,7 @@ import './IToken.sol';
 
 interface IXXXFund2 is ISwapRouter, IToken {
 
+    event Initialize(address indexed fund, address manager);
     event ManagerFeeIn(
         address indexed fund,
         address indexed investor, 
