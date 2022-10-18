@@ -16,7 +16,7 @@ interface IXXXFund2 is ISwapRouter, IToken {
         address token, 
         uint256 amount,
         uint256 amountETH, 
-        uint256 amountUSD
+        uint256 ethPriceUSD
     );
     event ManagerFeeOut(
         address indexed fund,
@@ -24,7 +24,7 @@ interface IXXXFund2 is ISwapRouter, IToken {
         address token, 
         uint256 amount,
         uint256 amountETH, 
-        uint256 amountUSD
+        uint256 ethPriceUSD
     );
     event Deposit(
         address indexed fund,
@@ -33,7 +33,7 @@ interface IXXXFund2 is ISwapRouter, IToken {
         address token, 
         uint256 amount,
         uint256 amountETH, 
-        uint256 amountUSD
+        uint256 ethPriceUSD
     );
     event Withdraw(
         address indexed fund,
@@ -43,7 +43,7 @@ interface IXXXFund2 is ISwapRouter, IToken {
         uint256 amount, 
         uint256 feeAmount,
         uint256 amountETH, 
-        uint256 amountUSD
+        uint256 ethPriceUSD
     );
     event Swap(
         address indexed fund,
@@ -54,7 +54,7 @@ interface IXXXFund2 is ISwapRouter, IToken {
         uint256 amountIn,
         uint256 amountOut,
         uint256 amountETH, 
-        uint256 amountUSD
+        uint256 ethPriceUSD
     );
 
     function manager() external view returns (address);

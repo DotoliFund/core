@@ -282,7 +282,10 @@ describe('XXXFund2', () => {
             BigNumber.from(0),
             fund1Address
           )
-          await fund1.connect(manager1).swap(params, { value: 0 })
+          const result = await fund1.connect(manager1).swap(params, { value: 0 })
+          const rc = await result.wait();
+          const event = rc.events.find(event => event.event === 'Swap');
+          console.log('Swap Event', event.args);
 
           const fund1After = await getFundAccount(fund1.address)
           const manager1After = await getManagerAccount(manager1.address)

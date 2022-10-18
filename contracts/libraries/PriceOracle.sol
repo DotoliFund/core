@@ -6,6 +6,8 @@ import '@uniswap/v3-core/contracts/interfaces/IUniswapV3Pool.sol';
 import '@uniswap/v3-periphery/contracts/libraries/OracleLibrary.sol';
 import '../interfaces/IERC20.sol';
 
+import "hardhat/console.sol";
+
 /// @title PriceOracle library
 /// @notice Provides functions to integrate with V3 pool oracle
 library PriceOracle {
@@ -53,20 +55,23 @@ library PriceOracle {
 
         address pool = address(0);
 
-        if (fee500PoolLiquiduty >= fee3000PoolLiquiduty) {
-            if (fee500PoolLiquiduty >= fee10000PoolLiquiduty) {
-                pool = fee500Pool;
-            }
-        } else if (fee3000PoolLiquiduty >= fee500PoolLiquiduty) {
-            if (fee3000PoolLiquiduty >= fee10000PoolLiquiduty) {
-                pool = fee3000Pool;
-            }
-        } else if (fee10000PoolLiquiduty >= fee500PoolLiquiduty) {
-            if (fee10000PoolLiquiduty >= fee3000PoolLiquiduty) {
-                pool = fee10000Pool;
-            }
+        if (fee500PoolLiquiduty >= fee3000PoolLiquiduty && fee500PoolLiquiduty >= fee10000PoolLiquiduty) {
+            pool = fee500Pool;
+        } else if (fee3000PoolLiquiduty >= fee500PoolLiquiduty && fee3000PoolLiquiduty >= fee10000PoolLiquiduty) {
+            pool = fee3000Pool;
+        } else if (fee10000PoolLiquiduty >= fee500PoolLiquiduty && fee10000PoolLiquiduty >= fee3000PoolLiquiduty) {
+            pool = fee10000Pool;
         }
 
+        console.log(1111111111111111);
+        console.log(fee500Pool);
+        console.log(fee3000Pool);
+        console.log(fee10000Pool);
+        console.log(fee500PoolLiquiduty);
+        console.log(fee3000PoolLiquiduty);
+        console.log(fee10000PoolLiquiduty);
+        console.log(222222222222222222);
+        console.log(pool);
         return pool;
     }
 
@@ -120,12 +125,14 @@ library PriceOracle {
             tick--;
         }
 
+        console.log(pool, tokenIn, tokenOut, amountIn);
         amountOut = OracleLibrary.getQuoteAtTick(
             tick,
             amountIn,
             tokenIn,
             tokenOut
         );
+        console.log('3333333333333333', amountOut);
     }
 
     function getBestPoolPriceETH(address factory, address token, uint128 amountIn, address weth) internal view returns (uint256 amount) {
@@ -156,6 +163,28 @@ library PriceOracle {
                 10
             );
         }
+    }
+
+    function getETHPriceUSD(address factory, address weth, address usd) internal view returns (uint256 amount) {
+        return getBestPoolPrice(
+            factory,
+            weth,
+            usd,
+            weth,
+            10**18,
+            10
+        );
+    }
+
+    function getUSDPriceETH(address factory, address usd, address weth) internal view returns (uint256 amount) {
+        return getBestPoolPrice(
+            factory,
+            usd,
+            weth,
+            usd,
+            10**6,
+            10
+        );
     }
 
     // function getPrice(

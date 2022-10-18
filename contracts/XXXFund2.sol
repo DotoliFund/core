@@ -56,9 +56,9 @@ contract XXXFund2 is
             IWETH9(WETH9).deposit{value: msg.value}();
             increaseToken(investorTokens[msg.sender], WETH9, msg.value);
             increaseToken(fundTokens, WETH9, msg.value);
-            uint256 amountETH = PriceOracle.getBestPoolPriceETH(UNISWAP_V3_FACTORY, WETH9, uint128(msg.value), WETH9) * msg.value;
-            uint256 amountUSD = PriceOracle.getBestPoolPriceUSD(UNISWAP_V3_FACTORY, WETH9, uint128(msg.value), USDC) * msg.value;
-            emit Deposit(address(this), manager, msg.sender, WETH9, msg.value, amountETH, amountUSD);
+            uint256 amountETH = PriceOracle.getBestPoolPriceETH(UNISWAP_V3_FACTORY, WETH9, uint128(msg.value), WETH9);
+            uint256 ethPriceUSD = PriceOracle.getETHPriceUSD(UNISWAP_V3_FACTORY, WETH9, USDC);
+            emit Deposit(address(this), manager, msg.sender, WETH9, msg.value, amountETH, ethPriceUSD);
         }
     }
 
@@ -104,9 +104,9 @@ contract XXXFund2 is
         if (isNewToken) {
             feeTokens.push(Token(_token, _amount));
         }
-        uint256 amountETH = PriceOracle.getBestPoolPriceETH(UNISWAP_V3_FACTORY, _token, uint128(_amount), WETH9) * _amount;
-        uint256 amountUSD = PriceOracle.getBestPoolPriceUSD(UNISWAP_V3_FACTORY, _token, uint128(_amount), USDC) * _amount;
-        emit ManagerFeeIn(address(this), investor, manager, _token, _amount, amountETH, amountUSD);
+        uint256 amountETH = PriceOracle.getBestPoolPriceETH(UNISWAP_V3_FACTORY, _token, uint128(_amount), WETH9);
+        uint256 ethPriceUSD = PriceOracle.getETHPriceUSD(UNISWAP_V3_FACTORY, WETH9, USDC);
+        emit ManagerFeeIn(address(this), investor, manager, _token, _amount, amountETH, ethPriceUSD);
     }
 
     function feeOut(address _token, uint256 _amount) external payable override lock {
@@ -123,9 +123,9 @@ contract XXXFund2 is
         }
         require(isNewToken == false, 'feeOut() => token is not exist');
         decreaseToken(fundTokens, _token, _amount);
-        uint256 amountETH = PriceOracle.getBestPoolPriceETH(UNISWAP_V3_FACTORY, _token, uint128(_amount), WETH9) * _amount;
-        uint256 amountUSD = PriceOracle.getBestPoolPriceUSD(UNISWAP_V3_FACTORY, _token, uint128(_amount), USDC) * _amount;
-        emit ManagerFeeOut(address(this), manager, _token, _amount, amountETH, amountUSD);
+        uint256 amountETH = PriceOracle.getBestPoolPriceETH(UNISWAP_V3_FACTORY, _token, uint128(_amount), WETH9);
+        uint256 ethPriceUSD = PriceOracle.getETHPriceUSD(UNISWAP_V3_FACTORY, WETH9, USDC);
+        emit ManagerFeeOut(address(this), manager, _token, _amount, amountETH, ethPriceUSD);
     }
 
     // this low-level function should be called from a contract which performs important safety checks
@@ -139,9 +139,9 @@ contract XXXFund2 is
 
         increaseToken(investorTokens[msg.sender], _token, _amount);
         increaseToken(fundTokens, _token, _amount);
-        uint256 amountETH = PriceOracle.getBestPoolPriceETH(UNISWAP_V3_FACTORY, _token, uint128(_amount), WETH9) * _amount;
-        uint256 amountUSD = PriceOracle.getBestPoolPriceUSD(UNISWAP_V3_FACTORY, _token, uint128(_amount), USDC) * _amount;
-        emit Deposit(address(this), manager, msg.sender, _token, _amount, amountETH, amountUSD);
+        uint256 amountETH = PriceOracle.getBestPoolPriceETH(UNISWAP_V3_FACTORY, _token, uint128(_amount), WETH9);
+        uint256 ethPriceUSD = PriceOracle.getETHPriceUSD(UNISWAP_V3_FACTORY, WETH9, USDC);
+        emit Deposit(address(this), manager, msg.sender, _token, _amount, amountETH, ethPriceUSD);
     }
 
     function withdraw(address _token, uint256 _amount) external payable override lock {
@@ -167,9 +167,9 @@ contract XXXFund2 is
         }
         decreaseToken(investorTokens[msg.sender], _token, _amount);
         decreaseToken(fundTokens, _token, withdrawAmount);
-        uint256 amountETH = PriceOracle.getBestPoolPriceETH(UNISWAP_V3_FACTORY, _token, uint128(_amount), WETH9) * withdrawAmount;
-        uint256 amountUSD = PriceOracle.getBestPoolPriceUSD(UNISWAP_V3_FACTORY, _token, uint128(_amount), USDC) * withdrawAmount;
-        emit Withdraw(address(this), manager, msg.sender, _token, withdrawAmount, feeAmount, amountETH, amountUSD);
+        uint256 amountETH = PriceOracle.getBestPoolPriceETH(UNISWAP_V3_FACTORY, _token, uint128(_amount), WETH9);
+        uint256 ethPriceUSD = PriceOracle.getETHPriceUSD(UNISWAP_V3_FACTORY, WETH9, USDC);
+        emit Withdraw(address(this), manager, msg.sender, _token, withdrawAmount, feeAmount, amountETH, ethPriceUSD);
     }
 
     function handleSwap(
@@ -184,8 +184,8 @@ contract XXXFund2 is
         increaseToken(investorTokens[investor], swapTo, swapToAmount);
         decreaseToken(fundTokens, swapFrom, swapFromAmount);
         increaseToken(fundTokens, swapTo, swapToAmount);
-        uint256 amountETH = PriceOracle.getBestPoolPriceETH(UNISWAP_V3_FACTORY, swapTo, uint128(swapToAmount), WETH9) * swapToAmount;
-        uint256 amountUSD = PriceOracle.getBestPoolPriceUSD(UNISWAP_V3_FACTORY, swapTo, uint128(swapToAmount), USDC) * swapToAmount;
+        uint256 amountETH = PriceOracle.getBestPoolPriceETH(UNISWAP_V3_FACTORY, swapTo, uint128(swapToAmount), WETH9);
+        uint256 ethPriceUSD = PriceOracle.getETHPriceUSD(UNISWAP_V3_FACTORY, WETH9, USDC);
         emit Swap(
             address(this),
             manager,
@@ -195,7 +195,7 @@ contract XXXFund2 is
             swapFromAmount,
             swapToAmount,
             amountETH,
-            amountUSD
+            ethPriceUSD
         );
     }
 
