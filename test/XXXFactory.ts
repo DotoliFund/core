@@ -7,7 +7,7 @@ import { getCreate2Address } from './shared/utilities'
 
 import { 
   NULL_ADDRESS,
-  WETH9_MAINNET,
+  WETH9,
   V3_SWAP_ROUTER_ADDRESS,
   MANAGER_FEE,
   WHITE_LIST_TOKENS,
@@ -42,8 +42,6 @@ describe('XXXFactory', () => {
       investor2,
       notInvestor
     ] = await (ethers as any).getSigners()
-
-    WETH9 = await ethers.getContractAt("IWETH9", WETH9_MAINNET)
   })
 
   before("Deploy XXXFactory Contract", async function () {
