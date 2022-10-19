@@ -3,7 +3,6 @@ pragma solidity =0.7.6;
 pragma abicoder v2;
 
 import '../interfaces/IToken.sol';
-import '../libraries/PriceOracle.sol';
 import '../base/Constants.sol';
 
 /// @title Token
@@ -51,27 +50,5 @@ abstract contract Token is IToken, Constants {
             }
         }
         require(isNewToken == false, 'decreaseToken() => token is not exist');
-    }
-
-    function getETHPriceByUSD() internal view returns (uint256 ETHPriceByUSD) {
-        return PriceOracle.getBestPoolPriceUSD(UNISWAP_V3_FACTORY, WETH9, uint128(10**18), USDC);
-    }
-
-    function getVolumeETH(Token[] memory tokens) internal view returns (uint256 volumeETH) {
-        volumeETH = 0;
-        for (uint256 i=0; i<tokens.length; i++) {
-            address token = tokens[i].tokenAddress;
-            uint256 amount = tokens[i].amount;
-            volumeETH += PriceOracle.getBestPoolPriceETH(UNISWAP_V3_FACTORY, token, uint128(amount), WETH9) * amount;
-        }
-    }
-
-    function getVolumeUSD(Token[] memory tokens) internal view returns (uint256 volumeUSD) {
-        volumeUSD = 0;
-        for (uint256 i=0; i<tokens.length; i++) {
-            address token = tokens[i].tokenAddress;
-            uint256 amount = tokens[i].amount;
-            volumeUSD += PriceOracle.getBestPoolPriceUSD(UNISWAP_V3_FACTORY, token, uint128(amount), USDC) * amount;
-        }    
     }
 }

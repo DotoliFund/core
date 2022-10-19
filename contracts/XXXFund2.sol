@@ -30,9 +30,7 @@ contract XXXFund2 is
 
     // manager tokens and all investors tokens in fund
     Token[] public fundTokens;
-
-    // tokens
-    Token[] public feeTokens; //manager fee
+    Token[] public feeTokens; //manager fee tokens
     mapping(address => Token[]) public investorTokens;
     
     uint256 private unlocked = 1;
@@ -56,9 +54,8 @@ contract XXXFund2 is
             IWETH9(WETH9).deposit{value: msg.value}();
             increaseToken(investorTokens[msg.sender], WETH9, msg.value);
             increaseToken(fundTokens, WETH9, msg.value);
-            uint256 amountETH = PriceOracle.getBestPoolPriceETH(UNISWAP_V3_FACTORY, WETH9, uint128(msg.value), WETH9);
-            uint256 ethPriceUSD = PriceOracle.getETHPriceUSD(UNISWAP_V3_FACTORY, WETH9, USDC);
-            emit Deposit(address(this), manager, msg.sender, WETH9, msg.value, amountETH, ethPriceUSD);
+            uint256 amountETH = PriceOracle.getPriceETH(UNISWAP_V3_FACTORY, WETH9, uint128(msg.value), WETH9);
+            emit Deposit(address(this), manager, msg.sender, WETH9, msg.value, amountETH);
         }
     }
 
@@ -104,9 +101,8 @@ contract XXXFund2 is
         if (isNewToken) {
             feeTokens.push(Token(_token, _amount));
         }
-        uint256 amountETH = PriceOracle.getBestPoolPriceETH(UNISWAP_V3_FACTORY, _token, uint128(_amount), WETH9);
-        uint256 ethPriceUSD = PriceOracle.getETHPriceUSD(UNISWAP_V3_FACTORY, WETH9, USDC);
-        emit ManagerFeeIn(address(this), investor, manager, _token, _amount, amountETH, ethPriceUSD);
+        uint256 amountETH = PriceOracle.getPriceETH(UNISWAP_V3_FACTORY, _token, uint128(_amount), WETH9);
+        emit ManagerFeeIn(address(this), investor, manager, _token, _amount, amountETH);
     }
 
     function feeOut(address _token, uint256 _amount) external payable override lock {
@@ -123,9 +119,8 @@ contract XXXFund2 is
         }
         require(isNewToken == false, 'feeOut() => token is not exist');
         decreaseToken(fundTokens, _token, _amount);
-        uint256 amountETH = PriceOracle.getBestPoolPriceETH(UNISWAP_V3_FACTORY, _token, uint128(_amount), WETH9);
-        uint256 ethPriceUSD = PriceOracle.getETHPriceUSD(UNISWAP_V3_FACTORY, WETH9, USDC);
-        emit ManagerFeeOut(address(this), manager, _token, _amount, amountETH, ethPriceUSD);
+        uint256 amountETH = PriceOracle.getPriceETH(UNISWAP_V3_FACTORY, _token, uint128(_amount), WETH9);
+        emit ManagerFeeOut(address(this), manager, _token, _amount, amountETH);
     }
 
     // this low-level function should be called from a contract which performs important safety checks
@@ -139,9 +134,8 @@ contract XXXFund2 is
 
         increaseToken(investorTokens[msg.sender], _token, _amount);
         increaseToken(fundTokens, _token, _amount);
-        uint256 amountETH = PriceOracle.getBestPoolPriceETH(UNISWAP_V3_FACTORY, _token, uint128(_amount), WETH9);
-        uint256 ethPriceUSD = PriceOracle.getETHPriceUSD(UNISWAP_V3_FACTORY, WETH9, USDC);
-        emit Deposit(address(this), manager, msg.sender, _token, _amount, amountETH, ethPriceUSD);
+        uint256 amountETH = PriceOracle.getPriceETH(UNISWAP_V3_FACTORY, _token, uint128(_amount), WETH9);
+        emit Deposit(address(this), manager, msg.sender, _token, _amount, amountETH);
     }
 
     function withdraw(address _token, uint256 _amount) external payable override lock {
@@ -167,9 +161,8 @@ contract XXXFund2 is
         }
         decreaseToken(investorTokens[msg.sender], _token, _amount);
         decreaseToken(fundTokens, _token, withdrawAmount);
-        uint256 amountETH = PriceOracle.getBestPoolPriceETH(UNISWAP_V3_FACTORY, _token, uint128(_amount), WETH9);
-        uint256 ethPriceUSD = PriceOracle.getETHPriceUSD(UNISWAP_V3_FACTORY, WETH9, USDC);
-        emit Withdraw(address(this), manager, msg.sender, _token, withdrawAmount, feeAmount, amountETH, ethPriceUSD);
+        uint256 amountETH = PriceOracle.getPriceETH(UNISWAP_V3_FACTORY, _token, uint128(_amount), WETH9);
+        emit Withdraw(address(this), manager, msg.sender, _token, withdrawAmount, feeAmount, amountETH);
     }
 
     function handleSwap(
@@ -184,8 +177,7 @@ contract XXXFund2 is
         increaseToken(investorTokens[investor], swapTo, swapToAmount);
         decreaseToken(fundTokens, swapFrom, swapFromAmount);
         increaseToken(fundTokens, swapTo, swapToAmount);
-        uint256 amountETH = PriceOracle.getBestPoolPriceETH(UNISWAP_V3_FACTORY, swapTo, uint128(swapToAmount), WETH9);
-        uint256 ethPriceUSD = PriceOracle.getETHPriceUSD(UNISWAP_V3_FACTORY, WETH9, USDC);
+        uint256 amountETH = PriceOracle.getPriceETH(UNISWAP_V3_FACTORY, swapTo, uint128(swapToAmount), WETH9);
         emit Swap(
             address(this),
             manager,
@@ -194,8 +186,7 @@ contract XXXFund2 is
             swapTo,
             swapFromAmount,
             swapToAmount,
-            amountETH,
-            ethPriceUSD
+            amountETH
         );
     }
 
@@ -240,24 +231,27 @@ contract XXXFund2 is
         }
     }
 
-    function getFundVolumeETH() external override view returns (uint256 volumeETH) {
-        return getVolumeETH(fundTokens);
-    }
-    function getFundVolumeUSD() external override view returns (uint256 volumeUSD) {
-        return getVolumeUSD(fundTokens);
-    }
-
-    function getInvestorVolumeETH(address investor) external override view returns (uint256 volumeETH) {
-        return getVolumeETH(investorTokens[investor]);
-    }
-    function getInvestorVolumeUSD(address investor) external override view returns (uint256 volumeUSD) {
-        return getVolumeUSD(investorTokens[investor]);
+    function getInvestorTotalValueLockedETH(address investor) external override view returns (uint256) {
+        uint256 tvlETH = 0;
+        for (uint256 i=0; i<investorTokens[investor].length; i++) {
+            address tokenAddress = investorTokens[investor][i].tokenAddress;
+            uint256 amount = investorTokens[investor][i].amount;
+            tvlETH += PriceOracle.getPriceETH(UNISWAP_V3_FACTORY, tokenAddress, uint128(amount), WETH9);
+        }
+        return tvlETH;
     }
 
-    function getManagerFeeVolumeETH() external override view returns (uint256 volumeETH) {
-        return getVolumeETH(feeTokens);
+    function getManagerFeeTotalValueLockedETH() external override view returns (uint256) {
+        uint256 tvlETH = 0;
+        for (uint256 i=0; i<feeTokens.length; i++) {
+            address tokenAddress = feeTokens[i].tokenAddress;
+            uint256 amount = feeTokens[i].amount;
+            tvlETH += PriceOracle.getPriceETH(UNISWAP_V3_FACTORY, tokenAddress, uint128(amount), WETH9);
+        }
+        return tvlETH;
     }
-    function getManagerFeeVolumeUSD() external override view returns (uint256 volumeUSD) {
-        return getVolumeUSD(feeTokens);
+
+    function getETHPriceInUSD() external override view returns (uint256) {
+        return PriceOracle.getETHPriceInUSD(UNISWAP_V3_FACTORY, WETH9, USDC);
     }
 }

@@ -11,39 +11,35 @@ interface IXXXFund2 is ISwapRouter, IToken {
     event Initialize(address indexed fund, address manager);
     event ManagerFeeIn(
         address indexed fund,
-        address indexed investor, 
-        address indexed manager, 
-        address token, 
+        address indexed investor,
+        address indexed manager,
+        address token,
         uint256 amount,
-        uint256 amountETH, 
-        uint256 ethPriceUSD
+        uint256 amountETH
     );
     event ManagerFeeOut(
         address indexed fund,
         address indexed manager,
-        address token, 
+        address token,
         uint256 amount,
-        uint256 amountETH, 
-        uint256 ethPriceUSD
+        uint256 amountETH
     );
     event Deposit(
         address indexed fund,
         address indexed manager,
-        address indexed investor, 
-        address token, 
+        address indexed investor,
+        address token,
         uint256 amount,
-        uint256 amountETH, 
-        uint256 ethPriceUSD
+        uint256 amountETH
     );
     event Withdraw(
         address indexed fund,
         address indexed manager,
-        address indexed investor, 
-        address token, 
-        uint256 amount, 
+        address indexed investor,
+        address token,
+        uint256 amount,
         uint256 feeAmount,
-        uint256 amountETH, 
-        uint256 ethPriceUSD
+        uint256 amountETH
     );
     event Swap(
         address indexed fund,
@@ -53,8 +49,7 @@ interface IXXXFund2 is ISwapRouter, IToken {
         address tokenOut,
         uint256 amountIn,
         uint256 amountOut,
-        uint256 amountETH, 
-        uint256 ethPriceUSD
+        uint256 amountETH
     );
 
     function manager() external view returns (address);
@@ -75,12 +70,7 @@ interface IXXXFund2 is ISwapRouter, IToken {
     // TODO : for Test, external -> internal
     function getInvestorTokenAmount(address investor, address token) external returns (uint256);
 
-    function getFundVolumeETH() external returns (uint256);
-    function getFundVolumeUSD() external returns (uint256);
-
-    function getInvestorVolumeETH(address investor) external returns (uint256);
-    function getInvestorVolumeUSD(address investor) external returns (uint256);
-    
-    function getManagerFeeVolumeETH() external returns (uint256);
-    function getManagerFeeVolumeUSD() external returns (uint256);
+    function getInvestorTotalValueLockedETH(address investor) external returns (uint256);
+    function getManagerFeeTotalValueLockedETH() external returns (uint256);
+    function getETHPriceInUSD() external returns (uint256);
 }
