@@ -8,7 +8,7 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 error TransferFailed();
 error NeedsMoreThanZero();
 
-contract Staking is ReentrancyGuard {
+contract XXXStaking is ReentrancyGuard {
     IERC20 public s_rewardsToken;
     IERC20 public s_stakingToken;
 
