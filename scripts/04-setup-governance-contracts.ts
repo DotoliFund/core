@@ -9,7 +9,7 @@ async function main() {
 
   const ADDRESS_ZERO = "0x0000000000000000000000000000000000000000"
 
-  const TimeLockAddress = '0xcb6cc28551c958CcEa3301B9F581622C436afAa0';
+  const TimeLockAddress = '0xfdF620157Aec8A596F3319065bae02D93a7C9deb';
   const timeLock = await ethers.getContractAt("TimeLock", TimeLockAddress)
   const XXXGovernorAddress = '0xa905e8497bb85667E72b1B3320A1B84a02A68919';
 
