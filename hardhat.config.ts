@@ -19,6 +19,10 @@ const TEST_PRIVATE_KEY2 = process.env.TEST_PRIVATE_KEY2;
 if (typeof TEST_PRIVATE_KEY2 === 'undefined') {
   throw new Error(`TEST_PRIVATE_KEY2 must be a defined environment variable`);
 }
+const TEST_PRIVATE_KEY3 = process.env.TEST_PRIVATE_KEY3;
+if (typeof TEST_PRIVATE_KEY3 === 'undefined') {
+  throw new Error(`TEST_PRIVATE_KEY3 must be a defined environment variable`);
+}
 
 const config: HardhatUserConfig = {
   solidity: {
@@ -46,7 +50,7 @@ const config: HardhatUserConfig = {
   networks: {
     goerli: {
       url: `https://goerli.infura.io/v3/${INFURA_API_KEY}`,
-      accounts: [TEST_PRIVATE_KEY1, TEST_PRIVATE_KEY2]
+      accounts: [TEST_PRIVATE_KEY1, TEST_PRIVATE_KEY2, TEST_PRIVATE_KEY3]
     },
     hardhat: {
       chainId: 31337,
@@ -66,6 +70,10 @@ const config: HardhatUserConfig = {
       default: 1, // here this will by default take the first account as deployer
       1: 1, // similarly on mainnet it will take the first account as deployer. Note though that depending on how hardhat network are configured, the account 0 on one network can be different than on another
     },
+    test_account_3: {
+      default: 2, // here this will by default take the first account as deployer
+      1: 2, // similarly on mainnet it will take the first account as deployer. Note though that depending on how hardhat network are configured, the account 0 on one network can be different than on another
+    }
   },
 };
 
