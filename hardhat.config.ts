@@ -48,10 +48,6 @@ const config: HardhatUserConfig = {
       url: `https://goerli.infura.io/v3/${INFURA_API_KEY}`,
       accounts: [TEST_PRIVATE_KEY1, TEST_PRIVATE_KEY2]
     },
-    rinkeby: {
-      url: `https://rinkeby.infura.io/v3/${INFURA_API_KEY}`,
-      accounts: [TEST_PRIVATE_KEY1, TEST_PRIVATE_KEY2]
-    },
     hardhat: {
       chainId: 31337,
       forking: {
