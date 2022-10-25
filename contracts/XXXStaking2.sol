@@ -12,7 +12,7 @@ error RewardOverLimit();
 
 contract XXXStaking2 is ReentrancyGuard {
 
-    uint256 public constant maxEarnedValue = 100000000*1e18;
+    uint256 public constant maxEarnedValue = 100000000 * 1e18;
     uint256 public totalClaimedReward = 0;
 
     IERC20 public s_rewardsToken;
@@ -58,8 +58,8 @@ contract XXXStaking2 is ReentrancyGuard {
      */
     function earned(address account) public view returns (uint256) {
         return
-            ((s_balances[account] * (rewardPerToken() - s_userRewardPerTokenPaid[account])) /
-                1e18) + s_rewards[account];
+            ((s_balances[account] * (rewardPerToken() - s_userRewardPerTokenPaid[account])) 
+                / 1e4) + s_rewards[account];
     }
 
     /**
