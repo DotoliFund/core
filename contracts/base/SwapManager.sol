@@ -30,7 +30,7 @@ abstract contract SwapManager is ISwapManager {
         return _tokenOut;
     }
     
-    function exactInputSingle(address factory, address swapRouter, V3TradeParams memory trade) internal returns (uint256 amountOut) {
+    function exactInputSingle(address factory, address swapRouter, V3TradeParams calldata trade) internal returns (uint256 amountOut) {
         require(IXXXFactory(factory).isWhiteListToken(trade.tokenOut), 
             'exactInputSingle() => not whitelist token');
 
@@ -39,7 +39,7 @@ abstract contract SwapManager is ISwapManager {
 
         // Naively set amountOutMinimum to 0. In production, use an oracle or other data source to choose a safer value for amountOutMinimum.
         // We also set the sqrtPriceLimitx96 to be 0 to ensure we swap our exact input amount.
-        ISwapRouter02.ExactInputSingleParams memory params =
+        ISwapRouter02.ExactInputSingleParams calldata params =
             IV3SwapRouter.ExactInputSingleParams({
                 tokenIn: trade.tokenIn,
                 tokenOut: trade.tokenOut,
@@ -52,14 +52,14 @@ abstract contract SwapManager is ISwapManager {
         amountOut = ISwapRouter02(swapRouter).exactInputSingle(params);
     }
 
-    function exactInput(address factory, address swapRouter, V3TradeParams memory trade, address tokenIn, address tokenOut) internal returns (uint256 amountOut) {
+    function exactInput(address factory, address swapRouter, V3TradeParams calldata trade, address tokenIn, address tokenOut) internal returns (uint256 amountOut) {
         require(IXXXFactory(factory).isWhiteListToken(tokenOut), 
             'exactInput() => not whitelist token');
 
         // approve
         IERC20Minimal(tokenIn).approve(swapRouter, trade.amountIn);
 
-        ISwapRouter02.ExactInputParams memory params =
+        ISwapRouter02.ExactInputParams calldata params =
             IV3SwapRouter.ExactInputParams({
                 path: trade.path,
                 recipient: address(this),
@@ -69,14 +69,14 @@ abstract contract SwapManager is ISwapManager {
         amountOut = ISwapRouter02(swapRouter).exactInput(params);
     }
 
-    function exactOutputSingle(address factory, address swapRouter, V3TradeParams memory trade) internal returns (uint256 amountIn) {
+    function exactOutputSingle(address factory, address swapRouter, V3TradeParams calldata trade) internal returns (uint256 amountIn) {
         require(IXXXFactory(factory).isWhiteListToken(trade.tokenOut), 
             'exactOutputSingle() => not whitelist token');
 
         // approve
         IERC20Minimal(trade.tokenIn).approve(swapRouter, trade.amountInMaximum);
 
-        ISwapRouter02.ExactOutputSingleParams memory params =
+        ISwapRouter02.ExactOutputSingleParams calldata params =
             IV3SwapRouter.ExactOutputSingleParams({
                 tokenIn: trade.tokenIn,
                 tokenOut: trade.tokenOut,
@@ -89,14 +89,14 @@ abstract contract SwapManager is ISwapManager {
         amountIn = ISwapRouter02(swapRouter).exactOutputSingle(params);
     }
 
-    function exactOutput(address factory, address swapRouter, V3TradeParams memory trade, address tokenIn, address tokenOut) internal returns (uint256 amountIn) {
+    function exactOutput(address factory, address swapRouter, V3TradeParams calldata trade, address tokenIn, address tokenOut) internal returns (uint256 amountIn) {
         require(IXXXFactory(factory).isWhiteListToken(tokenOut), 
             'exactOutput() => not whitelist token');
 
         // approve
         IERC20Minimal(tokenIn).approve(swapRouter, trade.amountInMaximum);
 
-        ISwapRouter02.ExactOutputParams memory params =
+        ISwapRouter02.ExactOutputParams calldata params =
             IV3SwapRouter.ExactOutputParams({
                 path: trade.path,
                 recipient: address(this),

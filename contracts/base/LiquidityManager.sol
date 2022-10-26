@@ -10,22 +10,24 @@ import '@uniswap/v3-periphery/contracts/interfaces/INonfungiblePositionManager.s
 import '@uniswap/v3-periphery/contracts/libraries/TransferHelper.sol';
 import '@uniswap/v3-periphery/contracts/base/LiquidityManagement.sol';
 
+import '../interfaces/ILiquidityManager.sol';
 import './Constants.sol';
 
-abstract contract LiquidityManager is IERC721Receiver, Constants {
+abstract contract LiquidityManager is ILiquidityManager, IERC721Receiver, Constants {
 
     uint24 public constant poolFee = 3000;
 
+    // position deposit
     /// @notice Represents the deposit of an NFT
-    struct nftDeposit {
+    struct pDeposit {
         address owner;
         uint128 liquidity;
         address token0;
         address token1;
     }
 
-    /// @dev deposits[tokenId] => Deposit
-    mapping(uint256 => nftDeposit) public deposits;
+    /// @dev deposits[tokenId] => pDeposit
+    mapping(uint256 => pDeposit) public deposits;
 
     // Implementing `onERC721Received` so this contract can receive custody of erc721 tokens
     function onERC721Received(
@@ -47,7 +49,7 @@ abstract contract LiquidityManager is IERC721Receiver, Constants {
 
         // set the owner and data for position
         // operator is msg.sender
-        deposits[tokenId] = nftDeposit({owner: owner, liquidity: liquidity, token0: token0, token1: token1});
+        deposits[tokenId] = pDeposit({owner: owner, liquidity: liquidity, token0: token0, token1: token1});
     }
 
     /// @notice Calls the mint function defined in periphery, mints the same amount of each token.
@@ -56,8 +58,9 @@ abstract contract LiquidityManager is IERC721Receiver, Constants {
     /// @return liquidity The amount of liquidity for the position
     /// @return amount0 The amount of token0
     /// @return amount1 The amount of token1
-    function mintNewPosition()
+    function mintNewPosition(MintParams calldata params)
         external
+        override
         returns (
             uint256 tokenId,
             uint128 liquidity,
@@ -77,21 +80,6 @@ abstract contract LiquidityManager is IERC721Receiver, Constants {
         // Approve the position manager
         TransferHelper.safeApprove(DAI, nonfungiblePositionManager, amount0ToMint);
         TransferHelper.safeApprove(USDC, nonfungiblePositionManager, amount1ToMint);
-
-        INonfungiblePositionManager.MintParams memory params =
-            INonfungiblePositionManager.MintParams({
-                token0: DAI,
-                token1: USDC,
-                fee: poolFee,
-                tickLower: TickMath.MIN_TICK,
-                tickUpper: TickMath.MAX_TICK,
-                amount0Desired: amount0ToMint,
-                amount1Desired: amount1ToMint,
-                amount0Min: 0,
-                amount1Min: 0,
-                recipient: address(this),
-                deadline: block.timestamp
-            });
 
         // Note that the pool defined by DAI/USDC and fee tier 0.3% must already be created and initialized in order to mint
         (tokenId, liquidity, amount0, amount1) = INonfungiblePositionManager(nonfungiblePositionManager).mint(params);
@@ -118,18 +106,8 @@ abstract contract LiquidityManager is IERC721Receiver, Constants {
     /// @param tokenId The id of the erc721 token
     /// @return amount0 The amount of fees collected in token0
     /// @return amount1 The amount of fees collected in token1
-    function collectAllFees(uint256 tokenId) external returns (uint256 amount0, uint256 amount1) {
+    function collectAllFees(CollectParams calldata params) external override returns (uint256 amount0, uint256 amount1) {
         // Caller must own the ERC721 position, meaning it must be a deposit
-
-        // set amount0Max and amount1Max to uint256.max to collect all fees
-        // alternatively can set recipient to msg.sender and avoid another transaction in `sendToOwner`
-        INonfungiblePositionManager.CollectParams memory params =
-            INonfungiblePositionManager.CollectParams({
-                tokenId: tokenId,
-                recipient: address(this),
-                amount0Max: type(uint128).max,
-                amount1Max: type(uint128).max
-            });
 
         (amount0, amount1) = INonfungiblePositionManager(nonfungiblePositionManager).collect(params);
 
@@ -141,23 +119,12 @@ abstract contract LiquidityManager is IERC721Receiver, Constants {
     /// @param tokenId The id of the erc721 token
     /// @return amount0 The amount received back in token0
     /// @return amount1 The amount returned back in token1
-    function decreaseLiquidityInHalf(uint256 tokenId) external returns (uint256 amount0, uint256 amount1) {
+    function decreaseLiquidityInHalf(DecreaseLiquidityParams calldata params) external override returns (uint256 amount0, uint256 amount1) {
         // caller must be the owner of the NFT
         require(msg.sender == deposits[tokenId].owner, 'Not the owner');
         // get liquidity data for tokenId
         uint128 liquidity = deposits[tokenId].liquidity;
         uint128 halfLiquidity = liquidity / 2;
-
-        // amount0Min and amount1Min are price slippage checks
-        // if the amount received after burning is not greater than these minimums, transaction will fail
-        INonfungiblePositionManager.DecreaseLiquidityParams memory params =
-            INonfungiblePositionManager.DecreaseLiquidityParams({
-                tokenId: tokenId,
-                liquidity: halfLiquidity,
-                amount0Min: 0,
-                amount1Min: 0,
-                deadline: block.timestamp
-            });
 
         (amount0, amount1) = INonfungiblePositionManager(nonfungiblePositionManager).decreaseLiquidity(params);
 
@@ -171,11 +138,10 @@ abstract contract LiquidityManager is IERC721Receiver, Constants {
     /// @param amount0 The amount to add of token0
     /// @param amount1 The amount to add of token1
     function increaseLiquidityCurrentRange(
-        uint256 tokenId,
-        uint256 amountAdd0,
-        uint256 amountAdd1
+        IncreaseLiquidityParams calldata params
     )
         external
+        override
         returns (
             uint128 liquidity,
             uint256 amount0,
@@ -187,15 +153,6 @@ abstract contract LiquidityManager is IERC721Receiver, Constants {
 
         TransferHelper.safeApprove(deposits[tokenId].token0, nonfungiblePositionManager, amountAdd0);
         TransferHelper.safeApprove(deposits[tokenId].token1, nonfungiblePositionManager, amountAdd1);
-
-        INonfungiblePositionManager.IncreaseLiquidityParams memory params = INonfungiblePositionManager.IncreaseLiquidityParams({
-            tokenId: tokenId,
-            amount0Desired: amountAdd0,
-            amount1Desired: amountAdd1,
-            amount0Min: 0,
-            amount1Min: 0,
-            deadline: block.timestamp
-        });
 
         (liquidity, amount0, amount1) = INonfungiblePositionManager(nonfungiblePositionManager).increaseLiquidity(params);
 

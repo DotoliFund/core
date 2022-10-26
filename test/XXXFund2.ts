@@ -867,12 +867,64 @@ describe('XXXFund2', () => {
 
     })
 
-    describe("(fund1) add liquidity manager1's token", async function () {
+    describe("(fund1) Provide liquidity manager1's token : ( ETH, UNI )", async function () {
+
+      it("mint new position", async function () {
+
+      })
+
+      it("increase liquidity", async function () {
+
+      })
+
+      it("collect all fees", async function () {
+
+      })
+
+      it("decrease liquidity", async function () {
+
+      })
 
     })
 
-    describe("(fund1) add liquidity investor1's token", async function () {
+    describe("(fund1) Provide liquidity investor1's token : ( ETH, UNI )", async function () {
 
+      it("mint new position", async function () {
+
+      })
+
+      it("increase liquidity", async function () {
+
+      })
+
+      it("collect all fees", async function () {
+
+      })
+
+      it("decrease liquidity", async function () {
+
+      })
+
+    })
+
+    describe("(fund1) Provide liquidity manager1's token : ( UNI, USDC )", async function () {
+      
+      it("mint new position", async function () {
+
+      })
+
+      it("increase liquidity", async function () {
+
+      })
+
+      it("collect all fees", async function () {
+
+      })
+
+      it("decrease liquidity", async function () {
+
+      })
+      
     })
 
   })
@@ -1282,12 +1334,64 @@ describe('XXXFund2', () => {
 
     })
 
-    describe("(fund1) add liquidity manager1's token", async function () {
+    describe("(fund1) Provide liquidity manager1's token : ( ETH, UNI )", async function () {
+      
+      it("mint new position", async function () {
+
+      })
+
+      it("increase liquidity", async function () {
+
+      })
+
+      it("collect all fees", async function () {
+
+      })
+
+      it("decrease liquidity", async function () {
+
+      })
 
     })
 
-    describe("(fund2) add liquidity manager2's token", async function () {
+    describe("(fund2) Provide liquidity manager2's token : ( ETH, UNI )", async function () {
 
+      it("mint new position", async function () {
+
+      })
+
+      it("increase liquidity", async function () {
+
+      })
+
+      it("collect all fees", async function () {
+
+      })
+
+      it("decrease liquidity", async function () {
+
+      })
+
+    })
+
+    describe("(fund1) Provide liquidity manager1's token : ( UNI, USDC )", async function () {
+      
+      it("mint new position", async function () {
+
+      })
+
+      it("increase liquidity", async function () {
+
+      })
+
+      it("collect all fees", async function () {
+
+      })
+
+      it("decrease liquidity", async function () {
+
+      })
+      
     })
 
   })
