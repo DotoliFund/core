@@ -6,6 +6,7 @@ pragma abicoder v2;
 import './interfaces/IXXXFund2.sol';
 import './interfaces/IXXXFactory.sol';
 import './interfaces/IERC20.sol';
+import './interfaces/external/IWETH9.sol';
 import '@uniswap/v3-periphery/contracts/libraries/Path.sol';
 import './libraries/PriceOracle.sol';
 import './base/SwapRouter.sol';

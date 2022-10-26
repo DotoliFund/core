@@ -91,7 +91,7 @@ describe('XXXFund2', () => {
       notInvestor
     ] = await (ethers as any).getSigners()
 
-    weth9 = await ethers.getContractAt("IWETH9", WETH9)
+    weth9 = await ethers.getContractAt("./contracts/interfaces/external/IWETH9.sol:IWETH9", WETH9)
     uni = await ethers.getContractAt("@openzeppelin/contracts/token/ERC20/IERC20.sol:IERC20", UNI)
 
     getManagerAccount = async (who: string) => {
