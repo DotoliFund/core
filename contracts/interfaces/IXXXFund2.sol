@@ -4,9 +4,10 @@ pragma solidity =0.7.6;
 pragma abicoder v2;
 
 import './ISwapManager.sol';
+import './ILiquidityManager.sol';
 import './IToken.sol';
 
-interface IXXXFund2 is ISwapManager, IToken {
+interface IXXXFund2 is ISwapManager, ILiquidityManager, IToken {
 
     event Initialize(address indexed fund, address manager);
     event ManagerFeeIn(
@@ -58,8 +59,12 @@ interface IXXXFund2 is ISwapManager, IToken {
     function deposit(address _token, uint256 _amount) external payable;
     function withdraw(address _token, uint256 _amount) external payable;
     function swap(
-        V3TradeParams[] calldata trades
+        V3TradeParams[] memory trades
     ) external payable;
+    function mintNewPosition(MintParams memory params) external returns (uint256 tokenId, uint128 liquidity, uint256 amount0, uint256 amount1);
+    function increaseLiquidity(IncreaseLiquidityParams memory params) external returns (uint128 liquidity, uint256 amount0, uint256 amount1);
+    function collectAllFees(CollectParams memory params) external returns (uint256 amount0, uint256 amount1);
+    function decreaseLiquidity(DecreaseLiquidityParams memory params) external returns (uint256 amount0, uint256 amount1);
 
     function feeOut(address _token, uint256 _amount) external payable;
 

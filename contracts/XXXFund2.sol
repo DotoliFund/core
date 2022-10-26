@@ -192,7 +192,7 @@ contract XXXFund2 is
         );
     }
 
-    function swap(V3TradeParams[] calldata trades) external payable override lock {
+    function swap(V3TradeParams[] memory trades) external payable override lock {
         require(msg.sender == manager, 'swap() => invalid sender');
         address swapRouter = IXXXFactory(factory).getSwapRouterAddress();
 
@@ -231,6 +231,41 @@ contract XXXFund2 is
                 }
             }
         }
+    }
+
+    function mintNewPosition(V3MintParams memory params)
+        external
+        override
+        returns (
+            uint256 tokenId,
+            uint128 liquidity,
+            uint256 amount0,
+            uint256 amount1
+        )
+    {
+        (tokenId, liquidity, amount0, amount1) = _mintNewPosition(params);
+        //TODO : decrease investor token amount
+    }
+
+    function collectAllFees(V3CollectParams memory params) 
+        external override returns (uint256 amount0, uint256 amount1) 
+    {
+        (amount0, amount1) = _collectAllFees(params);
+        //TODO : increase investor token amount
+    }
+
+    function decreaseLiquidity(V3DecreaseLiquidityParams memory params) 
+        external override returns (uint256 amount0, uint256 amount1) 
+    {
+        (amount0, amount1) = _decreaseLiquidity(params);
+        //TODO : increase investor token amount
+    }
+
+    function increaseLiquidity(V3IncreaseLiquidityParams memory params) 
+        external override returns (uint128 liquidity, uint256 amount0, uint256 amount1) 
+    {
+        (liquidity, amount0, amount1) = _increaseLiquidity(params);
+        //TODO : decrease investor token amount
     }
 
     function getInvestorTotalValueLockedETH(address investor) external override view returns (uint256) {
