@@ -867,6 +867,14 @@ describe('XXXFund2', () => {
 
     })
 
+    describe("(fund1) add liquidity manager1's token", async function () {
+
+    })
+
+    describe("(fund1) add liquidity investor1's token", async function () {
+
+    })
+
   })
 
   describe('user : manager1, manager2 (investor : manager1, manager : manager2)', () => {
@@ -1271,6 +1279,14 @@ describe('XXXFund2', () => {
           .to.equal(BigNumber.from(manager2Middle.rewardTokens[1][1]).add(fee)) // amount
         expect(fund2After.uni).to.equal(fund2Middle.uni.sub(investorWithdrawAmount))
       })
+
+    })
+
+    describe("(fund1) add liquidity manager1's token", async function () {
+
+    })
+
+    describe("(fund2) add liquidity manager2's token", async function () {
 
     })
 

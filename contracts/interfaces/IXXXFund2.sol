@@ -3,10 +3,10 @@
 pragma solidity =0.7.6;
 pragma abicoder v2;
 
-import './ISwapRouter.sol';
+import './ISwapManager.sol';
 import './IToken.sol';
 
-interface IXXXFund2 is ISwapRouter, IToken {
+interface IXXXFund2 is ISwapManager, IToken {
 
     event Initialize(address indexed fund, address manager);
     event ManagerFeeIn(

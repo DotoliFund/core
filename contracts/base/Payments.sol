@@ -2,8 +2,8 @@
 pragma solidity =0.7.6;
 pragma abicoder v2;
 
-import '../interfaces/IERC20.sol';
-import '../interfaces/external/IWETH9.sol';
+import '@uniswap/v3-core/contracts/interfaces/IERC20Minimal.sol';
+import '@uniswap/v3-periphery/contracts/interfaces/external/IWETH9.sol';
 import './Constants.sol';
 
 abstract contract Payments is Constants {
@@ -14,7 +14,7 @@ abstract contract Payments is Constants {
             (bool success, ) = payable(msg.sender).call{value: _amount}(new bytes(0));
             require(success, 'withdraw() => sending ETH to manager failed');
         } else {
-            IERC20(_token).transfer(msg.sender, _amount);
+            IERC20Minimal(_token).transfer(msg.sender, _amount);
         }
     }
 }

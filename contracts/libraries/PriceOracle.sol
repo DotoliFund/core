@@ -4,7 +4,6 @@ pragma solidity =0.7.6;
 import '@uniswap/v3-core/contracts/interfaces/IUniswapV3Factory.sol';
 import '@uniswap/v3-core/contracts/interfaces/IUniswapV3Pool.sol';
 import '@uniswap/v3-periphery/contracts/libraries/OracleLibrary.sol';
-import '../interfaces/IERC20.sol';
 
 /// @title PriceOracle library
 /// @notice Provides functions to integrate with V3 pool oracle

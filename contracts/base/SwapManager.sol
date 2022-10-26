@@ -2,14 +2,15 @@
 pragma solidity =0.7.6;
 pragma abicoder v2;
 
-import '../interfaces/IERC20.sol';
-import '../interfaces/IXXXFactory.sol';
-import '../interfaces/ISwapRouter.sol';
-import '@uniswap/swap-router-contracts/contracts/interfaces/ISwapRouter02.sol';
+import '@uniswap/v3-core/contracts/interfaces/IERC20Minimal.sol';
 import '@uniswap/v3-periphery/contracts/libraries/Path.sol';
+import '@uniswap/swap-router-contracts/contracts/interfaces/ISwapRouter02.sol';
+
+import '../interfaces/IXXXFactory.sol';
+import '../interfaces/ISwapManager.sol';
 
 /// @title Uniswap V3 Swap Router
-abstract contract SwapRouter is ISwapRouter {
+abstract contract SwapManager is ISwapManager {
     using Path for bytes;
 
     function getLastTokenFromPath(bytes memory path) internal view returns (address) {
@@ -34,7 +35,7 @@ abstract contract SwapRouter is ISwapRouter {
             'exactInputSingle() => not whitelist token');
 
         // approve
-        IERC20(trade.tokenIn).approve(swapRouter, trade.amountIn);
+        IERC20Minimal(trade.tokenIn).approve(swapRouter, trade.amountIn);
 
         // Naively set amountOutMinimum to 0. In production, use an oracle or other data source to choose a safer value for amountOutMinimum.
         // We also set the sqrtPriceLimitx96 to be 0 to ensure we swap our exact input amount.
@@ -56,7 +57,7 @@ abstract contract SwapRouter is ISwapRouter {
             'exactInput() => not whitelist token');
 
         // approve
-        IERC20(tokenIn).approve(swapRouter, trade.amountIn);
+        IERC20Minimal(tokenIn).approve(swapRouter, trade.amountIn);
 
         ISwapRouter02.ExactInputParams memory params =
             IV3SwapRouter.ExactInputParams({
@@ -73,7 +74,7 @@ abstract contract SwapRouter is ISwapRouter {
             'exactOutputSingle() => not whitelist token');
 
         // approve
-        IERC20(trade.tokenIn).approve(swapRouter, trade.amountInMaximum);
+        IERC20Minimal(trade.tokenIn).approve(swapRouter, trade.amountInMaximum);
 
         ISwapRouter02.ExactOutputSingleParams memory params =
             IV3SwapRouter.ExactOutputSingleParams({
@@ -93,7 +94,7 @@ abstract contract SwapRouter is ISwapRouter {
             'exactOutput() => not whitelist token');
 
         // approve
-        IERC20(tokenIn).approve(swapRouter, trade.amountInMaximum);
+        IERC20Minimal(tokenIn).approve(swapRouter, trade.amountInMaximum);
 
         ISwapRouter02.ExactOutputParams memory params =
             IV3SwapRouter.ExactOutputParams({

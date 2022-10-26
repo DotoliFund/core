@@ -2,7 +2,7 @@
 pragma solidity =0.7.6;
 pragma abicoder v2;
 
-interface ISwapRouter {
+interface ISwapManager {
 
     enum V3TradeType{
         EXACT_INPUT,

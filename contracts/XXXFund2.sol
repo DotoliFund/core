@@ -3,26 +3,27 @@
 pragma solidity =0.7.6;
 pragma abicoder v2;
 
+import '@uniswap/v3-periphery/contracts/libraries/Path.sol';
+
 import './interfaces/IXXXFund2.sol';
 import './interfaces/IXXXFactory.sol';
-import './interfaces/IERC20.sol';
-import './interfaces/external/IWETH9.sol';
-import '@uniswap/v3-periphery/contracts/libraries/Path.sol';
-import './libraries/PriceOracle.sol';
-import './base/SwapRouter.sol';
-import './base/Payments.sol';
+import './base/SwapManager.sol';
 import './base/Constants.sol';
+import './base/Payments.sol';
 import './base/Token.sol';
+import './base/LiquidityManager.sol';
+import './libraries/PriceOracle.sol';
 
 //TODO : remove console
 import "hardhat/console.sol";
 
 contract XXXFund2 is 
     IXXXFund2,
-    SwapRouter,
+    SwapManager,
     Constants,
     Payments,
-    Token
+    Token,
+    LiquidityManager
 {
     using Path for bytes;
 
