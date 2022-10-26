@@ -192,7 +192,7 @@ contract XXXFund2 is
         );
     }
 
-    function swap(V3TradeParams[] memory trades) external payable override lock {
+    function swap(V3TradeParams[] calldata trades) external payable override lock {
         require(msg.sender == manager, 'swap() => invalid sender');
         address swapRouter = IXXXFactory(factory).getSwapRouterAddress();
 
@@ -233,7 +233,7 @@ contract XXXFund2 is
         }
     }
 
-    function mintNewPosition(V3MintParams memory params)
+    function mintNewPosition(V3MintParams calldata params)
         external
         override
         returns (
@@ -247,21 +247,21 @@ contract XXXFund2 is
         //TODO : decrease investor token amount
     }
 
-    function collectAllFees(V3CollectParams memory params) 
+    function collectAllFees(V3CollectParams calldata params) 
         external override returns (uint256 amount0, uint256 amount1) 
     {
         (amount0, amount1) = _collectAllFees(params);
         //TODO : increase investor token amount
     }
 
-    function decreaseLiquidity(V3DecreaseLiquidityParams memory params) 
+    function decreaseLiquidity(V3DecreaseLiquidityParams calldata params) 
         external override returns (uint256 amount0, uint256 amount1) 
     {
         (amount0, amount1) = _decreaseLiquidity(params);
         //TODO : increase investor token amount
     }
 
-    function increaseLiquidity(V3IncreaseLiquidityParams memory params) 
+    function increaseLiquidity(V3IncreaseLiquidityParams calldata params) 
         external override returns (uint128 liquidity, uint256 amount0, uint256 amount1) 
     {
         (liquidity, amount0, amount1) = _increaseLiquidity(params);

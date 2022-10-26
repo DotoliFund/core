@@ -52,7 +52,7 @@ abstract contract LiquidityManager is ILiquidityManager, IERC721Receiver, Consta
         deposits[tokenId] = pDeposit({owner: owner, liquidity: liquidity, token0: token0, token1: token1});
     }
 
-    function _mintNewPosition(V3MintParams memory params)
+    function _mintNewPosition(V3MintParams calldata params)
         internal
         returns (
             uint256 tokenId,
@@ -64,9 +64,6 @@ abstract contract LiquidityManager is ILiquidityManager, IERC721Receiver, Consta
         // Approve the position manager
         TransferHelper.safeApprove(params.token0, nonfungiblePositionManager, params.amount0Desired);
         TransferHelper.safeApprove(params.token1, nonfungiblePositionManager, params.amount1Desired);
-
-        // Note that the pool defined by DAI/USDC and fee tier 0.3% must already be created and initialized in order to mint
-        //(tokenId, liquidity, amount0, amount1) = INonfungiblePositionManager(nonfungiblePositionManager).mint(params);
 
         INonfungiblePositionManager.MintParams memory params =
             INonfungiblePositionManager.MintParams({
@@ -83,27 +80,43 @@ abstract contract LiquidityManager is ILiquidityManager, IERC721Receiver, Consta
                 deadline: params.deadline
             });
 
+        // Note that the pool defined by DAI/USDC and fee tier 0.3% must already be created and initialized in order to mint
+        (tokenId, liquidity, amount0, amount1) = INonfungiblePositionManager(nonfungiblePositionManager).mint(params);
+
         // Create a deposit
         _createDeposit(msg.sender, tokenId);
     }
 
-    function _collectAllFees(V3CollectParams memory params) internal returns (uint256 amount0, uint256 amount1) {
+    function _collectAllFees(V3CollectParams calldata params) internal returns (uint256 amount0, uint256 amount1) {
+        INonfungiblePositionManager.CollectParams memory params =
+            INonfungiblePositionManager.CollectParams({
+                tokenId: params.tokenId,
+                recipient: params.recipient,
+                amount0Max: params.amount0Max,
+                amount1Max: params.amount1Max
+            });
         // Caller must own the ERC721 position, meaning it must be a deposit
         (amount0, amount1) = INonfungiblePositionManager(nonfungiblePositionManager).collect(params);
     }
 
-    function _decreaseLiquidity(V3DecreaseLiquidityParams memory params) internal returns (uint256 amount0, uint256 amount1) {
+    function _decreaseLiquidity(V3DecreaseLiquidityParams calldata params) internal returns (uint256 amount0, uint256 amount1) {
+
         // caller must be the owner of the NFT
-        uint256 tokenId = params.tokenId;
-        require(msg.sender == deposits[tokenId].owner, 'Not the owner');
-        // get liquidity data for tokenId
-        uint128 liquidity = deposits[tokenId].liquidity;
-        uint128 halfLiquidity = liquidity / 2;
+        require(msg.sender == deposits[params.tokenId].owner, 'Not the owner');
+
+        INonfungiblePositionManager.DecreaseLiquidityParams memory params =
+            INonfungiblePositionManager.DecreaseLiquidityParams({
+                tokenId: params.tokenId,
+                liquidity: params.liquidity,
+                amount0Min: params.amount0Min,
+                amount1Min: params.amount1Min,
+                deadline: params.deadline
+            });
 
         (amount0, amount1) = INonfungiblePositionManager(nonfungiblePositionManager).decreaseLiquidity(params);
     }
 
-    function _increaseLiquidity(V3IncreaseLiquidityParams memory params)
+    function _increaseLiquidity(V3IncreaseLiquidityParams calldata params)
         internal
         returns (
             uint128 liquidity,
@@ -113,6 +126,17 @@ abstract contract LiquidityManager is ILiquidityManager, IERC721Receiver, Consta
         uint256 tokenId = params.tokenId;
         TransferHelper.safeApprove(deposits[tokenId].token0, nonfungiblePositionManager, params.amount0Desired);
         TransferHelper.safeApprove(deposits[tokenId].token1, nonfungiblePositionManager, params.amount1Desired);
+
+        INonfungiblePositionManager.IncreaseLiquidityParams memory params =
+            INonfungiblePositionManager.IncreaseLiquidityParams({
+                tokenId: params.tokenId,
+                amount0Desired: params.amount0Desired,
+                amount1Desired: params.amount1Desired,
+                amount0Min: params.amount0Min,
+                amount1Min: params.amount1Min,
+                deadline: params.deadline
+            });
+
         (liquidity, amount0, amount1) = INonfungiblePositionManager(nonfungiblePositionManager).increaseLiquidity(params);
     }
 
