@@ -28,13 +28,16 @@ contract XXXFund2 is
     address public factory;
     address public override manager;
 
-    // manager tokens and all investors tokens in fund
-    Token[] public fundTokens;
-    Token[] public feeTokens; //manager fee tokens
+    // investor tokens
     mapping(address => Token[]) public investorTokens;
+    //manager fee tokens
+    Token[] public feeTokens;
     
-    /// @dev deposits[tokenId] => pDeposit
+    //position deposit
+    /// deposits[tokenId] => pDeposit
     mapping(uint256 => pDeposit) public deposits;
+    /// @dev positions[investor] => [ tokenId0, tokenId1, ... ]
+    mapping(address => uint256[]) public positions;
 
     uint256 private unlocked = 1;
     modifier lock() {
@@ -56,7 +59,6 @@ contract XXXFund2 is
             require(isSubscribed, 'US');
             IWETH9(WETH9).deposit{value: msg.value}();
             increaseToken(investorTokens[msg.sender], WETH9, msg.value);
-            increaseToken(fundTokens, WETH9, msg.value);
             uint256 amountETH = PriceOracle.getPriceETH(UNISWAP_V3_FACTORY, WETH9, uint128(msg.value), WETH9);
             emit Deposit(address(this), manager, msg.sender, WETH9, msg.value, amountETH);
         }
@@ -68,28 +70,21 @@ contract XXXFund2 is
         emit Initialize(address(this), _manager);
     }
 
-    function getFundTokens() external override view returns (Token[] memory) {
-        return getTokens(fundTokens);
+    function getInvestorTokens(address investor) external override view returns (Token[] memory) {
+        return getTokens(investorTokens[investor]);
     }
 
     function getFeeTokens() external override view returns (Token[] memory) {
         return getTokens(feeTokens);
     }
 
-    function getInvestorTokens(address investor) external override view returns (Token[] memory) {
-        return getTokens(investorTokens[investor]);
-    }
-
     function getInvestorTokenAmount(address investor, address token) public override view returns (uint256) {
         return getTokenAmount(investorTokens[investor], token);
     }
 
-    function isTokenEnough(Token[] memory tokens, address _token, uint256 _amount) private view returns (bool) {
-        bool isEnough = false;
-        uint256 tokenAmount = getTokenAmount(tokens, _token);
-        require(tokenAmount >= _amount, 'NET');
-        isEnough = true;
-        return isEnough;
+    function getPositionTokenIds(address investor) internal view returns (uint256[] memory tokenIds) {
+        uint256[] memory tokenIds = positions[investor];
+        return tokenIds;
     }
 
     function feeIn(address investor, address _token, uint256 _amount) private {
@@ -121,7 +116,6 @@ contract XXXFund2 is
             }
         }
         require(isNewToken == false, 'TNE');
-        decreaseToken(fundTokens, _token, _amount);
         uint256 amountETH = PriceOracle.getPriceETH(UNISWAP_V3_FACTORY, _token, uint128(_amount), WETH9);
         emit ManagerFeeOut(address(this), manager, _token, _amount, amountETH);
     }
@@ -136,7 +130,6 @@ contract XXXFund2 is
         IERC20(_token).transferFrom(msg.sender, address(this), _amount);
 
         increaseToken(investorTokens[msg.sender], _token, _amount);
-        increaseToken(fundTokens, _token, _amount);
         uint256 amountETH = PriceOracle.getPriceETH(UNISWAP_V3_FACTORY, _token, uint128(_amount), WETH9);
         emit Deposit(address(this), manager, msg.sender, _token, _amount, amountETH);
     }
@@ -145,7 +138,9 @@ contract XXXFund2 is
         bool _isSubscribed = IXXXFactory(factory).isSubscribed(msg.sender, address(this));
         require(_isSubscribed, 'US');
         uint256 managerFee = IXXXFactory(factory).getManagerFee();
-        require(isTokenEnough(investorTokens[msg.sender], _token, _amount), 'NET');
+        uint256 tokenAmount = getTokenAmount(investorTokens[msg.sender], _token);
+        require(tokenAmount >= _amount, 'NET');
+
 
         uint256 feeAmount = 0;
         uint256 withdrawAmount = 0;
@@ -162,7 +157,6 @@ contract XXXFund2 is
             feeIn(msg.sender, _token, feeAmount);
         }
         decreaseToken(investorTokens[msg.sender], _token, _amount);
-        decreaseToken(fundTokens, _token, withdrawAmount);
         uint256 amountETH = PriceOracle.getPriceETH(UNISWAP_V3_FACTORY, _token, uint128(_amount), WETH9);
         emit Withdraw(address(this), manager, msg.sender, _token, withdrawAmount, feeAmount, amountETH);
     }
@@ -177,8 +171,6 @@ contract XXXFund2 is
         //update info
         decreaseToken(investorTokens[investor], swapFrom, swapFromAmount);
         increaseToken(investorTokens[investor], swapTo, swapToAmount);
-        decreaseToken(fundTokens, swapFrom, swapFromAmount);
-        increaseToken(fundTokens, swapTo, swapToAmount);
         uint256 amountETH = PriceOracle.getPriceETH(UNISWAP_V3_FACTORY, swapTo, uint128(swapToAmount), WETH9);
         emit Swap(
             address(this),
@@ -324,7 +316,7 @@ contract XXXFund2 is
         }
     }
 
-    function getPositions(address nonfungiblePositionManager, uint256 tokenId) internal returns (address token0, address token1, uint128 liquidity) {
+    function getPositionInfo(address nonfungiblePositionManager, uint256 tokenId) private returns (address token0, address token1, uint128 liquidity) {
         (, , address token0, address token1, , , , uint128 liquidity, , , , ) =
             INonfungiblePositionManager(nonfungiblePositionManager).positions(tokenId);
     }
@@ -363,10 +355,8 @@ contract XXXFund2 is
 
         decreaseToken(investorTokens[_params.investor], _params.token0, amount0);
         decreaseToken(investorTokens[_params.investor], _params.token1, amount1);
-        decreaseToken(fundTokens, _params.token0, amount0);
-        decreaseToken(fundTokens, _params.token1, amount1);
 
-        (address token0, address token1, uint128 liquidity) = getPositions(nonfungiblePositionManager, tokenId);
+        (address token0, address token1, uint128 liquidity) = getPositionInfo(nonfungiblePositionManager, tokenId);
         // set the owner and data for position
         // operator is investor
         deposits[tokenId] = pDeposit({owner: _params.investor, liquidity: liquidity, token0: token0, token1: token1});
@@ -387,8 +377,6 @@ contract XXXFund2 is
 
         increaseToken(investorTokens[_params.investor], deposits[_params.tokenId].token0, amount0);
         increaseToken(investorTokens[_params.investor], deposits[_params.tokenId].token1, amount1);
-        increaseToken(fundTokens, deposits[_params.tokenId].token0, amount0);
-        increaseToken(fundTokens, deposits[_params.tokenId].token1, amount1);
     }
 
     function decreaseLiquidity(DecreaseLiquidityParams calldata _params) 
@@ -410,8 +398,6 @@ contract XXXFund2 is
 
         increaseToken(investorTokens[_params.investor], deposits[_params.tokenId].token0, amount0);
         increaseToken(investorTokens[_params.investor], deposits[_params.tokenId].token1, amount1);
-        increaseToken(fundTokens, deposits[_params.tokenId].token0, amount0);
-        increaseToken(fundTokens, deposits[_params.tokenId].token1, amount1);
     }
 
     function increaseLiquidity(IncreaseLiquidityParams calldata _params) 
@@ -434,8 +420,6 @@ contract XXXFund2 is
 
         decreaseToken(investorTokens[_params.investor], deposits[_params.tokenId].token0, amount0);
         decreaseToken(investorTokens[_params.investor], deposits[_params.tokenId].token1, amount1);
-        decreaseToken(fundTokens, deposits[_params.tokenId].token0, amount0);
-        decreaseToken(fundTokens, deposits[_params.tokenId].token1, amount1);
     }
 
     function getInvestorTotalValueLockedETH(address investor) external override view returns (uint256) {

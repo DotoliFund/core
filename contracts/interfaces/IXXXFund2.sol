@@ -37,7 +37,7 @@ interface IXXXFund2 is IToken {
         address token0;
         address token1;
     }
-    
+
     struct MintLiquidityParams {
         address investor;
         address token0;
@@ -137,10 +137,8 @@ interface IXXXFund2 is IToken {
 
     function feeOut(address _token, uint256 _amount) external payable;
 
-    function getFundTokens() external returns (Token[] memory);
-    function getFeeTokens() external returns (Token[] memory);
     function getInvestorTokens(address investor) external returns (Token[] memory);
-
+    function getFeeTokens() external returns (Token[] memory);
     function getInvestorTokenAmount(address investor, address token) external returns (uint256);
 
     function getInvestorTotalValueLockedETH(address investor) external returns (uint256);
