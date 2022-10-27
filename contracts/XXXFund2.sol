@@ -12,7 +12,6 @@ import './interfaces/IXXXFactory.sol';
 import './base/Constants.sol';
 import './base/Payments.sol';
 import './base/Token.sol';
-import './libraries/PriceOracle.sol';
 
 //TODO : remove console
 import "hardhat/console.sol";
@@ -59,7 +58,7 @@ contract XXXFund2 is
             require(isSubscribed, 'US');
             IWETH9(WETH9).deposit{value: msg.value}();
             increaseToken(investorTokens[msg.sender], WETH9, msg.value);
-            uint256 amountETH = PriceOracle.getPriceETH(UNISWAP_V3_FACTORY, WETH9, uint128(msg.value), WETH9);
+            uint256 amountETH = IXXXFactory(factory).getPriceETH(WETH9, uint128(msg.value), WETH9);
             emit Deposit(address(this), manager, msg.sender, WETH9, msg.value, amountETH);
         }
     }
@@ -99,7 +98,7 @@ contract XXXFund2 is
         if (isNewToken) {
             feeTokens.push(Token(_token, _amount));
         }
-        uint256 amountETH = PriceOracle.getPriceETH(UNISWAP_V3_FACTORY, _token, uint128(_amount), WETH9);
+        uint256 amountETH = IXXXFactory(factory).getPriceETH(_token, uint128(_amount), WETH9);
         emit ManagerFeeIn(address(this), investor, manager, _token, _amount, amountETH);
     }
 
@@ -116,7 +115,7 @@ contract XXXFund2 is
             }
         }
         require(isNewToken == false, 'TNE');
-        uint256 amountETH = PriceOracle.getPriceETH(UNISWAP_V3_FACTORY, _token, uint128(_amount), WETH9);
+        uint256 amountETH = IXXXFactory(factory).getPriceETH(_token, uint128(_amount), WETH9);
         emit ManagerFeeOut(address(this), manager, _token, _amount, amountETH);
     }
 
@@ -130,7 +129,7 @@ contract XXXFund2 is
         IERC20(_token).transferFrom(msg.sender, address(this), _amount);
 
         increaseToken(investorTokens[msg.sender], _token, _amount);
-        uint256 amountETH = PriceOracle.getPriceETH(UNISWAP_V3_FACTORY, _token, uint128(_amount), WETH9);
+        uint256 amountETH = IXXXFactory(factory).getPriceETH(_token, uint128(_amount), WETH9);
         emit Deposit(address(this), manager, msg.sender, _token, _amount, amountETH);
     }
 
@@ -157,7 +156,7 @@ contract XXXFund2 is
             feeIn(msg.sender, _token, feeAmount);
         }
         decreaseToken(investorTokens[msg.sender], _token, _amount);
-        uint256 amountETH = PriceOracle.getPriceETH(UNISWAP_V3_FACTORY, _token, uint128(_amount), WETH9);
+        uint256 amountETH = IXXXFactory(factory).getPriceETH(_token, uint128(_amount), WETH9);
         emit Withdraw(address(this), manager, msg.sender, _token, withdrawAmount, feeAmount, amountETH);
     }
 
@@ -171,7 +170,7 @@ contract XXXFund2 is
         //update info
         decreaseToken(investorTokens[investor], swapFrom, swapFromAmount);
         increaseToken(investorTokens[investor], swapTo, swapToAmount);
-        uint256 amountETH = PriceOracle.getPriceETH(UNISWAP_V3_FACTORY, swapTo, uint128(swapToAmount), WETH9);
+        uint256 amountETH = IXXXFactory(factory).getPriceETH(swapTo, uint128(swapToAmount), WETH9);
         emit Swap(
             address(this),
             manager,
@@ -427,7 +426,7 @@ contract XXXFund2 is
         for (uint256 i=0; i<investorTokens[investor].length; i++) {
             address tokenAddress = investorTokens[investor][i].tokenAddress;
             uint256 amount = investorTokens[investor][i].amount;
-            tvlETH += PriceOracle.getPriceETH(UNISWAP_V3_FACTORY, tokenAddress, uint128(amount), WETH9);
+            tvlETH += IXXXFactory(factory).getPriceETH(tokenAddress, uint128(amount), WETH9);
         }
         return tvlETH;
     }
@@ -437,12 +436,12 @@ contract XXXFund2 is
         for (uint256 i=0; i<feeTokens.length; i++) {
             address tokenAddress = feeTokens[i].tokenAddress;
             uint256 amount = feeTokens[i].amount;
-            tvlETH += PriceOracle.getPriceETH(UNISWAP_V3_FACTORY, tokenAddress, uint128(amount), WETH9);
+            tvlETH += IXXXFactory(factory).getPriceETH(tokenAddress, uint128(amount), WETH9);
         }
         return tvlETH;
     }
 
     function getETHPriceInUSD() external override view returns (uint256) {
-        return PriceOracle.getETHPriceInUSD(UNISWAP_V3_FACTORY, WETH9, USDC);
+        return IXXXFactory(factory).getETHPriceInUSD(WETH9, USDC);
     }
 }

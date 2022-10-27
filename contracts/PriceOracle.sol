@@ -5,12 +5,20 @@ import '@uniswap/v3-core/contracts/interfaces/IUniswapV3Factory.sol';
 import '@uniswap/v3-core/contracts/interfaces/IUniswapV3Pool.sol';
 import '@uniswap/v3-periphery/contracts/libraries/OracleLibrary.sol';
 
+import './interfaces/IPriceOracle.sol';
+
 /// @title PriceOracle library
 /// @notice Provides functions to integrate with V3 pool oracle
-library PriceOracle {
+contract PriceOracle is IPriceOracle{
+
+    address public factory;
+
+    constructor() {
+        // Uniswap V3 Factory address
+        factory = 0x1F98431c8aD98523631AE4a59f267346ea31F984;
+    }
 
     function getBestPool(
-        address factory,
         address token0, 
         address token1
     ) internal view returns (address bestPool) {
@@ -50,7 +58,7 @@ library PriceOracle {
             fee10000PoolLiquiduty = IUniswapV3Pool(fee10000Pool).liquidity();
         }
 
-        address bestPool = address(0);
+        bestPool = address(0);
 
         if (fee500PoolLiquiduty >= fee3000PoolLiquiduty && fee500PoolLiquiduty >= fee10000PoolLiquiduty) {
             bestPool = fee500Pool;
@@ -64,7 +72,6 @@ library PriceOracle {
     }
 
     function getBestPoolPrice(
-        address factory,
         address _token0, 
         address _token1,
         address tokenIn,
@@ -73,10 +80,10 @@ library PriceOracle {
     ) internal view returns (uint256 amountOut) {
         address token0 = _token0;
         address token1 = _token1;
-        require(tokenIn == token0 || tokenIn == token1, "IT");
+        require(tokenIn == token0 || tokenIn == token1, "invalid token");
 
-        address pool = getBestPool(factory, token0, token1);
-        require(pool != address(0), "PNE");
+        address pool = getBestPool(token0, token1);
+        require(pool != address(0), "no pool exist");
 
         address tokenOut = tokenIn == token0 ? token1 : token0;
 
@@ -121,12 +128,11 @@ library PriceOracle {
         );
     }
 
-    function getPriceETH(address factory, address token, uint128 amountIn, address weth) internal view returns (uint256 amount) {
+    function getPriceETH(address token, uint128 amountIn, address weth) external override view returns (uint256 amount) {
         if (token == weth) {
             return uint128(amountIn);
         } else {
             return getBestPoolPrice(
-                factory,
                 token,
                 weth,
                 token,
@@ -136,13 +142,36 @@ library PriceOracle {
         }
     }
 
-    function getETHPriceInUSD(address factory, address weth, address usd) internal view returns (uint256 amount) {
+    function getPriceUSD(address token, uint128 amountIn, address usd) external override view returns (uint256 amount) {
+        if (token == usd) {
+            return uint128(amountIn);
+        } else {
+            return getBestPoolPrice(
+                token,
+                usd,
+                token,
+                amountIn,
+                10
+            );
+        }
+    }
+
+    function getETHPriceInUSD(address weth, address usd) external override view returns (uint256 amount) {
         return getBestPoolPrice(
-            factory,
             weth,
             usd,
             weth,
             10**18,
+            10
+        );
+    }
+
+    function getUSDPriceInETH(address usd, address weth) external override view returns (uint256 amount) {
+        return getBestPoolPrice(
+            usd,
+            weth,
+            usd,
+            10**6,
             10
         );
     }

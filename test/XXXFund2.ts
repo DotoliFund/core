@@ -1,6 +1,7 @@
 import { Wallet, constants, BigNumber, ContractTransaction, Contract } from 'ethers'
 import { expect } from "chai"
 import { ethers, waffle } from 'hardhat'
+import { PriceOracle } from '../typechain-types/contracts/PriceOracle'
 import { XXXFactory } from '../typechain-types/contracts/XXXFactory'
 import { XXXFund2 } from '../typechain-types/contracts/XXXFund2'
 import { getCreate2Address } from './shared/utilities'
@@ -45,12 +46,14 @@ describe('XXXFund2', () => {
   let investor2: Wallet
   let notInvestor: Wallet
 
+  let oracleContractAddress: string
   let factoryContractAddress: string
   let fundContractAddress: string
 
   let fund1Address: string
   let fund2Address: string
 
+  let oracle: Contract
   let factory: Contract
   let fund1: Contract
   let fund2: Contract
@@ -154,9 +157,17 @@ describe('XXXFund2', () => {
     }
   })
 
+  before("Deploy PriceOracle Contract", async function () {
+    const PriceOracle = await ethers.getContractFactory("PriceOracle")
+    const Oracle = await PriceOracle.connect(deployer).deploy()
+    await Oracle.deployed()
+    oracleContractAddress = Oracle.address
+    oracle = await ethers.getContractAt("PriceOracle", oracleContractAddress)
+  })
+
   before("Deploy XXXFactory Contract", async function () {
     const XXXFactory = await ethers.getContractFactory("XXXFactory")
-    const Factory = await XXXFactory.connect(deployer).deploy()
+    const Factory = await XXXFactory.connect(deployer).deploy(oracleContractAddress)
     await Factory.deployed()
     factoryContractAddress = Factory.address
     factory = await ethers.getContractAt("XXXFactory", factoryContractAddress)
