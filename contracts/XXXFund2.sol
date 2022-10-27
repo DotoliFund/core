@@ -86,6 +86,30 @@ contract XXXFund2 is
         return tokenIds;
     }
 
+    function getInvestorTotalValueLockedETH(address investor) external override view returns (uint256) {
+        uint256 tvlETH = 0;
+        for (uint256 i=0; i<investorTokens[investor].length; i++) {
+            address tokenAddress = investorTokens[investor][i].tokenAddress;
+            uint256 amount = investorTokens[investor][i].amount;
+            tvlETH += IXXXFactory(factory).getPriceETH(tokenAddress, uint128(amount), WETH9);
+        }
+        return tvlETH;
+    }
+
+    function getManagerFeeTotalValueLockedETH() external override view returns (uint256) {
+        uint256 tvlETH = 0;
+        for (uint256 i=0; i<feeTokens.length; i++) {
+            address tokenAddress = feeTokens[i].tokenAddress;
+            uint256 amount = feeTokens[i].amount;
+            tvlETH += IXXXFactory(factory).getPriceETH(tokenAddress, uint128(amount), WETH9);
+        }
+        return tvlETH;
+    }
+
+    function getETHPriceInUSD() external override view returns (uint256) {
+        return IXXXFactory(factory).getETHPriceInUSD(WETH9, USDC);
+    }
+
     function feeIn(address investor, address _token, uint256 _amount) private {
         bool isNewToken = true;
         for (uint256 i=0; i<feeTokens.length; i++) {
@@ -419,29 +443,5 @@ contract XXXFund2 is
 
         decreaseToken(investorTokens[_params.investor], deposits[_params.tokenId].token0, amount0);
         decreaseToken(investorTokens[_params.investor], deposits[_params.tokenId].token1, amount1);
-    }
-
-    function getInvestorTotalValueLockedETH(address investor) external override view returns (uint256) {
-        uint256 tvlETH = 0;
-        for (uint256 i=0; i<investorTokens[investor].length; i++) {
-            address tokenAddress = investorTokens[investor][i].tokenAddress;
-            uint256 amount = investorTokens[investor][i].amount;
-            tvlETH += IXXXFactory(factory).getPriceETH(tokenAddress, uint128(amount), WETH9);
-        }
-        return tvlETH;
-    }
-
-    function getManagerFeeTotalValueLockedETH() external override view returns (uint256) {
-        uint256 tvlETH = 0;
-        for (uint256 i=0; i<feeTokens.length; i++) {
-            address tokenAddress = feeTokens[i].tokenAddress;
-            uint256 amount = feeTokens[i].amount;
-            tvlETH += IXXXFactory(factory).getPriceETH(tokenAddress, uint128(amount), WETH9);
-        }
-        return tvlETH;
-    }
-
-    function getETHPriceInUSD() external override view returns (uint256) {
-        return IXXXFactory(factory).getETHPriceInUSD(WETH9, USDC);
     }
 }
