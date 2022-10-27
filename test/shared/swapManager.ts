@@ -4,9 +4,8 @@ import { encodePath } from './path'
 import { ethers } from 'hardhat'
 import {
 	NULL_ADDRESS,
-	V3TradeType,
-	V3SwapType,
-	V3TradeParams,
+	SwapType,
+	SwapParams,
 	FeeAmount
 } from "./constants"
 
@@ -18,11 +17,10 @@ export function exactInputSingleParams(
   amountOutMinimum: BigNumber,
   sqrtPriceLimitX96: BigNumber,
 	fundAddress: string
-): V3TradeParams[] {
-	const params: V3TradeParams[] = [
+): SwapParams[] {
+	const params: SwapParams[] = [
 		{
-      tradeType: V3TradeType.EXACT_INPUT,
-      swapType: V3SwapType.SINGLE_HOP,
+      swapType: SwapType.EXACT_INPUT_SINGLE_HOP,
       investor: investor,
       tokenIn: tokenIn,
       tokenOut: tokenOut,
@@ -47,11 +45,10 @@ export function exactOutputSingleParams(
   amountInMaximum: BigNumber,
   sqrtPriceLimitX96: BigNumber,
 	fundAddress: string
-): V3TradeParams[] {
-	const params: V3TradeParams[] = [
+): SwapParams[] {
+	const params: SwapParams[] = [
 		{
-	    tradeType: V3TradeType.EXACT_OUTPUT,
-	    swapType: V3SwapType.SINGLE_HOP,
+	    swapType: SwapType.EXACT_OUTPUT_SINGLE_HOP,
 	    investor: investor,
 	    tokenIn: tokenIn,
 	    tokenOut: tokenOut,
@@ -74,12 +71,11 @@ export function exactInputParams(
   amountIn: BigNumber,
   amountOutMinimum: BigNumber,
 	fundAddress: string
-): V3TradeParams[] {
+): SwapParams[] {
   const path = encodePath(tokens, new Array(tokens.length - 1).fill(FeeAmount.MEDIUM))
-	const params: V3TradeParams[] = [
+	const params: SwapParams[] = [
 		{
-			tradeType: V3TradeType.EXACT_INPUT,
-			swapType: V3SwapType.MULTI_HOP,
+			swapType: SwapType.EXACT_INPUT_MULTI_HOP,
 			investor: investor,
 			tokenIn: NULL_ADDRESS,
 			tokenOut: NULL_ADDRESS,
@@ -102,12 +98,11 @@ export function exactOutputParams(
 	amountOut: BigNumber,
 	amountInMaximum: BigNumber,
 	fundAddress: string
-): V3TradeParams[] {
+): SwapParams[] {
 	const path = encodePath(tokens.slice().reverse(), new Array(tokens.length - 1).fill(FeeAmount.MEDIUM))
-	const params: V3TradeParams[] = [
+	const params: SwapParams[] = [
 		{
-			tradeType: V3TradeType.EXACT_OUTPUT,
-			swapType: V3SwapType.MULTI_HOP,
+			swapType: SwapType.EXACT_OUTPUT_MULTI_HOP,
 			investor: investor,
 			tokenIn: NULL_ADDRESS,
 			tokenOut: NULL_ADDRESS,

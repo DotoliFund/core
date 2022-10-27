@@ -10,7 +10,13 @@ import {
   exactOutputSingleParams,
   exactInputParams,
   exactOutputParams,
-} from './shared/swapRouter'
+} from './shared/swapManager'
+import { 
+  exactInputSingleParams,
+  exactOutputSingleParams,
+  exactInputParams,
+  exactOutputParams,
+} from './shared/swapManager'
 import { 
   WETH9,
   UNI,
@@ -91,7 +97,7 @@ describe('XXXFund2', () => {
       notInvestor
     ] = await (ethers as any).getSigners()
 
-    weth9 = await ethers.getContractAt("./contracts/interfaces/external/IWETH9.sol:IWETH9", WETH9)
+    weth9 = await ethers.getContractAt("@uniswap/v3-periphery/contracts/interfaces/external/IWETH9.sol:IWETH9", WETH9)
     uni = await ethers.getContractAt("@openzeppelin/contracts/token/ERC20/IERC20.sol:IERC20", UNI)
 
     getManagerAccount = async (who: string) => {
@@ -870,7 +876,14 @@ describe('XXXFund2', () => {
     describe("(fund1) Provide liquidity manager1's token : ( ETH, UNI )", async function () {
 
       it("mint new position", async function () {
-
+        const params = exactOutputParams(
+          investor1.address,
+          tokens,
+          swapOutputAmount,
+          amountInMaximum,
+          fund1Address
+        )
+        await fund1.connect(manager1).swap(params, { value: 0 })
       })
 
       it("increase liquidity", async function () {
