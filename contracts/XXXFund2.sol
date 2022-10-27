@@ -4,6 +4,8 @@ pragma solidity =0.7.6;
 pragma abicoder v2;
 
 import '@uniswap/v3-periphery/contracts/libraries/Path.sol';
+import '@uniswap/swap-router-contracts/contracts/interfaces/ISwapRouter02.sol';
+import '@uniswap/v3-periphery/contracts/interfaces/INonfungiblePositionManager.sol';
 
 import './interfaces/IXXXFund2.sol';
 import './interfaces/IXXXFactory.sol';
@@ -11,8 +13,6 @@ import './base/Constants.sol';
 import './base/Payments.sol';
 import './base/Token.sol';
 import './libraries/PriceOracle.sol';
-import './libraries/SwapManager.sol';
-import './libraries/LiquidityManager.sol';
 
 //TODO : remove console
 import "hardhat/console.sol";
@@ -192,6 +192,23 @@ contract XXXFund2 is
         );
     }
 
+    function getLastTokenFromPath(bytes memory path) internal view returns (address) {
+        address _tokenOut;
+
+        while (true) {
+            bool hasMultiplePools = path.hasMultiplePools();
+
+            if (hasMultiplePools) {
+                path = path.skipToken();
+            } else {
+                (address tokenIn, address tokenOut, uint24 fee) = path.decodeFirstPool();
+                _tokenOut = tokenOut;
+                break;
+            }
+        }
+        return _tokenOut;
+    }
+
     function swap(SwapParams[] calldata trades) external payable override lock {
         require(msg.sender == manager, 'NM');
         address swapRouter = IXXXFactory(factory).getSwapRouterAddress();
@@ -205,20 +222,26 @@ contract XXXFund2 is
                 uint256 tokenBalance = getInvestorTokenAmount(trades[i].investor, trades[i].tokenIn);
                 require(tokenBalance >= trades[i].amountIn, 'TMIA');
 
-                uint256 amountOut = SwapManager.exactInputSingle(
-                    factory,
-                    swapRouter,
-                    trades[i].tokenIn,
-                    trades[i].tokenOut,
-                    trades[i].fee,
-                    trades[i].amountIn,
-                    trades[i].amountOutMinimum
-                );
+                // approve
+                IERC20Minimal(trades[i].tokenIn).approve(swapRouter, trades[i].amountIn);
+
+                ISwapRouter02.ExactInputSingleParams memory params =
+                    IV3SwapRouter.ExactInputSingleParams({
+                        tokenIn: trades[i].tokenIn,
+                        tokenOut: trades[i].tokenOut,
+                        fee: trades[i].fee,
+                        recipient: address(this),
+                        amountIn: trades[i].amountIn,
+                        amountOutMinimum: trades[i].amountOutMinimum,
+                        sqrtPriceLimitX96: 0
+                    });
+                uint256 amountOut = ISwapRouter02(swapRouter).exactInputSingle(params);
+                
                 handleSwap(trades[i].investor, trades[i].tokenIn, trades[i].tokenOut, trades[i].amountIn, amountOut);
             } 
             else if (trades[i].swapType == SwapType.EXACT_INPUT_MULTI_HOP) 
             {
-                address tokenOut = SwapManager.getLastTokenFromPath(trades[i].path);
+                address tokenOut = getLastTokenFromPath(trades[i].path);
                 (address tokenIn, , ) = trades[i].path.decodeFirstPool();
                 require(IXXXFactory(factory).isWhiteListToken(tokenOut), 
                     'NWT');
@@ -226,14 +249,18 @@ contract XXXFund2 is
                 uint256 tokenBalance = getInvestorTokenAmount(trades[i].investor, tokenIn);
                 require(tokenBalance >= trades[i].amountIn, 'TMIA');
 
-                uint256 amountOut = SwapManager.exactInput(
-                    factory,
-                    swapRouter,
-                    trades[i].path,
-                    trades[i].amountIn,
-                    trades[i].amountOutMinimum,
-                    tokenIn
-                );
+                // approve
+                IERC20Minimal(tokenIn).approve(swapRouter, trades[i].amountIn);
+
+                ISwapRouter02.ExactInputParams memory params =
+                    IV3SwapRouter.ExactInputParams({
+                        path: trades[i].path,
+                        recipient: address(this),
+                        amountIn: trades[i].amountIn,
+                        amountOutMinimum: trades[i].amountOutMinimum
+                    });
+                uint256 amountOut = ISwapRouter02(swapRouter).exactInput(params);
+
                 handleSwap(trades[i].investor, tokenIn, tokenOut, trades[i].amountIn, amountOut);
             } 
             else if (trades[i].swapType == SwapType.EXACT_OUTPUT_SINGLE_HOP) 
@@ -243,40 +270,66 @@ contract XXXFund2 is
                 uint256 tokenBalance = getInvestorTokenAmount(trades[i].investor, trades[i].tokenIn);
                 require(tokenBalance >= trades[i].amountIn, 'TMIA');
 
-                uint256 amountIn = SwapManager.exactOutputSingle(
-                    factory,
-                    swapRouter,
-                    trades[i].tokenIn,
-                    trades[i].tokenOut,
-                    trades[i].fee,
-                    trades[i].amountOut,
-                    trades[i].amountInMaximum
-                );
+                // approve
+                IERC20Minimal(trades[i].tokenIn).approve(swapRouter, trades[i].amountInMaximum);
+
+                ISwapRouter02.ExactOutputSingleParams memory params =
+                    IV3SwapRouter.ExactOutputSingleParams({
+                        tokenIn: trades[i].tokenIn,
+                        tokenOut: trades[i].tokenOut,
+                        fee: trades[i].fee,
+                        recipient: address(this),
+                        amountOut: trades[i].amountOut,
+                        amountInMaximum: trades[i].amountInMaximum,
+                        sqrtPriceLimitX96: 0
+                    });
+                uint256 amountIn = ISwapRouter02(swapRouter).exactOutputSingle(params);
+
+                // For exact output swaps, the amountInMaximum may not have all been spent.
+                // If the actual amount spent (amountIn) is less than the specified maximum amount, we approve the swapRouter to spend 0.
+                if (amountIn < trades[i].amountInMaximum) {
+                    IERC20Minimal(trades[i].tokenIn).approve(swapRouter, 0);
+                }
+
                 handleSwap(trades[i].investor, trades[i].tokenIn, trades[i].tokenOut, amountIn, trades[i].amountOut);
             } 
             else if (trades[i].swapType == SwapType.EXACT_OUTPUT_MULTI_HOP) 
             {
-                address tokenIn = SwapManager.getLastTokenFromPath(trades[i].path);
+                address tokenIn = getLastTokenFromPath(trades[i].path);
                 (address tokenOut, , ) = trades[i].path.decodeFirstPool();
                 require(IXXXFactory(factory).isWhiteListToken(tokenOut), 'NWT');
 
                 uint256 tokenBalance = getInvestorTokenAmount(trades[i].investor, tokenIn);
                 require(tokenBalance >= trades[i].amountInMaximum, 'TMIA');
 
-                uint256 amountIn = SwapManager.exactOutput(
-                    factory,
-                    swapRouter,
-                    trades[i].path,
-                    trades[i].amountOut,
-                    trades[i].amountInMaximum,
-                    tokenIn
-                );
+                // approve
+                IERC20Minimal(tokenIn).approve(swapRouter, trades[i].amountInMaximum);
+
+                ISwapRouter02.ExactOutputParams memory params =
+                    IV3SwapRouter.ExactOutputParams({
+                        path: trades[i].path,
+                        recipient: address(this),
+                        amountOut: trades[i].amountOut,
+                        amountInMaximum: trades[i].amountInMaximum
+                    });
+                uint256 amountIn = ISwapRouter02(swapRouter).exactOutput(params);
+
+                // If the swap did not require the full amountInMaximum to achieve the exact amountOut then we approve the router to spend 0.
+                if (amountIn < trades[i].amountInMaximum) {
+                    IERC20Minimal(tokenIn).approve(swapRouter, 0);
+                }
+
                 handleSwap(trades[i].investor, tokenIn, tokenOut, amountIn, trades[i].amountOut);
             }
         }
     }
 
-    function mintNewPosition(MintLiquidityParams calldata params)
+    function getPositions(address nonfungiblePositionManager, uint256 tokenId) internal returns (address token0, address token1, uint128 liquidity) {
+        (, , address token0, address token1, , , , uint128 liquidity, , , , ) =
+            INonfungiblePositionManager(nonfungiblePositionManager).positions(tokenId);
+    }
+
+    function mintNewPosition(MintLiquidityParams calldata _params)
         external
         override
         returns (
@@ -286,85 +339,103 @@ contract XXXFund2 is
             uint256 amount1
         )
     {
-        // Approve the position manager
-        IERC20Minimal(params.token0).approve(nonfungiblePositionManager, params.amount0Desired);
-        IERC20Minimal(params.token1).approve(nonfungiblePositionManager, params.amount1Desired);
+        // // Approve the position manager
+        IERC20Minimal(_params.token0).approve(nonfungiblePositionManager, _params.amount0Desired);
+        IERC20Minimal(_params.token1).approve(nonfungiblePositionManager, _params.amount1Desired);
 
-        (tokenId, liquidity, amount0, amount1) = LiquidityManager.mintNewPosition(
-            nonfungiblePositionManager,
-            params.token0,
-            params.token1,
-            params.fee,
-            params.tickLower,
-            params.tickUpper,
-            params.amount0Desired,
-            params.amount1Desired,
-            params.amount0Min,
-            params.amount1Min
-        );
-        decreaseToken(investorTokens[params.investor], params.token0, amount0);
-        decreaseToken(investorTokens[params.investor], params.token1, amount1);
-        decreaseToken(fundTokens, params.token0, amount0);
-        decreaseToken(fundTokens, params.token1, amount1);
+        INonfungiblePositionManager.MintParams memory params =
+            INonfungiblePositionManager.MintParams({
+                token0: _params.token0,
+                token1: _params.token1,
+                fee: _params.fee,
+                tickLower: _params.tickLower,
+                tickUpper: _params.tickUpper,
+                amount0Desired: _params.amount0Desired,
+                amount1Desired: _params.amount1Desired,
+                amount0Min: _params.amount0Min,
+                amount1Min: _params.amount1Min,
+                recipient: address(this),
+                deadline: 111111111 //TODO : change 
+            });
 
-        (address token0, address token1, uint128 liquidity) = LiquidityManager.getPositions(nonfungiblePositionManager, tokenId);
+        // Note that the pool defined by DAI/USDC and fee tier 0.3% must already be created and initialized in order to mint
+        (tokenId, liquidity, amount0, amount1) = INonfungiblePositionManager(nonfungiblePositionManager).mint(params);
+
+        decreaseToken(investorTokens[_params.investor], _params.token0, amount0);
+        decreaseToken(investorTokens[_params.investor], _params.token1, amount1);
+        decreaseToken(fundTokens, _params.token0, amount0);
+        decreaseToken(fundTokens, _params.token1, amount1);
+
+        (address token0, address token1, uint128 liquidity) = getPositions(nonfungiblePositionManager, tokenId);
         // set the owner and data for position
         // operator is investor
-        deposits[tokenId] = pDeposit({owner: params.investor, liquidity: liquidity, token0: token0, token1: token1});
+        deposits[tokenId] = pDeposit({owner: _params.investor, liquidity: liquidity, token0: token0, token1: token1});
     }
 
-    function collectAllFees(CollectLiquidityParams calldata params) 
+    function collectAllFees(CollectLiquidityParams calldata _params) 
         external override returns (uint256 amount0, uint256 amount1) 
     {
-        (amount0, amount1) = LiquidityManager.collectAllFees(
-            nonfungiblePositionManager,
-            params.tokenId,
-            params.amount0Max,
-            params.amount1Max
-        );
-        increaseToken(investorTokens[params.investor], deposits[params.tokenId].token0, amount0);
-        increaseToken(investorTokens[params.investor], deposits[params.tokenId].token1, amount1);
-        increaseToken(fundTokens, deposits[params.tokenId].token0, amount0);
-        increaseToken(fundTokens, deposits[params.tokenId].token1, amount1);
+        INonfungiblePositionManager.CollectParams memory params =
+            INonfungiblePositionManager.CollectParams({
+                tokenId: _params.tokenId,
+                recipient: address(this),
+                amount0Max: _params.amount0Max,
+                amount1Max: _params.amount1Max
+            });
+        // Caller must own the ERC721 position, meaning it must be a deposit
+        (amount0, amount1) = INonfungiblePositionManager(nonfungiblePositionManager).collect(params);
+
+        increaseToken(investorTokens[_params.investor], deposits[_params.tokenId].token0, amount0);
+        increaseToken(investorTokens[_params.investor], deposits[_params.tokenId].token1, amount1);
+        increaseToken(fundTokens, deposits[_params.tokenId].token0, amount0);
+        increaseToken(fundTokens, deposits[_params.tokenId].token1, amount1);
     }
 
-    function decreaseLiquidity(DecreaseLiquidityParams calldata params) 
+    function decreaseLiquidity(DecreaseLiquidityParams calldata _params) 
         external override returns (uint256 amount0, uint256 amount1) 
     {
         // caller must be the owner of the NFT
-        require(msg.sender == deposits[params.tokenId].owner || msg.sender == manager, 'NO');
+        require(msg.sender == deposits[_params.tokenId].owner || msg.sender == manager, 'NO');
 
-        (amount0, amount1) = LiquidityManager.decreaseLiquidity(
-            nonfungiblePositionManager,
-            params.tokenId,
-            params.liquidity,
-            params.amount0Min,
-            params.amount1Min
-        );
-        increaseToken(investorTokens[params.investor], deposits[params.tokenId].token0, amount0);
-        increaseToken(investorTokens[params.investor], deposits[params.tokenId].token1, amount1);
-        increaseToken(fundTokens, deposits[params.tokenId].token0, amount0);
-        increaseToken(fundTokens, deposits[params.tokenId].token1, amount1);
+        INonfungiblePositionManager.DecreaseLiquidityParams memory params =
+            INonfungiblePositionManager.DecreaseLiquidityParams({
+                tokenId: _params.tokenId,
+                liquidity: _params.liquidity,
+                amount0Min: _params.amount0Min,
+                amount1Min: _params.amount1Min,
+                deadline: 111111111 //TODO : change
+            });
+
+        (amount0, amount1) = INonfungiblePositionManager(nonfungiblePositionManager).decreaseLiquidity(params);
+
+        increaseToken(investorTokens[_params.investor], deposits[_params.tokenId].token0, amount0);
+        increaseToken(investorTokens[_params.investor], deposits[_params.tokenId].token1, amount1);
+        increaseToken(fundTokens, deposits[_params.tokenId].token0, amount0);
+        increaseToken(fundTokens, deposits[_params.tokenId].token1, amount1);
     }
 
-    function increaseLiquidity(IncreaseLiquidityParams calldata params) 
+    function increaseLiquidity(IncreaseLiquidityParams calldata _params) 
         external override returns (uint128 liquidity, uint256 amount0, uint256 amount1) 
     {
-        IERC20Minimal(deposits[params.tokenId].token0).approve(nonfungiblePositionManager, params.amount0Desired);
-        IERC20Minimal(deposits[params.tokenId].token1).approve(nonfungiblePositionManager, params.amount1Desired);
+        IERC20Minimal(deposits[_params.tokenId].token0).approve(nonfungiblePositionManager, _params.amount0Desired);
+        IERC20Minimal(deposits[_params.tokenId].token1).approve(nonfungiblePositionManager, _params.amount1Desired);
 
-        (liquidity, amount0, amount1) = LiquidityManager.increaseLiquidity(
-            nonfungiblePositionManager,
-            params.tokenId,
-            params.amount0Desired,
-            params.amount1Desired,
-            params.amount0Min,
-            params.amount1Min
-        );
-        decreaseToken(investorTokens[params.investor], deposits[params.tokenId].token0, amount0);
-        decreaseToken(investorTokens[params.investor], deposits[params.tokenId].token1, amount1);
-        decreaseToken(fundTokens, deposits[params.tokenId].token0, amount0);
-        decreaseToken(fundTokens, deposits[params.tokenId].token1, amount1);
+        INonfungiblePositionManager.IncreaseLiquidityParams memory params =
+            INonfungiblePositionManager.IncreaseLiquidityParams({
+                tokenId: _params.tokenId,
+                amount0Desired: _params.amount0Desired,
+                amount1Desired: _params.amount1Desired,
+                amount0Min: _params.amount0Min,
+                amount1Min: _params.amount1Min,
+                deadline: 111111111 //TODO : change
+            });
+
+        (liquidity, amount0, amount1) = INonfungiblePositionManager(nonfungiblePositionManager).increaseLiquidity(params);
+
+        decreaseToken(investorTokens[_params.investor], deposits[_params.tokenId].token0, amount0);
+        decreaseToken(investorTokens[_params.investor], deposits[_params.tokenId].token1, amount1);
+        decreaseToken(fundTokens, deposits[_params.tokenId].token0, amount0);
+        decreaseToken(fundTokens, deposits[_params.tokenId].token1, amount1);
     }
 
     function getInvestorTotalValueLockedETH(address investor) external override view returns (uint256) {

@@ -13,7 +13,7 @@ library PriceOracle {
         address factory,
         address token0, 
         address token1
-    ) private view returns (address pool) {
+    ) internal view returns (address bestPool) {
         uint128 fee500PoolLiquiduty = 0;
         uint128 fee3000PoolLiquiduty = 0;
         uint128 fee10000PoolLiquiduty = 0;
@@ -50,17 +50,17 @@ library PriceOracle {
             fee10000PoolLiquiduty = IUniswapV3Pool(fee10000Pool).liquidity();
         }
 
-        address pool = address(0);
+        address bestPool = address(0);
 
         if (fee500PoolLiquiduty >= fee3000PoolLiquiduty && fee500PoolLiquiduty >= fee10000PoolLiquiduty) {
-            pool = fee500Pool;
+            bestPool = fee500Pool;
         } else if (fee3000PoolLiquiduty >= fee500PoolLiquiduty && fee3000PoolLiquiduty >= fee10000PoolLiquiduty) {
-            pool = fee3000Pool;
+            bestPool = fee3000Pool;
         } else if (fee10000PoolLiquiduty >= fee500PoolLiquiduty && fee10000PoolLiquiduty >= fee3000PoolLiquiduty) {
-            pool = fee10000Pool;
+            bestPool = fee10000Pool;
         }
 
-        return pool;
+        return bestPool;
     }
 
     function getBestPoolPrice(
@@ -136,21 +136,6 @@ library PriceOracle {
         }
     }
 
-    function getPriceUSD(address factory, address token, uint128 amountIn, address usd) internal view returns (uint256 amount) {
-        if (token == usd) {
-            return uint128(amountIn);
-        } else {
-            return getBestPoolPrice(
-                factory,
-                token,
-                usd,
-                token,
-                amountIn,
-                10
-            );
-        }
-    }
-
     function getETHPriceInUSD(address factory, address weth, address usd) internal view returns (uint256 amount) {
         return getBestPoolPrice(
             factory,
@@ -158,17 +143,6 @@ library PriceOracle {
             usd,
             weth,
             10**18,
-            10
-        );
-    }
-
-    function getUSDPriceInETH(address factory, address usd, address weth) internal view returns (uint256 amount) {
-        return getBestPoolPrice(
-            factory,
-            usd,
-            weth,
-            usd,
-            10**6,
             10
         );
     }
