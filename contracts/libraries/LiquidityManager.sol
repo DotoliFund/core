@@ -13,15 +13,6 @@ import '@uniswap/v3-core/contracts/interfaces/IERC20Minimal.sol';
 
 library LiquidityManager {
 
-    // position deposit
-    /// @notice Represents the deposit of an NFT
-    struct pDeposit {
-        address owner;
-        uint128 liquidity;
-        address token0;
-        address token1;
-    }
-
     // /// @dev deposits[tokenId] => pDeposit
     // mapping(uint256 => pDeposit) public deposits;
 
@@ -39,17 +30,9 @@ library LiquidityManager {
     //     return this.onERC721Received.selector;
     // }
 
-    function _createDeposit(
-        address nonfungiblePositionManager,
-        address owner,
-        uint256 tokenId
-    ) internal {
+    function getPositions(address nonfungiblePositionManager, uint256 tokenId) internal returns (address token0, address token1, uint128 liquidity) {
         (, , address token0, address token1, , , , uint128 liquidity, , , , ) =
             INonfungiblePositionManager(nonfungiblePositionManager).positions(tokenId);
-
-        // set the owner and data for position
-        // operator is msg.sender
-        // deposits[tokenId] = pDeposit({owner: owner, liquidity: liquidity, token0: token0, token1: token1});
     }
 
     function mintNewPosition(
@@ -73,10 +56,6 @@ library LiquidityManager {
             uint256 amount1
         )
     {
-        // Approve the position manager
-        //IERC20Minimal(token0).approve(nonfungiblePositionManager, amount0Desired);
-        //IERC20Minimal(token1).approve(nonfungiblePositionManager, amount1Desired);
-
         INonfungiblePositionManager.MintParams memory params =
             INonfungiblePositionManager.MintParams({
                 token0: token0,
@@ -94,9 +73,6 @@ library LiquidityManager {
 
         // Note that the pool defined by DAI/USDC and fee tier 0.3% must already be created and initialized in order to mint
         (tokenId, liquidity, amount0, amount1) = INonfungiblePositionManager(nonfungiblePositionManager).mint(params);
-
-        // Create a deposit
-        _createDeposit(nonfungiblePositionManager, msg.sender, tokenId);
     }
 
     function collectAllFees(
@@ -124,10 +100,6 @@ library LiquidityManager {
         uint256 amount1Min
         //uint256 deadline
     ) internal returns (uint256 amount0, uint256 amount1) {
-
-        // caller must be the owner of the NFT
-        //require(msg.sender == deposits[tokenId].owner, 'Not the owner');
-
         INonfungiblePositionManager.DecreaseLiquidityParams memory params =
             INonfungiblePositionManager.DecreaseLiquidityParams({
                 tokenId: tokenId,
@@ -155,9 +127,6 @@ library LiquidityManager {
             uint256 amount0,
             uint256 amount1
         ) {
-        //IERC20Minimal(deposits[tokenId].token0).approve(nonfungiblePositionManager, amount0Desired);
-        //IERC20Minimal(deposits[tokenId].token1).approve(nonfungiblePositionManager, amount1Desired);
-
         INonfungiblePositionManager.IncreaseLiquidityParams memory params =
             INonfungiblePositionManager.IncreaseLiquidityParams({
                 tokenId: tokenId,

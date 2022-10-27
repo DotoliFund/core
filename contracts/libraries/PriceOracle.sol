@@ -73,10 +73,10 @@ library PriceOracle {
     ) internal view returns (uint256 amountOut) {
         address token0 = _token0;
         address token1 = _token1;
-        require(tokenIn == token0 || tokenIn == token1, "invalid token");
+        require(tokenIn == token0 || tokenIn == token1, "IT");
 
         address pool = getBestPool(factory, token0, token1);
-        require(pool != address(0), "pool doesn't exist");
+        require(pool != address(0), "PNE");
 
         address tokenOut = tokenIn == token0 ? token1 : token0;
 

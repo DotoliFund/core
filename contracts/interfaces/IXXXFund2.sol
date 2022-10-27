@@ -29,7 +29,17 @@ interface IXXXFund2 is IToken {
         bytes path;
     }
 
+    // position deposit
+    /// @notice Represents the deposit of an NFT
+    struct pDeposit {
+        address owner;
+        uint128 liquidity;
+        address token0;
+        address token1;
+    }
+    
     struct MintLiquidityParams {
+        address investor;
         address token0;
         address token1;
         uint24 fee;
@@ -39,11 +49,11 @@ interface IXXXFund2 is IToken {
         uint256 amount1Desired;
         uint256 amount0Min;
         uint256 amount1Min;
-        address recipient;
         uint256 deadline;
     }
         
     struct IncreaseLiquidityParams {
+        address investor;
         uint256 tokenId;
         uint256 amount0Desired;
         uint256 amount1Desired;
@@ -53,13 +63,14 @@ interface IXXXFund2 is IToken {
     }
 
     struct CollectLiquidityParams {
+        address investor;
         uint256 tokenId;
-        address recipient;
         uint128 amount0Max;
         uint128 amount1Max;
     }
 
     struct DecreaseLiquidityParams {
+        address investor;
         uint256 tokenId;
         uint128 liquidity;
         uint256 amount0Min;

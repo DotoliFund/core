@@ -134,7 +134,7 @@ contract XXXFactory is IXXXFactory, Constants {
     }
     
     function subscribe(address fund) override external lock {
-        require(!isSubscribed(msg.sender, fund), 'investor fund already registered');
+        require(!isSubscribed(msg.sender, fund), 'AR');
         uint256 fundCount = getFundCountByInvestor[msg.sender];
         address manager = IXXXFund2(fund).manager();
         getFundByInvestor[msg.sender][fundCount] = fund;
