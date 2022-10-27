@@ -12,7 +12,7 @@ abstract contract Payments is Constants {
         if (_token == WETH9) {
             IWETH9(WETH9).withdraw(_amount);
             (bool success, ) = payable(msg.sender).call{value: _amount}(new bytes(0));
-            require(success, 'withdraw() => sending ETH to manager failed');
+            require(success, 'failed sending ETH to manager');
         } else {
             IERC20Minimal(_token).transfer(msg.sender, _amount);
         }

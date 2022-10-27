@@ -6,7 +6,7 @@ import '@uniswap/v3-core/contracts/interfaces/IERC20Minimal.sol';
 import '@uniswap/v3-periphery/contracts/libraries/Path.sol';
 import '@uniswap/swap-router-contracts/contracts/interfaces/ISwapRouter02.sol';
 
-library SwapRouter {
+library SwapManager {
     using Path for bytes;
 
     function getLastTokenFromPath(bytes memory path) internal view returns (address) {

@@ -3,10 +3,9 @@
 pragma solidity =0.7.6;
 pragma abicoder v2;
 
-import './ILiquidityManager.sol';
 import './IToken.sol';
 
-interface IXXXFund2 is ILiquidityManager, IToken {
+interface IXXXFund2 is IToken {
 
     enum SwapType{
         EXACT_INPUT_SINGLE_HOP,
@@ -28,6 +27,44 @@ interface IXXXFund2 is ILiquidityManager, IToken {
         uint256 amountOutMinimum;
         uint160 sqrtPriceLimitX96;
         bytes path;
+    }
+
+    struct MintLiquidityParams {
+        address token0;
+        address token1;
+        uint24 fee;
+        int24 tickLower;
+        int24 tickUpper;
+        uint256 amount0Desired;
+        uint256 amount1Desired;
+        uint256 amount0Min;
+        uint256 amount1Min;
+        address recipient;
+        uint256 deadline;
+    }
+        
+    struct IncreaseLiquidityParams {
+        uint256 tokenId;
+        uint256 amount0Desired;
+        uint256 amount1Desired;
+        uint256 amount0Min;
+        uint256 amount1Min;
+        uint256 deadline;
+    }
+
+    struct CollectLiquidityParams {
+        uint256 tokenId;
+        address recipient;
+        uint128 amount0Max;
+        uint128 amount1Max;
+    }
+
+    struct DecreaseLiquidityParams {
+        uint256 tokenId;
+        uint128 liquidity;
+        uint256 amount0Min;
+        uint256 amount1Min;
+        uint256 deadline;
     }
 
     event Initialize(address indexed fund, address manager);
@@ -82,10 +119,10 @@ interface IXXXFund2 is ILiquidityManager, IToken {
     function swap(
         SwapParams[] memory trades
     ) external payable;
-    function mintNewPosition(V3MintParams memory params) external returns (uint256 tokenId, uint128 liquidity, uint256 amount0, uint256 amount1);
-    function increaseLiquidity(V3IncreaseLiquidityParams memory params) external returns (uint128 liquidity, uint256 amount0, uint256 amount1);
-    function collectAllFees(V3CollectParams memory params) external returns (uint256 amount0, uint256 amount1);
-    function decreaseLiquidity(V3DecreaseLiquidityParams memory params) external returns (uint256 amount0, uint256 amount1);
+    function mintNewPosition(MintLiquidityParams calldata params) external returns (uint256 tokenId, uint128 liquidity, uint256 amount0, uint256 amount1);
+    function increaseLiquidity(IncreaseLiquidityParams calldata params) external returns (uint128 liquidity, uint256 amount0, uint256 amount1);
+    function collectAllFees(CollectLiquidityParams calldata params) external returns (uint256 amount0, uint256 amount1);
+    function decreaseLiquidity(DecreaseLiquidityParams calldata params) external returns (uint256 amount0, uint256 amount1);
 
     function feeOut(address _token, uint256 _amount) external payable;
 

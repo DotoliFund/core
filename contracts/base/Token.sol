@@ -44,11 +44,11 @@ abstract contract Token is IToken, Constants {
         for (uint256 i=0; i<tokens.length; i++) {
             if (tokens[i].tokenAddress == token) {
                 isNewToken = false;
-                require(tokens[i].amount >= amount, 'decreaseToken() => not enough token');
+                require(tokens[i].amount >= amount, 'not enough token');
                 tokens[i].amount -= amount;
                 break;
             }
         }
-        require(isNewToken == false, 'decreaseToken() => token is not exist');
+        require(isNewToken == false, 'token is not exist');
     }
 }

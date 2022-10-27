@@ -19,7 +19,7 @@ contract XXXFactory is IXXXFactory, Constants {
 
     uint256 private unlocked = 1;
     modifier lock() {
-        require(unlocked == 1, 'Fund LOCKED');
+        require(unlocked == 1, 'LOCKED');
         unlocked = 0;
         _;
         unlocked = 1;
@@ -41,7 +41,7 @@ contract XXXFactory is IXXXFactory, Constants {
     }
 
     function createFund() override external returns (address fund) {
-        require(getFundByManager[msg.sender] == address(0), 'createFund() => FUND_EXISTS');
+        require(getFundByManager[msg.sender] == address(0), 'FUND_EXISTS');
         fund = address(new XXXFund2{salt: keccak256(abi.encode(address(this), msg.sender))}());
         getFundByManager[msg.sender] = fund;
         IXXXFund2(fund).initialize(msg.sender);
