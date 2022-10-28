@@ -38,7 +38,7 @@ interface IXXXFund2 is IToken {
         address token1;
     }
 
-    struct MintLiquidityParams {
+    struct MintPositionParams {
         address investor;
         address token0;
         address token1;
@@ -62,7 +62,7 @@ interface IXXXFund2 is IToken {
         uint256 deadline;
     }
 
-    struct CollectLiquidityParams {
+    struct CollectFeeParams {
         address investor;
         uint256 tokenId;
         uint128 amount0Max;
