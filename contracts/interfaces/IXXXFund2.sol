@@ -128,11 +128,11 @@ interface IXXXFund2 is IToken {
     function deposit(address _token, uint256 _amount) external payable;
     function withdraw(address _token, uint256 _amount) external payable;
     function swap(
-        SwapParams[] memory trades
+        SwapParams[] calldata trades
     ) external payable;
-    function mintNewPosition(MintLiquidityParams calldata params) external returns (uint256 tokenId, uint128 liquidity, uint256 amount0, uint256 amount1);
+    function mintNewPosition(MintPositionParams calldata params) external returns (uint256 tokenId, uint128 liquidity, uint256 amount0, uint256 amount1);
     function increaseLiquidity(IncreaseLiquidityParams calldata params) external returns (uint128 liquidity, uint256 amount0, uint256 amount1);
-    function collectAllFees(CollectLiquidityParams calldata params) external returns (uint256 amount0, uint256 amount1);
+    function collectAllFees(CollectFeeParams calldata params) external returns (uint256 amount0, uint256 amount1);
     function decreaseLiquidity(DecreaseLiquidityParams calldata params) external returns (uint256 amount0, uint256 amount1);
 
     function feeOut(address _token, uint256 _amount) external payable;
@@ -140,6 +140,7 @@ interface IXXXFund2 is IToken {
     function getInvestorTokens(address investor) external returns (Token[] memory);
     function getFeeTokens() external returns (Token[] memory);
     function getInvestorTokenAmount(address investor, address token) external returns (uint256);
+    function getPositionTokenIds(address investor) external returns (uint256[] memory);
 
     function getInvestorTotalValueLockedETH(address investor) external returns (uint256);
     function getManagerFeeTotalValueLockedETH() external returns (uint256);

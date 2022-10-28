@@ -10,14 +10,14 @@ import {
   exactInputSingleParams,
   exactOutputSingleParams,
   exactInputParams,
-  exactOutputParams,
-} from './shared/swapManager'
+  exactOutputParams
+} from './shared/swap'
 import { 
-  exactInputSingleParams,
-  exactOutputSingleParams,
-  exactInputParams,
-  exactOutputParams,
-} from './shared/swapManager'
+  mintPositionParams,
+  increaseLiquidityParams,
+  collectFeeParams,
+  decreaseLiquidityParams
+} from './shared/liquidity'
 import { 
   WETH9,
   UNI,
@@ -30,9 +30,6 @@ import {
   MANAGER_FEE,
   WHITE_LIST_TOKENS,
   FeeAmount,
-  V3TradeType,
-  V3SwapType,
-  V3TradeParams
 } from "./shared/constants"
 
 
@@ -887,14 +884,25 @@ describe('XXXFund2', () => {
     describe("(fund1) Provide liquidity manager1's token : ( ETH, UNI )", async function () {
 
       it("mint new position", async function () {
-        const params = exactOutputParams(
-          investor1.address,
-          tokens,
-          swapOutputAmount,
-          amountInMaximum,
-          fund1Address
+        const params = mintPositionParams(
+  //         investor1.address,
+  //         tokens,
+  //         swapOutputAmount,
+  //         amountInMaximum,
+  //         fund1Address
+
+  // investor1.address,
+  // token0: string,
+  // token1: string,
+  // fee: number,
+  // tickLower: number,
+  // tickUpper: number,
+  // amount0Desired: BigNumber,
+  // amount1Desired: BigNumber,
+  // amount0Min: BigNumber,
+  // amount1Min: BigNumber
         )
-        await fund1.connect(manager1).swap(params, { value: 0 })
+        await fund1.connect(manager1).mintNewPosition(params, { value: 0 })
       })
 
       it("increase liquidity", async function () {

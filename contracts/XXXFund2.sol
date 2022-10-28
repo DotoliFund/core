@@ -81,7 +81,7 @@ contract XXXFund2 is
         return getTokenAmount(investorTokens[investor], token);
     }
 
-    function getPositionTokenIds(address investor) internal view returns (uint256[] memory tokenIds) {
+    function getPositionTokenIds(address investor) external override view returns (uint256[] memory tokenIds) {
         uint256[] memory tokenIds = positions[investor];
         return tokenIds;
     }
@@ -344,7 +344,7 @@ contract XXXFund2 is
             INonfungiblePositionManager(nonfungiblePositionManager).positions(tokenId);
     }
 
-    function mintNewPosition(MintLiquidityParams calldata _params)
+    function mintNewPosition(MintPositionParams calldata _params)
         external
         override
         returns (
@@ -383,9 +383,10 @@ contract XXXFund2 is
         // set the owner and data for position
         // operator is investor
         deposits[tokenId] = pDeposit({owner: _params.investor, liquidity: liquidity, token0: token0, token1: token1});
+        positions[_params.investor].push(tokenId);
     }
 
-    function collectAllFees(CollectLiquidityParams calldata _params) 
+    function collectAllFees(CollectFeeParams calldata _params) 
         external override returns (uint256 amount0, uint256 amount1) 
     {
         INonfungiblePositionManager.CollectParams memory params =

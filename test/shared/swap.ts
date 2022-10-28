@@ -4,10 +4,30 @@ import { encodePath } from './path'
 import { ethers } from 'hardhat'
 import {
 	NULL_ADDRESS,
-	SwapType,
-	SwapParams,
 	FeeAmount
 } from "./constants"
+
+export enum SwapType {
+  EXACT_INPUT_SINGLE_HOP = 0,
+  EXACT_INPUT_MULTI_HOP = 1,
+  EXACT_OUTPUT_SINGLE_HOP = 2,
+  EXACT_OUTPUT_MULTI_HOP = 3
+}
+
+export interface SwapParams {
+  swapType: number
+  investor: string
+  tokenIn: string
+  tokenOut: string
+  recipient: string
+  fee: number
+  amountIn: BigNumber
+  amountOut: BigNumber
+  amountInMaximum: BigNumber
+  amountOutMinimum: BigNumber
+  sqrtPriceLimitX96: BigNumber
+  path: string
+}
 
 export function exactInputSingleParams(
 	investor: string,
