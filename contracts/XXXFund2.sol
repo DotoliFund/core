@@ -370,7 +370,7 @@ contract XXXFund2 is
                 amount0Min: _params.amount0Min,
                 amount1Min: _params.amount1Min,
                 recipient: address(this),
-                deadline: 111111111 //TODO : change 
+                deadline: _params.deadline
             });
 
         // Note that the pool defined by DAI/USDC and fee tier 0.3% must already be created and initialized in order to mint
@@ -415,7 +415,7 @@ contract XXXFund2 is
                 liquidity: _params.liquidity,
                 amount0Min: _params.amount0Min,
                 amount1Min: _params.amount1Min,
-                deadline: 111111111 //TODO : change
+                deadline: _params.deadline
             });
 
         (amount0, amount1) = INonfungiblePositionManager(nonfungiblePositionManager).decreaseLiquidity(params);
@@ -437,7 +437,7 @@ contract XXXFund2 is
                 amount1Desired: _params.amount1Desired,
                 amount0Min: _params.amount0Min,
                 amount1Min: _params.amount1Min,
-                deadline: 111111111 //TODO : change
+                deadline: _params.deadline
             });
 
         (liquidity, amount0, amount1) = INonfungiblePositionManager(nonfungiblePositionManager).increaseLiquidity(params);
