@@ -4,14 +4,12 @@ pragma solidity =0.7.6;
 pragma abicoder v2;
 
 import './interfaces/IXXXFactory.sol';
-import './interfaces/IPriceOracle.sol';
 import './XXXFund2.sol';
 
 import "hardhat/console.sol";
 
 contract XXXFactory is IXXXFactory, Constants {
     address public override owner;
-    address public oracle;
 
     uint256 managerFee = 1; // 1% of investor profit ex) MANAGER_FEE = 10 -> 10% of investor profit
     address[] whiteListTokens;
@@ -28,7 +26,7 @@ contract XXXFactory is IXXXFactory, Constants {
         unlocked = 1;
     }
 
-    constructor(address priceOracle) {
+    constructor() {
         owner = msg.sender;
         emit OwnerChanged(address(0), msg.sender);
 
@@ -40,7 +38,6 @@ contract XXXFactory is IXXXFactory, Constants {
         whiteListTokens.push(UNI); //UNI
         whiteListTokens.push(XXX); //XXX
 
-        oracle = priceOracle;
         //console.log("msg.sender : ", msg.sender);
     }
 
@@ -144,21 +141,5 @@ contract XXXFactory is IXXXFactory, Constants {
         getFundByInvestor[msg.sender][fundCount] = fund;
         getFundCountByInvestor[msg.sender] += 1;
         emit Subscribe(fund, manager, msg.sender);
-    }
-
-    function getPriceETH(address token, uint128 amountIn, address weth) external override view returns (uint256) {
-        return IPriceOracle(oracle).getPriceETH(token, amountIn, weth);
-    }
-
-    function getPriceUSD(address token, uint128 amountIn, address usd) external override view returns (uint256) {
-        return IPriceOracle(oracle).getPriceUSD(token, amountIn, usd);
-    }
-
-    function getETHPriceInUSD(address weth, address usd) external override view returns (uint256) {
-        return IPriceOracle(oracle).getETHPriceInUSD(weth, usd);
-    }
-
-    function getUSDPriceInETH(address usd, address weth) external override view returns (uint256) {
-        return IPriceOracle(oracle).getUSDPriceInETH(usd, weth);
     }
 }

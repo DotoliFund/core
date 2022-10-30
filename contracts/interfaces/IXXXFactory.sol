@@ -38,9 +38,4 @@ interface IXXXFactory {
     function isSubscribed(address investor, address fund) external view returns (bool);
     function subscribedFunds() external view returns (address[] memory);
     function subscribe(address fund) external;
-
-    function getPriceETH(address token, uint128 amountIn, address weth) external view returns (uint256);
-    function getPriceUSD(address token, uint128 amountIn, address usd) external view returns (uint256);
-    function getETHPriceInUSD(address weth, address usd) external view returns (uint256);
-    function getUSDPriceInETH(address usd, address weth) external view returns (uint256);
 }

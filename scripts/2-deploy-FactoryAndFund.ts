@@ -7,10 +7,8 @@ async function main() {
   console.log("Deploying contracts with the account:", test_account_1.address);
   console.log("Account balance:", (await test_account_1.getBalance()).toString());
 
-  const PriceOracleAddress = '0x2E69559784b482d0EB90c5C968869c489233A459';
-
   const XXXFactory = await ethers.getContractFactory("XXXFactory");
-  const Factory = await XXXFactory.deploy(PriceOracleAddress);
+  const Factory = await XXXFactory.deploy();
   await Factory.deployed();
   console.log("Factory address : ", Factory.address);
 

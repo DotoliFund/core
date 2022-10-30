@@ -84,23 +84,20 @@ interface IXXXFund2 is IToken {
         address indexed investor,
         address indexed manager,
         address token,
-        uint256 amount,
-        uint256 amountETH
+        uint256 amount
     );
     event ManagerFeeOut(
         address indexed fund,
         address indexed manager,
         address token,
-        uint256 amount,
-        uint256 amountETH
+        uint256 amount
     );
     event Deposit(
         address indexed fund,
         address indexed manager,
         address indexed investor,
         address token,
-        uint256 amount,
-        uint256 amountETH
+        uint256 amount
     );
     event Withdraw(
         address indexed fund,
@@ -108,8 +105,7 @@ interface IXXXFund2 is IToken {
         address indexed investor,
         address token,
         uint256 amount,
-        uint256 feeAmount,
-        uint256 amountETH
+        uint256 feeAmount
     );
     event Swap(
         address indexed fund,
@@ -118,8 +114,7 @@ interface IXXXFund2 is IToken {
         address tokenIn,
         address tokenOut,
         uint256 amountIn,
-        uint256 amountOut,
-        uint256 amountETH
+        uint256 amountOut
     );
 
     function manager() external view returns (address);
@@ -127,6 +122,7 @@ interface IXXXFund2 is IToken {
     function initialize(address _manager) external;    
     function deposit(address _token, uint256 _amount) external payable;
     function withdraw(address _token, uint256 _amount) external payable;
+    function feeOut(address _token, uint256 _amount) external payable;
     function swap(
         SwapParams[] calldata trades
     ) external payable;
@@ -135,14 +131,8 @@ interface IXXXFund2 is IToken {
     function collectAllFees(CollectFeeParams calldata params) external returns (uint256 amount0, uint256 amount1);
     function decreaseLiquidity(DecreaseLiquidityParams calldata params) external returns (uint256 amount0, uint256 amount1);
 
-    function feeOut(address _token, uint256 _amount) external payable;
-
     function getInvestorTokens(address investor) external returns (Token[] memory);
     function getFeeTokens() external returns (Token[] memory);
     function getInvestorTokenAmount(address investor, address token) external returns (uint256);
     function getPositionTokenIds(address investor) external returns (uint256[] memory);
-
-    function getInvestorTotalValueLockedETH(address investor) external returns (uint256);
-    function getManagerFeeTotalValueLockedETH() external returns (uint256);
-    function getETHPriceInUSD() external returns (uint256);
 }

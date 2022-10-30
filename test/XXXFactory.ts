@@ -57,7 +57,7 @@ describe('XXXFactory', () => {
 
   before("Deploy XXXFactory Contract", async function () {
     const XXXFactory = await ethers.getContractFactory("XXXFactory")
-    const Factory = await XXXFactory.connect(deployer).deploy(oracleContractAddress)
+    const Factory = await XXXFactory.connect(deployer).deploy()
     await Factory.deployed()
     factoryContractAddress = Factory.address
     factory = await ethers.getContractAt("XXXFactory", factoryContractAddress)

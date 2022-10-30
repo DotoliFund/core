@@ -58,8 +58,7 @@ contract XXXFund2 is
             require(isSubscribed, 'US');
             IWETH9(WETH9).deposit{value: msg.value}();
             increaseToken(investorTokens[msg.sender], WETH9, msg.value);
-            uint256 amountETH = IXXXFactory(factory).getPriceETH(WETH9, uint128(msg.value), WETH9);
-            emit Deposit(address(this), manager, msg.sender, WETH9, msg.value, amountETH);
+            emit Deposit(address(this), manager, msg.sender, WETH9, msg.value);
         }
     }
 
@@ -86,30 +85,6 @@ contract XXXFund2 is
         return tokenIds;
     }
 
-    function getInvestorTotalValueLockedETH(address investor) external override view returns (uint256) {
-        uint256 tvlETH = 0;
-        for (uint256 i=0; i<investorTokens[investor].length; i++) {
-            address tokenAddress = investorTokens[investor][i].tokenAddress;
-            uint256 amount = investorTokens[investor][i].amount;
-            tvlETH += IXXXFactory(factory).getPriceETH(tokenAddress, uint128(amount), WETH9);
-        }
-        return tvlETH;
-    }
-
-    function getManagerFeeTotalValueLockedETH() external override view returns (uint256) {
-        uint256 tvlETH = 0;
-        for (uint256 i=0; i<feeTokens.length; i++) {
-            address tokenAddress = feeTokens[i].tokenAddress;
-            uint256 amount = feeTokens[i].amount;
-            tvlETH += IXXXFactory(factory).getPriceETH(tokenAddress, uint128(amount), WETH9);
-        }
-        return tvlETH;
-    }
-
-    function getETHPriceInUSD() external override view returns (uint256) {
-        return IXXXFactory(factory).getETHPriceInUSD(WETH9, USDC);
-    }
-
     function feeIn(address investor, address _token, uint256 _amount) private {
         bool isNewToken = true;
         for (uint256 i=0; i<feeTokens.length; i++) {
@@ -122,8 +97,7 @@ contract XXXFund2 is
         if (isNewToken) {
             feeTokens.push(Token(_token, _amount));
         }
-        uint256 amountETH = IXXXFactory(factory).getPriceETH(_token, uint128(_amount), WETH9);
-        emit ManagerFeeIn(address(this), investor, manager, _token, _amount, amountETH);
+        emit ManagerFeeIn(address(this), investor, manager, _token, _amount);
     }
 
     function feeOut(address _token, uint256 _amount) external payable override lock {
@@ -139,8 +113,7 @@ contract XXXFund2 is
             }
         }
         require(isNewToken == false, 'TNE');
-        uint256 amountETH = IXXXFactory(factory).getPriceETH(_token, uint128(_amount), WETH9);
-        emit ManagerFeeOut(address(this), manager, _token, _amount, amountETH);
+        emit ManagerFeeOut(address(this), manager, _token, _amount);
     }
 
     // this low-level function should be called from a contract which performs important safety checks
@@ -153,8 +126,7 @@ contract XXXFund2 is
         IERC20(_token).transferFrom(msg.sender, address(this), _amount);
 
         increaseToken(investorTokens[msg.sender], _token, _amount);
-        uint256 amountETH = IXXXFactory(factory).getPriceETH(_token, uint128(_amount), WETH9);
-        emit Deposit(address(this), manager, msg.sender, _token, _amount, amountETH);
+        emit Deposit(address(this), manager, msg.sender, _token, _amount);
     }
 
     function withdraw(address _token, uint256 _amount) external payable override lock {
@@ -180,8 +152,7 @@ contract XXXFund2 is
             feeIn(msg.sender, _token, feeAmount);
         }
         decreaseToken(investorTokens[msg.sender], _token, _amount);
-        uint256 amountETH = IXXXFactory(factory).getPriceETH(_token, uint128(_amount), WETH9);
-        emit Withdraw(address(this), manager, msg.sender, _token, withdrawAmount, feeAmount, amountETH);
+        emit Withdraw(address(this), manager, msg.sender, _token, withdrawAmount, feeAmount);
     }
 
     function handleSwap(
@@ -194,7 +165,6 @@ contract XXXFund2 is
         //update info
         decreaseToken(investorTokens[investor], swapFrom, swapFromAmount);
         increaseToken(investorTokens[investor], swapTo, swapToAmount);
-        uint256 amountETH = IXXXFactory(factory).getPriceETH(swapTo, uint128(swapToAmount), WETH9);
         emit Swap(
             address(this),
             manager,
@@ -202,8 +172,7 @@ contract XXXFund2 is
             swapFrom,
             swapTo,
             swapFromAmount,
-            swapToAmount,
-            amountETH
+            swapToAmount
         );
     }
 

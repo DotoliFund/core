@@ -155,24 +155,4 @@ contract PriceOracle is IPriceOracle{
             );
         }
     }
-
-    function getETHPriceInUSD(address weth, address usd) external override view returns (uint256 amount) {
-        return getBestPoolPrice(
-            weth,
-            usd,
-            weth,
-            10**18,
-            10
-        );
-    }
-
-    function getUSDPriceInETH(address usd, address weth) external override view returns (uint256 amount) {
-        return getBestPoolPrice(
-            usd,
-            weth,
-            usd,
-            10**6,
-            10
-        );
-    }
 }
