@@ -29,15 +29,6 @@ interface IXXXFund2 is IToken {
         bytes path;
     }
 
-    // position deposit
-    /// @notice Represents the deposit of an NFT
-    struct pDeposit {
-        address owner;
-        uint128 liquidity;
-        address token0;
-        address token1;
-    }
-
     struct MintPositionParams {
         address investor;
         address token0;

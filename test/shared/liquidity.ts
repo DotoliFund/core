@@ -58,22 +58,20 @@ export function mintPositionParams(
   amount1Desired: BigNumber,
   amount0Min: BigNumber,
   amount1Min: BigNumber
-): MintPositionParams[] {
-	const params: MintPositionParams[] = [
-		{
-		  investor: investor,
-		  token0: tokenIn,
-		  token1: string,
-		  fee: number,
-		  tickLower: tickLower,
-		  tickUpper: tickUpper,
-		  amount0Desired: amount0Desired,
-		  amount1Desired: amount1Desired,
-		  amount0Min: amount0Min,
-		  amount1Min: amount1Min,
-		  deadline: 1234567
-		}
-	]
+): MintPositionParams {
+	const params: MintPositionParams = {
+		investor: investor,
+		token0: token0,
+		token1: token1,
+		fee: fee,
+		tickLower: tickLower,
+		tickUpper: tickUpper,
+		amount0Desired: amount0Desired,
+		amount1Desired: amount1Desired,
+		amount0Min: amount0Min,
+		amount1Min: amount1Min,
+		deadline: 32345678900
+	}
 	return params
 }
 
@@ -84,18 +82,16 @@ export function increaseLiquidityParams(
   amount1Desired: BigNumber,
   amount0Min: BigNumber,
   amount1Min: BigNumber
-): IncreaseLiquidityParams[] {
-	const params: IncreaseLiquidityParams[] = [
-		{
-		  investor: investor,
-		  tokenId: tokenId,
-		  amount0Desired: amount0Desired,
-		  amount1Desired: amount1Desired,
-		  amount0Min: amount0Min,
-		  amount1Min: amount1Min,
-		  deadline: 1234567
-		}
-	]
+): IncreaseLiquidityParams {
+	const params: IncreaseLiquidityParams = {
+		investor: investor,
+		tokenId: tokenId,
+		amount0Desired: amount0Desired,
+		amount1Desired: amount1Desired,
+		amount0Min: amount0Min,
+		amount1Min: amount1Min,
+		deadline: 52345678900
+	}
 	return params
 }
 
@@ -130,7 +126,7 @@ export function decreaseLiquidityParams(
 		  liquidity: liquidity,
 		  amount0Min: amount0Min,
 		  amount1Min: amount1Min,
-		  deadline: 1234567
+		  deadline: 52345678900
 		}
 	]
 	return params

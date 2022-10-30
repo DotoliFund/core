@@ -24,6 +24,15 @@ contract XXXFund2 is
 {
     using Path for bytes;
 
+    // position deposit
+    /// @notice Represents the deposit of an NFT
+    struct pDeposit {
+        address owner;
+        uint128 liquidity;
+        address token0;
+        address token1;
+    }
+
     address public factory;
     address public override manager;
 
@@ -323,10 +332,12 @@ contract XXXFund2 is
             uint256 amount1
         )
     {
-        // // Approve the position manager
+
+        console.log(1111);
+        // Approve the position manager
         IERC20Minimal(_params.token0).approve(nonfungiblePositionManager, _params.amount0Desired);
         IERC20Minimal(_params.token1).approve(nonfungiblePositionManager, _params.amount1Desired);
-
+        console.log(222);
         INonfungiblePositionManager.MintParams memory params =
             INonfungiblePositionManager.MintParams({
                 token0: _params.token0,
@@ -341,12 +352,25 @@ contract XXXFund2 is
                 recipient: address(this),
                 deadline: _params.deadline
             });
+        console.log(333);
+        console.log("%s ", _params.token0);
+        console.log("%s ", _params.token1);
+        console.log("%d ", _params.fee);
+        //console.log("%d ", _params.tickLower);
+        //console.log("%s ", _params.tickUpper);
+        console.log("%i ", _params.amount0Desired);
+        console.log("%s ", _params.amount1Desired);
+        console.log("%s ", _params.amount0Min);
+        console.log("%s ", _params.amount1Min);
+        console.log("%s ", _params.deadline);
 
         // Note that the pool defined by DAI/USDC and fee tier 0.3% must already be created and initialized in order to mint
         (tokenId, liquidity, amount0, amount1) = INonfungiblePositionManager(nonfungiblePositionManager).mint(params);
+        console.log(444);
 
         decreaseToken(investorTokens[_params.investor], _params.token0, amount0);
         decreaseToken(investorTokens[_params.investor], _params.token1, amount1);
+        console.log(555);
 
         (address token0, address token1, uint128 liquidity) = getPositionInfo(nonfungiblePositionManager, tokenId);
         // set the owner and data for position
