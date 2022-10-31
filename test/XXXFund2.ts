@@ -24,15 +24,18 @@ import {
   DAI,
   NULL_ADDRESS,
   V3_SWAP_ROUTER_ADDRESS,
+  NonfungiblePositionManager,
   WETH_CHARGE_AMOUNT,
   DEPOSIT_AMOUNT,
   WITHDRAW_AMOUNT,
   MANAGER_FEE,
   WHITE_LIST_TOKENS,
   FeeAmount,
+  MaxUint128,
+  TICK_SPACINGS,
 } from "./shared/constants"
 import { getMaxTick, getMinTick } from './shared/ticks'
-import { FeeAmount, MaxUint128, TICK_SPACINGS } from './shared/constants'
+
 
 describe('XXXFund2', () => {
 
@@ -56,6 +59,8 @@ describe('XXXFund2', () => {
   let fund2: Contract
   let weth9: Contract
   let uni: Contract
+
+  let liquidity_uni_eth: BigNumber
 
   let getManagerAccount: (
     who: string
@@ -881,34 +886,61 @@ describe('XXXFund2', () => {
 
     })
 
+    // if error msg is 'Price slippage check',
+    // check amount0 vs amount1 ratio. 
+    // (2022/10/31) UNI vs ETH => 200 : 1 (OK)
     describe("(fund1) Provide liquidity manager1's token : ( ETH, UNI )", async function () {
 
       it("mint new position", async function () {
         const params = mintPositionParams(
           investor1.address,
-          WETH9,
           UNI,
+          WETH9,
           FeeAmount.MEDIUM,
           getMinTick(TICK_SPACINGS[FeeAmount.MEDIUM]),
           getMaxTick(TICK_SPACINGS[FeeAmount.MEDIUM]),
-          200,
-          200,
-          100,
-          100
+          BigNumber.from(20000),
+          BigNumber.from(100),
+          BigNumber.from(2000),
+          BigNumber.from(10),
         )
         await fund1.connect(manager1).mintNewPosition(params, { value: 0 })
       })
 
       it("increase liquidity", async function () {
-
+        const tokenIds = await fund1.connect(manager1).getPositionTokenIds(investor1.address)
+        const params = increaseLiquidityParams(
+          investor1.address,
+          tokenIds[0],
+          BigNumber.from(20000),
+          BigNumber.from(100),
+          BigNumber.from(2000),
+          BigNumber.from(10),
+        )
+        await fund1.connect(manager1).increaseLiquidity(params, { value: 0 })
       })
 
       it("collect all fees", async function () {
-
+        const tokenIds = await fund1.connect(manager1).getPositionTokenIds(investor1.address)
+        const params = collectFeeParams(
+          investor1.address,
+          tokenIds[0],
+          MaxUint128,
+          MaxUint128
+        )
+        await fund1.connect(manager1).collectAllFees(params, { value: 0 })
       })
 
       it("decrease liquidity", async function () {
-
+        const tokenIds = await fund1.connect(manager1).getPositionTokenIds(investor1.address)
+        const params = decreaseLiquidityParams(
+          investor1.address,
+          tokenIds[0],
+          1000,
+          BigNumber.from(2000),
+          BigNumber.from(10),
+        )
+        await fund1.connect(manager1).decreaseLiquidity(params, { value: 0 })
       })
 
     })

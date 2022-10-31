@@ -7,6 +7,8 @@ import {
 	FeeAmount
 } from "./constants"
 
+const DEADLINE = "0x835f19fb"
+
 export interface MintPositionParams {
   investor: string
   token0: string
@@ -49,15 +51,15 @@ export interface DecreaseLiquidityParams {
 
 export function mintPositionParams(
 	investor: string,
-  token0: string,
-  token1: string,
-  fee: number,
-  tickLower: number,
-  tickUpper: number,
-  amount0Desired: BigNumber,
-  amount1Desired: BigNumber,
-  amount0Min: BigNumber,
-  amount1Min: BigNumber
+	token0: string,
+	token1: string,
+	fee: number,
+	tickLower: number,
+	tickUpper: number,
+	amount0Desired: BigNumber,
+	amount1Desired: BigNumber,
+	amount0Min: BigNumber,
+	amount1Min: BigNumber
 ): MintPositionParams {
 	const params: MintPositionParams = {
 		investor: investor,
@@ -70,18 +72,18 @@ export function mintPositionParams(
 		amount1Desired: amount1Desired,
 		amount0Min: amount0Min,
 		amount1Min: amount1Min,
-		deadline: 32345678900
+		deadline: DEADLINE
 	}
 	return params
 }
 
 export function increaseLiquidityParams(
-  investor: string,
-  tokenId: number,
-  amount0Desired: BigNumber,
-  amount1Desired: BigNumber,
-  amount0Min: BigNumber,
-  amount1Min: BigNumber
+	investor: string,
+	tokenId: number,
+	amount0Desired: BigNumber,
+	amount1Desired: BigNumber,
+	amount0Min: BigNumber,
+	amount1Min: BigNumber
 ): IncreaseLiquidityParams {
 	const params: IncreaseLiquidityParams = {
 		investor: investor,
@@ -90,44 +92,40 @@ export function increaseLiquidityParams(
 		amount1Desired: amount1Desired,
 		amount0Min: amount0Min,
 		amount1Min: amount1Min,
-		deadline: 52345678900
+		deadline: DEADLINE
 	}
 	return params
 }
 
 export function collectFeeParams(
-  investor: string,
-  tokenId: number,
-  amount0Max: BigNumber,
-  amount1Max: BigNumber
-): CollectFeeParams[] {
-	const params: CollectFeeParams[] = [
-		{
-		  investor: investor,
-		  tokenId: tokenId,
-		  amount0Max: amount0Max,
-		  amount1Max: amount1Max
-		}
-	]
+	investor: string,
+	tokenId: number,
+	amount0Max: BigNumber,
+	amount1Max: BigNumber
+): CollectFeeParams {
+	const params: CollectFeeParams = {
+		investor: investor,
+		tokenId: tokenId,
+		amount0Max: amount0Max,
+		amount1Max: amount1Max
+	}
 	return params
 }
 
 export function decreaseLiquidityParams(
-  investor: string,
-  tokenId: number,
-  liquidity: number,
-  amount0Min: BigNumber,
-  amount1Min: BigNumber
-): DecreaseLiquidityParams[] {
-	const params: DecreaseLiquidityParams[] = [
-		{
-		  investor: investor,
-		  tokenId: tokenId,
-		  liquidity: liquidity,
-		  amount0Min: amount0Min,
-		  amount1Min: amount1Min,
-		  deadline: 52345678900
-		}
-	]
+	investor: string,
+	tokenId: number,
+	liquidity: number,
+	amount0Min: BigNumber,
+	amount1Min: BigNumber
+): DecreaseLiquidityParams {
+	const params: DecreaseLiquidityParams = {
+		investor: investor,
+		tokenId: tokenId,
+		liquidity: liquidity,
+		amount0Min: amount0Min,
+		amount1Min: amount1Min,
+		deadline: DEADLINE
+	}
 	return params
 }

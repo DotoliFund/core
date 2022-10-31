@@ -317,11 +317,6 @@ contract XXXFund2 is
         }
     }
 
-    function getPositionInfo(address nonfungiblePositionManager, uint256 tokenId) private returns (address token0, address token1, uint128 liquidity) {
-        (, , address token0, address token1, , , , uint128 liquidity, , , , ) =
-            INonfungiblePositionManager(nonfungiblePositionManager).positions(tokenId);
-    }
-
     function mintNewPosition(MintPositionParams calldata _params)
         external
         override
@@ -332,12 +327,12 @@ contract XXXFund2 is
             uint256 amount1
         )
     {
+        require(msg.sender == manager, 'NM');
 
-        console.log(1111);
         // Approve the position manager
-        IERC20Minimal(_params.token0).approve(nonfungiblePositionManager, _params.amount0Desired);
-        IERC20Minimal(_params.token1).approve(nonfungiblePositionManager, _params.amount1Desired);
-        console.log(222);
+        IERC20Minimal(_params.token0).approve(NonfungiblePositionManager, _params.amount0Desired);
+        IERC20Minimal(_params.token1).approve(NonfungiblePositionManager, _params.amount1Desired);
+
         INonfungiblePositionManager.MintParams memory params =
             INonfungiblePositionManager.MintParams({
                 token0: _params.token0,
@@ -352,36 +347,32 @@ contract XXXFund2 is
                 recipient: address(this),
                 deadline: _params.deadline
             });
-        console.log(333);
-        console.log("%s ", _params.token0);
-        console.log("%s ", _params.token1);
-        console.log("%d ", _params.fee);
-        //console.log("%d ", _params.tickLower);
-        //console.log("%s ", _params.tickUpper);
-        console.log("%i ", _params.amount0Desired);
-        console.log("%s ", _params.amount1Desired);
-        console.log("%s ", _params.amount0Min);
-        console.log("%s ", _params.amount1Min);
-        console.log("%s ", _params.deadline);
 
         // Note that the pool defined by DAI/USDC and fee tier 0.3% must already be created and initialized in order to mint
-        (tokenId, liquidity, amount0, amount1) = INonfungiblePositionManager(nonfungiblePositionManager).mint(params);
-        console.log(444);
+        (tokenId, liquidity, amount0, amount1) = INonfungiblePositionManager(NonfungiblePositionManager).mint(params);
 
         decreaseToken(investorTokens[_params.investor], _params.token0, amount0);
         decreaseToken(investorTokens[_params.investor], _params.token1, amount1);
-        console.log(555);
 
-        (address token0, address token1, uint128 liquidity) = getPositionInfo(nonfungiblePositionManager, tokenId);
+        (, , address token0, address token1, , , , uint128 liquidity, , , , ) 
+            = INonfungiblePositionManager(NonfungiblePositionManager).positions(tokenId);
+
         // set the owner and data for position
         // operator is investor
-        deposits[tokenId] = pDeposit({owner: _params.investor, liquidity: liquidity, token0: token0, token1: token1});
+        deposits[tokenId] = pDeposit({
+            owner: _params.investor,
+            liquidity: liquidity,
+            token0: token0,
+            token1: token1
+        });
         positions[_params.investor].push(tokenId);
     }
 
     function collectAllFees(CollectFeeParams calldata _params) 
         external override returns (uint256 amount0, uint256 amount1) 
     {
+        require(msg.sender == deposits[_params.tokenId].owner || msg.sender == manager, 'NO');
+
         INonfungiblePositionManager.CollectParams memory params =
             INonfungiblePositionManager.CollectParams({
                 tokenId: _params.tokenId,
@@ -389,8 +380,7 @@ contract XXXFund2 is
                 amount0Max: _params.amount0Max,
                 amount1Max: _params.amount1Max
             });
-        // Caller must own the ERC721 position, meaning it must be a deposit
-        (amount0, amount1) = INonfungiblePositionManager(nonfungiblePositionManager).collect(params);
+        (amount0, amount1) = INonfungiblePositionManager(NonfungiblePositionManager).collect(params);
 
         increaseToken(investorTokens[_params.investor], deposits[_params.tokenId].token0, amount0);
         increaseToken(investorTokens[_params.investor], deposits[_params.tokenId].token1, amount1);
@@ -399,7 +389,6 @@ contract XXXFund2 is
     function decreaseLiquidity(DecreaseLiquidityParams calldata _params) 
         external override returns (uint256 amount0, uint256 amount1) 
     {
-        // caller must be the owner of the NFT
         require(msg.sender == deposits[_params.tokenId].owner || msg.sender == manager, 'NO');
 
         INonfungiblePositionManager.DecreaseLiquidityParams memory params =
@@ -411,17 +400,22 @@ contract XXXFund2 is
                 deadline: _params.deadline
             });
 
-        (amount0, amount1) = INonfungiblePositionManager(nonfungiblePositionManager).decreaseLiquidity(params);
+        (amount0, amount1) = INonfungiblePositionManager(NonfungiblePositionManager).decreaseLiquidity(params);
 
         increaseToken(investorTokens[_params.investor], deposits[_params.tokenId].token0, amount0);
         increaseToken(investorTokens[_params.investor], deposits[_params.tokenId].token1, amount1);
+        (, , address token0, address token1, , , , uint128 liquidity, , , , ) 
+            = INonfungiblePositionManager(NonfungiblePositionManager).positions(_params.tokenId);
+        deposits[_params.tokenId].liquidity = liquidity;
     }
 
     function increaseLiquidity(IncreaseLiquidityParams calldata _params) 
         external override returns (uint128 liquidity, uint256 amount0, uint256 amount1) 
     {
-        IERC20Minimal(deposits[_params.tokenId].token0).approve(nonfungiblePositionManager, _params.amount0Desired);
-        IERC20Minimal(deposits[_params.tokenId].token1).approve(nonfungiblePositionManager, _params.amount1Desired);
+        require(msg.sender == manager, 'NM');
+
+        IERC20Minimal(deposits[_params.tokenId].token0).approve(NonfungiblePositionManager, _params.amount0Desired);
+        IERC20Minimal(deposits[_params.tokenId].token1).approve(NonfungiblePositionManager, _params.amount1Desired);
 
         INonfungiblePositionManager.IncreaseLiquidityParams memory params =
             INonfungiblePositionManager.IncreaseLiquidityParams({
@@ -433,9 +427,12 @@ contract XXXFund2 is
                 deadline: _params.deadline
             });
 
-        (liquidity, amount0, amount1) = INonfungiblePositionManager(nonfungiblePositionManager).increaseLiquidity(params);
+        (liquidity, amount0, amount1) = INonfungiblePositionManager(NonfungiblePositionManager).increaseLiquidity(params);
 
         decreaseToken(investorTokens[_params.investor], deposits[_params.tokenId].token0, amount0);
         decreaseToken(investorTokens[_params.investor], deposits[_params.tokenId].token1, amount1);
+        (, , address token0, address token1, , , , uint128 liquidity, , , , ) 
+            = INonfungiblePositionManager(NonfungiblePositionManager).positions(_params.tokenId);
+        deposits[_params.tokenId].liquidity = liquidity;
     }
 }

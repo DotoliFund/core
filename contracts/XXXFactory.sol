@@ -62,12 +62,12 @@ contract XXXFactory is IXXXFactory, Constants {
     }
 
     function getSwapRouterAddress() external override view returns (address) {
-        return swapRouterAddress;
+        return SwapRouterAddress;
     }
     
     function setSwapRouterAddress(address _swapRouterAddress) external override {
         require(msg.sender == owner);
-        swapRouterAddress = _swapRouterAddress;
+        SwapRouterAddress = _swapRouterAddress;
     }
 
     function getManagerFee() external override view returns (uint256) {
