@@ -9,7 +9,7 @@ import {
 
 const DEADLINE = "0x835f19fb"
 
-export interface MintPositionParams {
+export interface MintNewPositionParams {
   investor: string
   token0: string
   token1: string
@@ -33,7 +33,7 @@ export interface IncreaseLiquidityParams {
   deadline: number
 }
 
-export interface CollectFeeParams {
+export interface CollectPositionFeeParams {
   investor: string
   tokenId: number
   amount0Max: BigNumber
@@ -49,7 +49,7 @@ export interface DecreaseLiquidityParams {
   deadline: number
 }
 
-export function mintPositionParams(
+export function mintNewPositionParams(
 	investor: string,
 	token0: string,
 	token1: string,
@@ -60,8 +60,8 @@ export function mintPositionParams(
 	amount1Desired: BigNumber,
 	amount0Min: BigNumber,
 	amount1Min: BigNumber
-): MintPositionParams {
-	const params: MintPositionParams = {
+): MintNewPositionParams {
+	const params: MintNewPositionParams = {
 		investor: investor,
 		token0: token0,
 		token1: token1,
@@ -97,13 +97,13 @@ export function increaseLiquidityParams(
 	return params
 }
 
-export function collectFeeParams(
+export function collectPositionFeeParams(
 	investor: string,
 	tokenId: number,
 	amount0Max: BigNumber,
 	amount1Max: BigNumber
-): CollectFeeParams {
-	const params: CollectFeeParams = {
+): CollectPositionFeeParams {
+	const params: CollectPositionFeeParams = {
 		investor: investor,
 		tokenId: tokenId,
 		amount0Max: amount0Max,

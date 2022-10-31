@@ -13,9 +13,9 @@ import {
   exactOutputParams
 } from './shared/swap'
 import { 
-  mintPositionParams,
+  mintNewPositionParams,
   increaseLiquidityParams,
-  collectFeeParams,
+  collectPositionFeeParams,
   decreaseLiquidityParams
 } from './shared/liquidity'
 import { 
@@ -59,8 +59,6 @@ describe('XXXFund2', () => {
   let fund2: Contract
   let weth9: Contract
   let uni: Contract
-
-  let liquidity_uni_eth: BigNumber
 
   let getManagerAccount: (
     who: string
@@ -892,7 +890,7 @@ describe('XXXFund2', () => {
     describe("(fund1) Provide liquidity manager1's token : ( ETH, UNI )", async function () {
 
       it("mint new position", async function () {
-        const params = mintPositionParams(
+        const params = mintNewPositionParams(
           investor1.address,
           UNI,
           WETH9,
@@ -920,15 +918,15 @@ describe('XXXFund2', () => {
         await fund1.connect(manager1).increaseLiquidity(params, { value: 0 })
       })
 
-      it("collect all fees", async function () {
+      it("collect position fee", async function () {
         const tokenIds = await fund1.connect(manager1).getPositionTokenIds(investor1.address)
-        const params = collectFeeParams(
+        const params = collectPositionFeeParams(
           investor1.address,
           tokenIds[0],
           MaxUint128,
           MaxUint128
         )
-        await fund1.connect(manager1).collectAllFees(params, { value: 0 })
+        await fund1.connect(manager1).collectPositionFee(params, { value: 0 })
       })
 
       it("decrease liquidity", async function () {

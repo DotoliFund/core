@@ -317,7 +317,7 @@ contract XXXFund2 is
         }
     }
 
-    function mintNewPosition(MintPositionParams calldata _params)
+    function mintNewPosition(MintNewPositionParams calldata _params)
         external
         override
         returns (
@@ -366,47 +366,17 @@ contract XXXFund2 is
             token1: token1
         });
         positions[_params.investor].push(tokenId);
-    }
 
-    function collectAllFees(CollectFeeParams calldata _params) 
-        external override returns (uint256 amount0, uint256 amount1) 
-    {
-        require(msg.sender == deposits[_params.tokenId].owner || msg.sender == manager, 'NO');
-
-        INonfungiblePositionManager.CollectParams memory params =
-            INonfungiblePositionManager.CollectParams({
-                tokenId: _params.tokenId,
-                recipient: address(this),
-                amount0Max: _params.amount0Max,
-                amount1Max: _params.amount1Max
-            });
-        (amount0, amount1) = INonfungiblePositionManager(NonfungiblePositionManager).collect(params);
-
-        increaseToken(investorTokens[_params.investor], deposits[_params.tokenId].token0, amount0);
-        increaseToken(investorTokens[_params.investor], deposits[_params.tokenId].token1, amount1);
-    }
-
-    function decreaseLiquidity(DecreaseLiquidityParams calldata _params) 
-        external override returns (uint256 amount0, uint256 amount1) 
-    {
-        require(msg.sender == deposits[_params.tokenId].owner || msg.sender == manager, 'NO');
-
-        INonfungiblePositionManager.DecreaseLiquidityParams memory params =
-            INonfungiblePositionManager.DecreaseLiquidityParams({
-                tokenId: _params.tokenId,
-                liquidity: _params.liquidity,
-                amount0Min: _params.amount0Min,
-                amount1Min: _params.amount1Min,
-                deadline: _params.deadline
-            });
-
-        (amount0, amount1) = INonfungiblePositionManager(NonfungiblePositionManager).decreaseLiquidity(params);
-
-        increaseToken(investorTokens[_params.investor], deposits[_params.tokenId].token0, amount0);
-        increaseToken(investorTokens[_params.investor], deposits[_params.tokenId].token1, amount1);
-        (, , address token0, address token1, , , , uint128 liquidity, , , , ) 
-            = INonfungiblePositionManager(NonfungiblePositionManager).positions(_params.tokenId);
-        deposits[_params.tokenId].liquidity = liquidity;
+        emit MintNewPosition(
+            address(this),
+            manager,
+            _params.investor,
+            tokenId,
+            token0,
+            token1,
+            amount0,
+            amount1
+        );
     }
 
     function increaseLiquidity(IncreaseLiquidityParams calldata _params) 
@@ -434,5 +404,79 @@ contract XXXFund2 is
         (, , address token0, address token1, , , , uint128 liquidity, , , , ) 
             = INonfungiblePositionManager(NonfungiblePositionManager).positions(_params.tokenId);
         deposits[_params.tokenId].liquidity = liquidity;
+
+        emit IncreaseLiquidity(
+            address(this),
+            manager,
+            _params.investor,
+            _params.tokenId,
+            token0,
+            token1,
+            amount0,
+            amount1
+        );
+    }
+
+    function collectPositionFee(CollectPositionFeeParams calldata _params) 
+        external override returns (uint256 amount0, uint256 amount1) 
+    {
+        require(msg.sender == deposits[_params.tokenId].owner || msg.sender == manager, 'NO');
+
+        INonfungiblePositionManager.CollectParams memory params =
+            INonfungiblePositionManager.CollectParams({
+                tokenId: _params.tokenId,
+                recipient: address(this),
+                amount0Max: _params.amount0Max,
+                amount1Max: _params.amount1Max
+            });
+        (amount0, amount1) = INonfungiblePositionManager(NonfungiblePositionManager).collect(params);
+
+        increaseToken(investorTokens[_params.investor], deposits[_params.tokenId].token0, amount0);
+        increaseToken(investorTokens[_params.investor], deposits[_params.tokenId].token1, amount1);
+
+        emit CollectPositionFee(
+            address(this),
+            manager,
+            _params.investor,
+            _params.tokenId,
+            deposits[_params.tokenId].token0,
+            deposits[_params.tokenId].token1,
+            amount0,
+            amount1
+        );
+    }
+
+    function decreaseLiquidity(DecreaseLiquidityParams calldata _params) 
+        external override returns (uint256 amount0, uint256 amount1) 
+    {
+        require(msg.sender == deposits[_params.tokenId].owner || msg.sender == manager, 'NO');
+
+        INonfungiblePositionManager.DecreaseLiquidityParams memory params =
+            INonfungiblePositionManager.DecreaseLiquidityParams({
+                tokenId: _params.tokenId,
+                liquidity: _params.liquidity,
+                amount0Min: _params.amount0Min,
+                amount1Min: _params.amount1Min,
+                deadline: _params.deadline
+            });
+
+        (amount0, amount1) = INonfungiblePositionManager(NonfungiblePositionManager).decreaseLiquidity(params);
+
+        increaseToken(investorTokens[_params.investor], deposits[_params.tokenId].token0, amount0);
+        increaseToken(investorTokens[_params.investor], deposits[_params.tokenId].token1, amount1);
+        (, , address token0, address token1, , , , uint128 liquidity, , , , ) 
+            = INonfungiblePositionManager(NonfungiblePositionManager).positions(_params.tokenId);
+        deposits[_params.tokenId].liquidity = liquidity;
+
+        emit DecreaseLiquidity(
+            address(this),
+            manager,
+            _params.investor,
+            _params.tokenId,
+            token0,
+            token1,
+            amount0,
+            amount1
+        );
     }
 }

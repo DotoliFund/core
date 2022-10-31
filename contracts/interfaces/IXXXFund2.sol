@@ -29,7 +29,7 @@ interface IXXXFund2 is IToken {
         bytes path;
     }
 
-    struct MintPositionParams {
+    struct MintNewPositionParams {
         address investor;
         address token0;
         address token1;
@@ -53,7 +53,7 @@ interface IXXXFund2 is IToken {
         uint256 deadline;
     }
 
-    struct CollectFeeParams {
+    struct CollectPositionFeeParams {
         address investor;
         uint256 tokenId;
         uint128 amount0Max;
@@ -70,43 +70,15 @@ interface IXXXFund2 is IToken {
     }
 
     event Initialize(address indexed fund, address manager);
-    event ManagerFeeIn(
-        address indexed fund,
-        address indexed investor,
-        address indexed manager,
-        address token,
-        uint256 amount
-    );
-    event ManagerFeeOut(
-        address indexed fund,
-        address indexed manager,
-        address token,
-        uint256 amount
-    );
-    event Deposit(
-        address indexed fund,
-        address indexed manager,
-        address indexed investor,
-        address token,
-        uint256 amount
-    );
-    event Withdraw(
-        address indexed fund,
-        address indexed manager,
-        address indexed investor,
-        address token,
-        uint256 amount,
-        uint256 feeAmount
-    );
-    event Swap(
-        address indexed fund,
-        address indexed manager,
-        address indexed investor,
-        address tokenIn,
-        address tokenOut,
-        uint256 amountIn,
-        uint256 amountOut
-    );
+    event ManagerFeeIn(address indexed fund, address indexed investor, address indexed manager, address token, uint256 amount);
+    event ManagerFeeOut(address indexed fund, address indexed manager, address token, uint256 amount);
+    event Deposit(address indexed fund, address indexed manager, address indexed investor, address token, uint256 amount);
+    event Withdraw(address indexed fund, address indexed manager, address indexed investor, address token, uint256 amount, uint256 feeAmount);
+    event Swap(address indexed fund, address indexed manager, address indexed investor, address tokenIn, address tokenOut, uint256 amountIn, uint256 amountOut);
+    event MintNewPosition(address indexed fund, address indexed manager, address indexed investor, uint256 tokenId, address token0, address token1, uint256 amount0, uint256 amount1);
+    event IncreaseLiquidity(address indexed fund, address indexed manager, address indexed investor, uint256 tokenId, address token0, address token1, uint256 amount0, uint256 amount1);
+    event CollectPositionFee(address indexed fund, address indexed manager, address indexed investor, uint256 tokenId, address token0, address token1, uint256 amount0, uint256 amount1);
+    event DecreaseLiquidity(address indexed fund, address indexed manager, address indexed investor, uint256 tokenId, address token0, address token1, uint256 amount0, uint256 amount1);
 
     function manager() external view returns (address);
 
@@ -114,12 +86,10 @@ interface IXXXFund2 is IToken {
     function deposit(address _token, uint256 _amount) external payable;
     function withdraw(address _token, uint256 _amount) external payable;
     function feeOut(address _token, uint256 _amount) external payable;
-    function swap(
-        SwapParams[] calldata trades
-    ) external payable;
-    function mintNewPosition(MintPositionParams calldata params) external returns (uint256 tokenId, uint128 liquidity, uint256 amount0, uint256 amount1);
+    function swap(SwapParams[] calldata trades) external payable;
+    function mintNewPosition(MintNewPositionParams calldata params) external returns (uint256 tokenId, uint128 liquidity, uint256 amount0, uint256 amount1);
     function increaseLiquidity(IncreaseLiquidityParams calldata params) external returns (uint128 liquidity, uint256 amount0, uint256 amount1);
-    function collectAllFees(CollectFeeParams calldata params) external returns (uint256 amount0, uint256 amount1);
+    function collectPositionFee(CollectPositionFeeParams calldata params) external returns (uint256 amount0, uint256 amount1);
     function decreaseLiquidity(DecreaseLiquidityParams calldata params) external returns (uint256 amount0, uint256 amount1);
 
     function getInvestorTokens(address investor) external returns (Token[] memory);
