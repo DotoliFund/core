@@ -2,6 +2,7 @@ import { Wallet, constants, BigNumber, ContractTransaction, Contract } from 'eth
 import { expect } from "chai"
 import { ethers, waffle } from 'hardhat'
 import { PriceOracle } from '../typechain-types/contracts/PriceOracle'
+import { LiquidityOracle } from '../typechain-types/contracts/LiquidityOracle'
 import { XXXFactory } from '../typechain-types/contracts/XXXFactory'
 import { XXXFund2 } from '../typechain-types/contracts/XXXFund2'
 import { getCreate2Address } from './shared/utilities'
@@ -46,14 +47,16 @@ describe('XXXFund2', () => {
   let investor2: Wallet
   let notInvestor: Wallet
 
-  let oracleContractAddress: string
+  let priceOracleContractAddress: string
+  let liquidityOracleContractAddress: string
   let factoryContractAddress: string
   let fundContractAddress: string
 
   let fund1Address: string
   let fund2Address: string
 
-  let oracle: Contract
+  let priceOracle: Contract
+  let liquidityOracle: Contract
   let factory: Contract
   let fund1: Contract
   let fund2: Contract
@@ -161,8 +164,16 @@ describe('XXXFund2', () => {
     const PriceOracle = await ethers.getContractFactory("PriceOracle")
     const Oracle = await PriceOracle.connect(deployer).deploy()
     await Oracle.deployed()
-    oracleContractAddress = Oracle.address
-    oracle = await ethers.getContractAt("PriceOracle", oracleContractAddress)
+    priceOracleContractAddress = Oracle.address
+    priceOracle = await ethers.getContractAt("PriceOracle", priceOracleContractAddress)
+  })
+
+  before("Deploy LiquidityOracle Contract", async function () {
+    const LiquidityOracle = await ethers.getContractFactory("LiquidityOracle")
+    const Oracle = await LiquidityOracle.connect(deployer).deploy()
+    await Oracle.deployed()
+    liquidityOracleContractAddress = Oracle.address
+    liquidityOracle = await ethers.getContractAt("LiquidityOracle", liquidityOracleContractAddress)
   })
 
   before("Deploy XXXFactory Contract", async function () {
@@ -916,6 +927,11 @@ describe('XXXFund2', () => {
           BigNumber.from(10),
         )
         await fund1.connect(manager1).increaseLiquidity(params, { value: 0 })
+      })
+
+      it("liquidityOracle get token0, token1, amount0, amount1", async function () {
+        const tokenIds = await fund1.connect(manager1).getPositionTokenIds(investor1.address)
+        const tokenAmount = await liquidityOracle.connect(manager1).getPositionTokenAmount(tokenIds[0].toNumber())
       })
 
       it("collect position fee", async function () {
