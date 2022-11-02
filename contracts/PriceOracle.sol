@@ -11,11 +11,10 @@ import './interfaces/IPriceOracle.sol';
 /// @notice Provides functions to integrate with V3 pool oracle
 contract PriceOracle is IPriceOracle{
 
-    address public factory;
+    address public UniswapV3Factory;
 
     constructor() {
-        // Uniswap V3 Factory address
-        factory = 0x1F98431c8aD98523631AE4a59f267346ea31F984;
+        UniswapV3Factory = 0x1F98431c8aD98523631AE4a59f267346ea31F984;
     }
 
     function getBestPool(
@@ -26,17 +25,17 @@ contract PriceOracle is IPriceOracle{
         uint128 fee3000PoolLiquiduty = 0;
         uint128 fee10000PoolLiquiduty = 0;
 
-        address fee500Pool = IUniswapV3Factory(factory).getPool(
+        address fee500Pool = IUniswapV3Factory(UniswapV3Factory).getPool(
             token0,
             token1,
             500
         );
-        address fee3000Pool = IUniswapV3Factory(factory).getPool(
+        address fee3000Pool = IUniswapV3Factory(UniswapV3Factory).getPool(
             token0,
             token1,
             3000
         );
-        address fee10000Pool = IUniswapV3Factory(factory).getPool(
+        address fee10000Pool = IUniswapV3Factory(UniswapV3Factory).getPool(
             token0,
             token1,
             10000

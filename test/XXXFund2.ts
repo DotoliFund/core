@@ -21,6 +21,7 @@ import {
 } from './shared/liquidity'
 import { 
   WETH9,
+  USDC,
   UNI,
   DAI,
   NULL_ADDRESS,
@@ -932,6 +933,23 @@ describe('XXXFund2', () => {
       it("liquidityOracle get token0, token1, amount0, amount1", async function () {
         const tokenIds = await fund1.connect(manager1).getPositionTokenIds(investor1.address)
         const tokenAmount = await liquidityOracle.connect(manager1).getPositionTokenAmount(tokenIds[0].toNumber())
+      })
+
+      it("priceOracle token0, token1, amount0, amount1", async function () {
+        const tokenIds = await fund1.connect(manager1).getPositionTokenIds(investor1.address)
+        const tokenAmount = await liquidityOracle.connect(manager1).getPositionTokenAmount(tokenIds[0].toNumber())
+        const token0 = tokenAmount.token0
+        const token1 = tokenAmount.token1
+        const amount0 = tokenAmount.amount0
+        const amount1 = tokenAmount.amount1
+        const token0priceETH = await priceOracle.connect(manager1).getPriceETH(token0, amount0, WETH9)
+        const token1priceETH = await priceOracle.connect(manager1).getPriceETH(token1, amount1, WETH9)
+        const ethPriceInUSD = await priceOracle.connect(manager1).getPriceUSD(WETH9, ethers.utils.parseEther("1.0"), USDC)
+        //const token1priceUSD = await priceOracle.connect(manager1).getPriceUSD(WETH9, token1priceETH, USDC)
+        console.log(token0priceETH)
+        console.log(token1priceETH)
+        console.log(ethPriceInUSD)
+        //console.log(token1priceUSD)
       })
 
       it("collect position fee", async function () {
