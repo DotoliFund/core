@@ -523,6 +523,101 @@ describe('XXXFund2', () => {
 
     })
 
+    // if error msg is 'Price slippage check',
+    // check amount0 vs amount1 ratio. 
+    // (2022/10/31) UNI vs ETH => 200 : 1 (OK)
+    describe("(fund1) Provide liquidity manager1's token : ( ETH, UNI )", async function () {
+
+      it("mint new position", async function () {
+        const params = mintNewPositionParams(
+          manager1.address,
+          UNI,
+          WETH9,
+          FeeAmount.MEDIUM,
+          getMinTick(TICK_SPACINGS[FeeAmount.MEDIUM]),
+          getMaxTick(TICK_SPACINGS[FeeAmount.MEDIUM]),
+          BigNumber.from(20000),
+          BigNumber.from(100),
+          BigNumber.from(2000),
+          BigNumber.from(10),
+        )
+        await fund1.connect(manager1).mintNewPosition(params, { value: 0 })
+      })
+
+      it("increase liquidity", async function () {
+        const tokenIds = await fund1.connect(manager1).getPositionTokenIds(manager1.address)
+        const params = increaseLiquidityParams(
+          manager1.address,
+          tokenIds[0],
+          BigNumber.from(20000),
+          BigNumber.from(100),
+          BigNumber.from(2000),
+          BigNumber.from(10),
+        )
+        await fund1.connect(manager1).increaseLiquidity(params, { value: 0 })
+      })
+
+      it("liquidityOracle get token0, token1, amount0, amount1", async function () {
+        const tokenIds = await fund1.connect(manager1).getPositionTokenIds(manager1.address)
+        const tokenAmount = await liquidityOracle.connect(manager1).getPositionTokenAmount(tokenIds[0].toNumber())
+      })
+
+      it("priceOracle token0, token1, amount0, amount1", async function () {
+        const tokenIds = await fund1.connect(manager1).getPositionTokenIds(manager1.address)
+        const tokenAmount = await liquidityOracle.connect(manager1).getPositionTokenAmount(tokenIds[0].toNumber())
+        const token0 = tokenAmount.token0
+        const token1 = tokenAmount.token1
+        const amount0 = tokenAmount.amount0
+        const amount1 = tokenAmount.amount1
+        const token0priceETH = await priceOracle.connect(manager1).getPriceETH(token0, amount0, WETH9)
+        const token1priceETH = await priceOracle.connect(manager1).getPriceETH(token1, amount1, WETH9)
+        const ethPriceInUSD = await priceOracle.connect(manager1).getPriceUSD(WETH9, ethers.utils.parseEther("1.0"), USDC)
+        console.log(token0priceETH)
+        console.log(token1priceETH)
+        console.log(ethPriceInUSD)
+      })
+
+      it("(fund1) getInvestorTokens ", async function () {
+        const tokenIds = await fund1.connect(manager1).getInvestorTokens(manager1.address)
+        const token0 = tokenIds[0].tokenAddress
+        const token1 = tokenIds[1].tokenAddress
+        const amount0 = tokenIds[0].amount
+        const amount1 = tokenIds[1].amount
+        console.log(tokenIds[0].tokenAddress)
+        console.log(tokenIds[0].amount)
+        console.log(tokenIds[1].tokenAddress)
+        console.log(tokenIds[1].amount)
+        const token0AmountETH = await priceOracle.connect(manager1).getPriceETH(token0, amount0, WETH9)
+        const token1AmountETH = await priceOracle.connect(manager1).getPriceETH(token1, amount1, WETH9)
+        console.log(token0AmountETH)
+        console.log(token1AmountETH)
+      })
+
+      it("collect position fee", async function () {
+        const tokenIds = await fund1.connect(manager1).getPositionTokenIds(manager1.address)
+        const params = collectPositionFeeParams(
+          manager1.address,
+          tokenIds[0],
+          MaxUint128,
+          MaxUint128
+        )
+        await fund1.connect(manager1).collectPositionFee(params, { value: 0 })
+      })
+
+      it("decrease liquidity", async function () {
+        const tokenIds = await fund1.connect(manager1).getPositionTokenIds(manager1.address)
+        const params = decreaseLiquidityParams(
+          manager1.address,
+          tokenIds[0],
+          1000,
+          BigNumber.from(2000),
+          BigNumber.from(10),
+        )
+        await fund1.connect(manager1).decreaseLiquidity(params, { value: 0 })
+      })
+
+    })
+
   })
 
   describe('user : manager1, investor1', () => {
@@ -899,7 +994,7 @@ describe('XXXFund2', () => {
     // if error msg is 'Price slippage check',
     // check amount0 vs amount1 ratio. 
     // (2022/10/31) UNI vs ETH => 200 : 1 (OK)
-    describe("(fund1) Provide liquidity manager1's token : ( ETH, UNI )", async function () {
+    describe("(fund1) Provide liquidity investor1's token : ( ETH, UNI )", async function () {
 
       it("mint new position", async function () {
         const params = mintNewPositionParams(
@@ -945,11 +1040,25 @@ describe('XXXFund2', () => {
         const token0priceETH = await priceOracle.connect(manager1).getPriceETH(token0, amount0, WETH9)
         const token1priceETH = await priceOracle.connect(manager1).getPriceETH(token1, amount1, WETH9)
         const ethPriceInUSD = await priceOracle.connect(manager1).getPriceUSD(WETH9, ethers.utils.parseEther("1.0"), USDC)
-        //const token1priceUSD = await priceOracle.connect(manager1).getPriceUSD(WETH9, token1priceETH, USDC)
         console.log(token0priceETH)
         console.log(token1priceETH)
         console.log(ethPriceInUSD)
-        //console.log(token1priceUSD)
+      })
+
+      it("(fund1) getInvestorTokens ", async function () {
+        const tokenIds = await fund1.connect(manager1).getInvestorTokens(investor1.address)
+        const token0 = tokenIds[0].tokenAddress
+        const token1 = tokenIds[1].tokenAddress
+        const amount0 = tokenIds[0].amount
+        const amount1 = tokenIds[1].amount
+        console.log(tokenIds[0].tokenAddress)
+        console.log(tokenIds[0].amount)
+        console.log(tokenIds[1].tokenAddress)
+        console.log(tokenIds[1].amount)
+        const token0AmountETH = await priceOracle.connect(manager1).getPriceETH(token0, amount0, WETH9)
+        const token1AmountETH = await priceOracle.connect(manager1).getPriceETH(token1, amount1, WETH9)
+        console.log(token0AmountETH)
+        console.log(token1AmountETH)
       })
 
       it("collect position fee", async function () {
