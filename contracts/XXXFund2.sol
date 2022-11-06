@@ -371,7 +371,6 @@ contract XXXFund2 is
             address(this),
             manager,
             _params.investor,
-            tokenId,
             token0,
             token1,
             amount0,
@@ -409,7 +408,6 @@ contract XXXFund2 is
             address(this),
             manager,
             _params.investor,
-            _params.tokenId,
             token0,
             token1,
             amount0,
@@ -438,7 +436,6 @@ contract XXXFund2 is
             address(this),
             manager,
             _params.investor,
-            _params.tokenId,
             deposits[_params.tokenId].token0,
             deposits[_params.tokenId].token1,
             amount0,
@@ -459,11 +456,20 @@ contract XXXFund2 is
                 amount1Min: _params.amount1Min,
                 deadline: _params.deadline
             });
+        INonfungiblePositionManager(NonfungiblePositionManager).decreaseLiquidity(params);
 
-        (amount0, amount1) = INonfungiblePositionManager(NonfungiblePositionManager).decreaseLiquidity(params);
+        INonfungiblePositionManager.CollectParams memory collectParams =
+            INonfungiblePositionManager.CollectParams({
+                tokenId: _params.tokenId,
+                recipient: address(this),
+                amount0Max: MAX_INT,
+                amount1Max: MAX_INT
+            });
+        (amount0, amount1) = INonfungiblePositionManager(NonfungiblePositionManager).collect(collectParams);
 
         increaseToken(investorTokens[_params.investor], deposits[_params.tokenId].token0, amount0);
         increaseToken(investorTokens[_params.investor], deposits[_params.tokenId].token1, amount1);
+
         (, , address token0, address token1, , , , uint128 liquidity, , , , ) 
             = INonfungiblePositionManager(NonfungiblePositionManager).positions(_params.tokenId);
         deposits[_params.tokenId].liquidity = liquidity;
@@ -472,7 +478,6 @@ contract XXXFund2 is
             address(this),
             manager,
             _params.investor,
-            _params.tokenId,
             token0,
             token1,
             amount0,

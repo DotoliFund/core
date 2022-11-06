@@ -26,4 +26,6 @@ abstract contract Constants {
 
     // Uniswap v3 nonfungiblePositionManager
     address NonfungiblePositionManager = 0xC36442b4a4522E871399CD717aBDD847Ab11FE88;
+
+    uint128 MAX_INT = 2**128 - 1;
 }
