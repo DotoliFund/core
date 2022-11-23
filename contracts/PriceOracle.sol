@@ -12,9 +12,11 @@ import './interfaces/IPriceOracle.sol';
 contract PriceOracle is IPriceOracle{
 
     address public UniswapV3Factory;
+    uint32 public SECOND_AGOS = 10;
 
     constructor() {
         UniswapV3Factory = 0x1F98431c8aD98523631AE4a59f267346ea31F984;
+
     }
 
     function getBestPool(
@@ -136,7 +138,7 @@ contract PriceOracle is IPriceOracle{
                 weth,
                 token,
                 amountIn, 
-                10
+                SECOND_AGOS
             );
         }
     }
@@ -150,7 +152,7 @@ contract PriceOracle is IPriceOracle{
                 usd,
                 token,
                 amountIn,
-                10
+                SECOND_AGOS
             );
         }
     }
