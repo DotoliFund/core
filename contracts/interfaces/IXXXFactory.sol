@@ -16,6 +16,9 @@ interface IXXXFactory {
     /// @dev Can be changed by the current owner via setOwner
     /// @return The address of the factory owner
     function owner() external view returns (address);
+    function managerFee() external view returns (uint256);
+    function minWETHVolume() external view returns (uint256);
+    function whiteListTokens(address _token) external view returns (bool);
 
     function createFund() external returns (address fund);
 
@@ -23,19 +26,13 @@ interface IXXXFactory {
     /// @dev Must be called by the current owner
     /// @param _owner The new owner of the factory
     function setOwner(address _owner) external;
-
-    function getSwapRouterAddress() external view returns (address);
-    function setSwapRouterAddress(address _swapRouterAddress) external;
-
-    function getManagerFee() external view returns (uint256);
+    function setMinWETHVolume(uint256 volume) external;
     function setManagerFee(uint256 _managerFee) external;
 
-    function isWhiteListToken(address _token) external view returns (bool);
-    function getWhiteListTokens() external view returns (address[] memory);
-    function addWhiteListToken(address _token) external;
-    function removeWhiteListToken(address _token) external;
-    
     function isSubscribed(address investor, address fund) external view returns (bool);
     function subscribedFunds() external view returns (address[] memory);
     function subscribe(address fund) external;
+
+    function setWhiteListToken(address _token) external;
+    function resetWhiteListToken(address _token) external;
 }

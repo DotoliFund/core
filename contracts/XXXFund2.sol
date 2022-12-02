@@ -67,7 +67,7 @@ contract XXXFund2 is
             require(isSubscribed, 'US');
             IWETH9(WETH9).deposit{value: msg.value}();
             increaseToken(investorTokens[msg.sender], WETH9, msg.value);
-            emit Deposit(address(this), manager, msg.sender, WETH9, msg.value);
+            emit Deposit(msg.sender, WETH9, msg.value);
         }
     }
 
@@ -106,7 +106,7 @@ contract XXXFund2 is
         if (isNewToken) {
             feeTokens.push(Token(_token, _amount));
         }
-        emit ManagerFeeIn(address(this), investor, manager, _token, _amount);
+        emit ManagerFeeIn(investor, _token, _amount);
     }
 
     function feeOut(address _token, uint256 _amount) external payable override lock {
@@ -122,7 +122,7 @@ contract XXXFund2 is
             }
         }
         require(isNewToken == false, 'TNE');
-        emit ManagerFeeOut(address(this), manager, _token, _amount);
+        emit ManagerFeeOut(_token, _amount);
     }
 
     // this low-level function should be called from a contract which performs important safety checks
@@ -130,18 +130,18 @@ contract XXXFund2 is
         bool _isSubscribed = IXXXFactory(factory).isSubscribed(msg.sender, address(this));
         require(_isSubscribed || msg.sender == manager,
             'ANE');
-        require(IXXXFactory(factory).isWhiteListToken(_token), 'NWT');
+        require(IXXXFactory(factory).whiteListTokens(_token), 'NWT');
 
         IERC20(_token).transferFrom(msg.sender, address(this), _amount);
 
         increaseToken(investorTokens[msg.sender], _token, _amount);
-        emit Deposit(address(this), manager, msg.sender, _token, _amount);
+        emit Deposit(msg.sender, _token, _amount);
     }
 
     function withdraw(address _token, uint256 _amount) external payable override lock {
         bool _isSubscribed = IXXXFactory(factory).isSubscribed(msg.sender, address(this));
         require(_isSubscribed, 'US');
-        uint256 managerFee = IXXXFactory(factory).getManagerFee();
+        uint256 managerFee = IXXXFactory(factory).managerFee();
         uint256 tokenAmount = getTokenAmount(investorTokens[msg.sender], _token);
         require(tokenAmount >= _amount, 'NET');
 
@@ -161,7 +161,7 @@ contract XXXFund2 is
             feeIn(msg.sender, _token, feeAmount);
         }
         decreaseToken(investorTokens[msg.sender], _token, _amount);
-        emit Withdraw(address(this), manager, msg.sender, _token, withdrawAmount, feeAmount);
+        emit Withdraw(msg.sender, _token, withdrawAmount, feeAmount);
     }
 
     function handleSwap(
@@ -175,8 +175,6 @@ contract XXXFund2 is
         decreaseToken(investorTokens[investor], swapFrom, swapFromAmount);
         increaseToken(investorTokens[investor], swapTo, swapToAmount);
         emit Swap(
-            address(this),
-            manager,
             investor,
             swapFrom,
             swapTo,
@@ -204,13 +202,13 @@ contract XXXFund2 is
 
     function swap(SwapParams[] calldata trades) external payable override lock {
         require(msg.sender == manager, 'NM');
-        address swapRouter = IXXXFactory(factory).getSwapRouterAddress();
+        address swapRouter = SwapRouterAddress;
 
         for(uint256 i=0; i<trades.length; i++) {
 
             if (trades[i].swapType == SwapType.EXACT_INPUT_SINGLE_HOP) 
             {
-                require(IXXXFactory(factory).isWhiteListToken(trades[i].tokenOut), 'NWT');
+                require(IXXXFactory(factory).whiteListTokens(trades[i].tokenOut), 'NWT');
 
                 uint256 tokenBalance = getInvestorTokenAmount(trades[i].investor, trades[i].tokenIn);
                 require(tokenBalance >= trades[i].amountIn, 'TMIA');
@@ -236,7 +234,7 @@ contract XXXFund2 is
             {
                 address tokenOut = getLastTokenFromPath(trades[i].path);
                 (address tokenIn, , ) = trades[i].path.decodeFirstPool();
-                require(IXXXFactory(factory).isWhiteListToken(tokenOut), 
+                require(IXXXFactory(factory).whiteListTokens(tokenOut), 
                     'NWT');
 
                 uint256 tokenBalance = getInvestorTokenAmount(trades[i].investor, tokenIn);
@@ -258,7 +256,7 @@ contract XXXFund2 is
             } 
             else if (trades[i].swapType == SwapType.EXACT_OUTPUT_SINGLE_HOP) 
             {
-                require(IXXXFactory(factory).isWhiteListToken(trades[i].tokenOut), 'NWT');
+                require(IXXXFactory(factory).whiteListTokens(trades[i].tokenOut), 'NWT');
 
                 uint256 tokenBalance = getInvestorTokenAmount(trades[i].investor, trades[i].tokenIn);
                 require(tokenBalance >= trades[i].amountIn, 'TMIA');
@@ -290,7 +288,7 @@ contract XXXFund2 is
             {
                 address tokenIn = getLastTokenFromPath(trades[i].path);
                 (address tokenOut, , ) = trades[i].path.decodeFirstPool();
-                require(IXXXFactory(factory).isWhiteListToken(tokenOut), 'NWT');
+                require(IXXXFactory(factory).whiteListTokens(tokenOut), 'NWT');
 
                 uint256 tokenBalance = getInvestorTokenAmount(trades[i].investor, tokenIn);
                 require(tokenBalance >= trades[i].amountInMaximum, 'TMIA');
@@ -368,8 +366,6 @@ contract XXXFund2 is
         positions[_params.investor].push(tokenId);
 
         emit MintNewPosition(
-            address(this),
-            manager,
             _params.investor,
             token0,
             token1,
@@ -405,8 +401,6 @@ contract XXXFund2 is
         deposits[_params.tokenId].liquidity = liquidity;
 
         emit IncreaseLiquidity(
-            address(this),
-            manager,
             _params.investor,
             token0,
             token1,
@@ -433,8 +427,6 @@ contract XXXFund2 is
         increaseToken(investorTokens[_params.investor], deposits[_params.tokenId].token1, amount1);
 
         emit CollectPositionFee(
-            address(this),
-            manager,
             _params.investor,
             deposits[_params.tokenId].token0,
             deposits[_params.tokenId].token1,
@@ -475,8 +467,6 @@ contract XXXFund2 is
         deposits[_params.tokenId].liquidity = liquidity;
 
         emit DecreaseLiquidity(
-            address(this),
-            manager,
             _params.investor,
             token0,
             token1,

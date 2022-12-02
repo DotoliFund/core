@@ -2,6 +2,7 @@
 pragma solidity =0.7.6;
 pragma abicoder v2;
 
+//TODO : change testnet WETH, USDC
 abstract contract Constants {
 
     // //mainnet
