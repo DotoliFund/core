@@ -5,7 +5,6 @@ pragma abicoder v2;
 import '../interfaces/IToken.sol';
 import '../base/Constants.sol';
 
-/// @title Token
 abstract contract Token is IToken, Constants {
 
     function getTokens(Token[] memory tokens) internal view returns (Token[] memory) {
@@ -39,16 +38,22 @@ abstract contract Token is IToken, Constants {
         }
     }
 
-    function decreaseToken(Token[] storage tokens, address token, uint256 amount) internal {
-        bool isNewToken = true;
+    function decreaseToken(Token[] storage tokens, address token, uint256 amount) internal returns (bool) {
         for (uint256 i=0; i<tokens.length; i++) {
             if (tokens[i].tokenAddress == token) {
-                isNewToken = false;
-                require(tokens[i].amount >= amount, 'not enough token');
+                require(tokens[i].amount >= amount, 'TNE');
                 tokens[i].amount -= amount;
-                break;
+                if (tokens[i].amount == 0) {
+                    uint256 lastIndex = tokens.length-1;
+                    address lastTokenAddress = tokens[lastIndex].tokenAddress;
+                    uint256 lastTokenAmount = tokens[lastIndex].amount;
+                    tokens[i].tokenAddress = lastTokenAddress;
+                    tokens[i].amount = lastTokenAmount;
+                    tokens.pop();
+                }
+                return true;
             }
         }
-        require(isNewToken == false, 'token is not exist');
+        return false;
     }
 }
