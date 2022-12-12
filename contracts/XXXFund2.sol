@@ -24,21 +24,13 @@ contract XXXFund2 is
 {
     using Path for bytes;
 
-    // position
-    struct Position {
-        address owner;
-        uint128 liquidity;
-        address token0;
-        address token1;
-    }
-
     address public factory;
     address public override manager;
 
     // investor's tokens which is not deposited to uniswap v3 liquidity position
     mapping(address => Token[]) public investorTokens;
-    // investor's tokens which is deposited to uniswap v3 liquidity position
-    mapping(uint256 => Position) public positions;
+    // positionOwner[tokenId] => owner of position
+    mapping(uint256 => address) public positionOwner;
     // tokenIds[investor] => [ tokenId0, tokenId1, ... ]
     mapping(address => uint256[]) public tokenIds;
     // manager fee tokens
@@ -321,15 +313,10 @@ contract XXXFund2 is
         decreaseToken(investorTokens[_params.investor], _params.token0, amount0);
         decreaseToken(investorTokens[_params.investor], _params.token1, amount1);
 
-        (, , address token0, address token1, , , , uint128 liquidity, , , , ) 
+        (, , address token0, address token1, , , , , , , , ) 
             = INonfungiblePositionManager(NonfungiblePositionManager).positions(tokenId);
 
-        positions[tokenId] = Position({
-            owner: _params.investor,
-            liquidity: liquidity,
-            token0: token0,
-            token1: token1
-        });
+        positionOwner[tokenId] = _params.investor;
         tokenIds[_params.investor].push(tokenId);
 
         emit MintNewPosition(_params.investor, token0, token1, amount0, amount1);
@@ -340,8 +327,11 @@ contract XXXFund2 is
     {
         require(msg.sender == manager, 'NM');
 
-        IERC20Minimal(positions[_params.tokenId].token0).approve(NonfungiblePositionManager, _params.amount0Desired);
-        IERC20Minimal(positions[_params.tokenId].token1).approve(NonfungiblePositionManager, _params.amount1Desired);
+        (, , address token0, address token1, , , , , , , , ) 
+            = INonfungiblePositionManager(NonfungiblePositionManager).positions(_params.tokenId);
+
+        IERC20Minimal(token0).approve(NonfungiblePositionManager, _params.amount0Desired);
+        IERC20Minimal(token1).approve(NonfungiblePositionManager, _params.amount1Desired);
 
         INonfungiblePositionManager.IncreaseLiquidityParams memory params =
             INonfungiblePositionManager.IncreaseLiquidityParams({
@@ -355,11 +345,8 @@ contract XXXFund2 is
 
         (liquidity, amount0, amount1) = INonfungiblePositionManager(NonfungiblePositionManager).increaseLiquidity(params);
 
-        decreaseToken(investorTokens[_params.investor], positions[_params.tokenId].token0, amount0);
-        decreaseToken(investorTokens[_params.investor], positions[_params.tokenId].token1, amount1);
-        (, , address token0, address token1, , , , uint128 liquidity, , , , ) 
-            = INonfungiblePositionManager(NonfungiblePositionManager).positions(_params.tokenId);
-        positions[_params.tokenId].liquidity = liquidity;
+        decreaseToken(investorTokens[_params.investor], token0, amount0);
+        decreaseToken(investorTokens[_params.investor], token1, amount1);
 
         emit IncreaseLiquidity(_params.investor, token0, token1, amount0, amount1);
     }
@@ -367,7 +354,7 @@ contract XXXFund2 is
     function collectPositionFee(CollectPositionFeeParams calldata _params) 
         external override returns (uint256 amount0, uint256 amount1) 
     {
-        require(msg.sender == positions[_params.tokenId].owner || msg.sender == manager, 'NO');
+        require(msg.sender == positionOwner[_params.tokenId] || msg.sender == manager, 'NO');
 
         INonfungiblePositionManager.CollectParams memory params =
             INonfungiblePositionManager.CollectParams({
@@ -378,16 +365,19 @@ contract XXXFund2 is
             });
         (amount0, amount1) = INonfungiblePositionManager(NonfungiblePositionManager).collect(params);
 
-        increaseToken(investorTokens[_params.investor], positions[_params.tokenId].token0, amount0);
-        increaseToken(investorTokens[_params.investor], positions[_params.tokenId].token1, amount1);
+        (, , address token0, address token1, , , , , , , , ) 
+            = INonfungiblePositionManager(NonfungiblePositionManager).positions(_params.tokenId);
 
-        emit CollectPositionFee(_params.investor, positions[_params.tokenId].token0, positions[_params.tokenId].token1, amount0, amount1);
+        increaseToken(investorTokens[_params.investor], token0, amount0);
+        increaseToken(investorTokens[_params.investor], token1, amount1);
+
+        emit CollectPositionFee(_params.investor, token0, token1, amount0, amount1);
     }
 
     function decreaseLiquidity(DecreaseLiquidityParams calldata _params) 
         external override returns (uint256 amount0, uint256 amount1) 
     {
-        require(msg.sender == positions[_params.tokenId].owner || msg.sender == manager, 'NO');
+        require(msg.sender == positionOwner[_params.tokenId] || msg.sender == manager, 'NO');
 
         INonfungiblePositionManager.DecreaseLiquidityParams memory params =
             INonfungiblePositionManager.DecreaseLiquidityParams({
@@ -408,12 +398,11 @@ contract XXXFund2 is
             });
         (amount0, amount1) = INonfungiblePositionManager(NonfungiblePositionManager).collect(collectParams);
 
-        increaseToken(investorTokens[_params.investor], positions[_params.tokenId].token0, amount0);
-        increaseToken(investorTokens[_params.investor], positions[_params.tokenId].token1, amount1);
-
-        (, , address token0, address token1, , , , uint128 liquidity, , , , ) 
+        (, , address token0, address token1, , , , , , , , ) 
             = INonfungiblePositionManager(NonfungiblePositionManager).positions(_params.tokenId);
-        positions[_params.tokenId].liquidity = liquidity;
+
+        increaseToken(investorTokens[_params.investor], token0, amount0);
+        increaseToken(investorTokens[_params.investor], token1, amount1);
 
         emit DecreaseLiquidity(_params.investor, token0, token1, amount0, amount1);
     }
