@@ -1,5 +1,33 @@
 {
-  "name": "hardhat-project",
+  "name": "xxxfund",
+  "description": "Smart contracts for Open Fund",
+  "license": "GPL-2.0-or-later",
+  "publishConfig": {
+    "access": "public"
+  },
+  "version": "0.0.1",
+  "homepage": "https://uniswap.org",
+  "keywords": [
+    "xxxfund",
+    "openfund",
+    "core",
+    "uniswap"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/fundDeveloper22/core"
+  },
+  "files": [
+    "contracts/base",
+    "contracts/interfaces",
+    "contracts/libraries",
+    "artifacts/contracts/**/*.json",
+    "!artifacts/contracts/**/*.dbg.json",
+    "!artifacts/contracts/base/**/*"
+  ],
+  "engines": {
+    "node": ">=10"
+  },
   "devDependencies": {
     "@nomicfoundation/hardhat-chai-matchers": "^1.0.3",
     "@nomicfoundation/hardhat-network-helpers": "^1.0.3",
