@@ -1,7 +1,6 @@
 import { Wallet, constants, BigNumber, Contract } from 'ethers'
 import { expect } from "chai"
 import { ethers, waffle } from 'hardhat'
-import { PriceOracle } from '../typechain-types/contracts/PriceOracle'
 import { XXXFactory } from '../typechain-types/contracts/XXXFactory'
 import { XXXFund2 } from '../typechain-types/contracts/XXXFund2'
 import { getCreate2Address } from './shared/utilities'
@@ -47,14 +46,6 @@ describe('XXXFactory', () => {
     ] = await (ethers as any).getSigners()
   })
 
-  before("Deploy PriceOracle Contract", async function () {
-    const PriceOracle = await ethers.getContractFactory("PriceOracle")
-    const Oracle = await PriceOracle.connect(deployer).deploy()
-    await Oracle.deployed()
-    oracleContractAddress = Oracle.address
-    oracle = await ethers.getContractAt("PriceOracle", oracleContractAddress)
-  })
-
   before("Deploy XXXFactory Contract", async function () {
     const XXXFactory = await ethers.getContractFactory("XXXFactory")
     const Factory = await XXXFactory.connect(deployer).deploy()
@@ -92,22 +83,6 @@ describe('XXXFactory', () => {
 
   describe('sender : manager1', () => {
 
-    it("getSwapRouterAddress()", async function () {
-      expect(await factory.connect(manager1).getSwapRouterAddress()).to.equal(V3_SWAP_ROUTER_ADDRESS)
-    })
-
-    it("getManagerFee()", async function () {
-      expect(await factory.connect(manager1).getManagerFee()).to.equal(MANAGER_FEE)
-    })
-
-    it("isWhiteListToken()", async function () {
-      expect(await factory.connect(manager1).isWhiteListToken(WHITE_LIST_TOKENS[0])).to.be.true
-    })
-
-    it("getWhiteListTokens()", async function () {
-      expect(await factory.connect(manager1).getWhiteListTokens()).to.have.members(WHITE_LIST_TOKENS)
-    })
-
     it("getFundByManager()", async function () {
       expect(await factory.connect(manager1).getFundByManager(manager1.address)).to.equal(fund1Address)
     })
@@ -128,22 +103,6 @@ describe('XXXFactory', () => {
 
 
   describe('sender : investor', () => {
-
-    it("getSwapRouterAddress()", async function () {
-      expect(await factory.connect(investor).getSwapRouterAddress()).to.equal(V3_SWAP_ROUTER_ADDRESS)
-    })
-
-    it("getManagerFee()", async function () {
-      expect(await factory.connect(investor).getManagerFee()).to.equal(MANAGER_FEE)
-    })
-
-    it("isWhiteListToken()", async function () {
-      expect(await factory.connect(investor).isWhiteListToken(WHITE_LIST_TOKENS[0])).to.be.true
-    })
-
-    it("getWhiteListTokens()", async function () {
-      expect(await factory.connect(investor).getWhiteListTokens()).to.have.members(WHITE_LIST_TOKENS)
-    })
 
     it("getFundByManager() investor has no fund", async function () {
       expect(await factory.connect(investor).getFundByManager(investor.address)).to.equal(NULL_ADDRESS)
@@ -179,25 +138,21 @@ describe('XXXFactory', () => {
       await expect(factory.connect(investor).subscribe(fund1Address)).to.be.reverted
     })
 
+    it("register investor2 => subscribe()", async function () {
+      await factory.connect(investor2).subscribe(fund1Address)
+    })
+
+    it("investor -> subscribedFunds()", async function () {
+      expect(await factory.connect(investor).subscribedFunds()).to.have.lengthOf(1)
+    })
+
+    it("investor2 -> subscribedFunds()", async function () {
+      expect(await factory.connect(investor2).subscribedFunds()).to.have.lengthOf(1)
+    })
+
   })
 
   describe('sender : not investor', () => {
-
-    it("getSwapRouterAddress()", async function () {
-      expect(await factory.connect(notInvestor).getSwapRouterAddress()).to.equal(V3_SWAP_ROUTER_ADDRESS)
-    })
-
-    it("getManagerFee()", async function () {
-      expect(await factory.connect(notInvestor).getManagerFee()).to.equal(MANAGER_FEE)
-    })
-
-    it("isWhiteListToken()", async function () {
-      expect(await factory.connect(notInvestor).isWhiteListToken(WHITE_LIST_TOKENS[0])).to.be.true
-    })
-
-    it("getWhiteListTokens()", async function () {
-      expect(await factory.connect(notInvestor).getWhiteListTokens()).to.have.members(WHITE_LIST_TOKENS)
-    })
 
     it("getFundByManager()", async function () {
       expect(await factory.connect(notInvestor).getFundByManager(notInvestor.address)).to.equal(NULL_ADDRESS)

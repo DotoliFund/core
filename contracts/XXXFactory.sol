@@ -8,6 +8,7 @@ import '@uniswap/v3-core/contracts/interfaces/IUniswapV3Pool.sol';
 import './interfaces/IXXXFactory.sol';
 import './XXXFund2.sol';
 
+//TODO : remove console log
 import "hardhat/console.sol";
 
 contract XXXFactory is IXXXFactory, Constants {
@@ -80,12 +81,12 @@ contract XXXFactory is IXXXFactory, Constants {
         return false;
     }
 
-    function subscribedFunds() external override view returns (address[] memory){
-        uint256 fundCount = getFundCountByInvestor[msg.sender];
+    function subscribedFunds(address investor) external override view returns (address[] memory){
+        uint256 fundCount = getFundCountByInvestor[investor];
         address[] memory funds;
         funds = new address[](fundCount);
         for (uint256 i=0; i<fundCount; i++) {
-            funds[i] = getFundByInvestor[msg.sender][i];
+            funds[i] = getFundByInvestor[investor][i];
         }
         return funds;
     }

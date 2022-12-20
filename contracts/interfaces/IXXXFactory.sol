@@ -30,7 +30,7 @@ interface IXXXFactory {
     function setManagerFee(uint256 _managerFee) external;
 
     function isSubscribed(address investor, address fund) external view returns (bool);
-    function subscribedFunds() external view returns (address[] memory);
+    function subscribedFunds(address investor) external view returns (address[] memory);
     function subscribe(address fund) external;
 
     function setWhiteListToken(address _token) external;
