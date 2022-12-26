@@ -118,8 +118,10 @@ contract XXXFactory is IXXXFactory, Constants {
         }
 
         if (volumeWETH >= minWETHVolume) {
+            console.log(1,volumeWETH);
             return true;
         } else {
+            console.log(2,volumeWETH);
             return false;
         }
     }

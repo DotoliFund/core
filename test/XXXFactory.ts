@@ -8,6 +8,9 @@ import { getCreate2Address } from './shared/utilities'
 import { 
   NULL_ADDRESS,
   WETH9,
+  USDC,
+  UNI,
+  DAI,
   V3_SWAP_ROUTER_ADDRESS,
   MANAGER_FEE,
   WHITE_LIST_TOKENS,
@@ -92,13 +95,32 @@ describe('XXXFactory', () => {
     })
 
     it("subscribedFunds()", async function () {
-      expect(await factory.connect(manager1).subscribedFunds()).to.have.lengthOf(1)
+      expect(await factory.connect(manager1).subscribedFunds(manager1.address)).to.have.lengthOf(1)
     })
 
     it("subscribe()", async function () {
       await expect(factory.connect(manager1).subscribe(fund1Address)).to.be.reverted
     })
 
+    it("whiteListTokens()", async function () {
+      expect(await factory.connect(manager1).whiteListTokens(UNI)).to.be.true
+    })
+
+    it("resetWhiteListToken()", async function () {
+      await expect(factory.connect(deployer).resetWhiteListToken(UNI))
+    })
+
+    it("whiteListTokens()", async function () {
+      expect(await factory.connect(manager1).whiteListTokens(UNI)).to.be.false
+    })
+
+    it("setWhiteListToken()", async function () {
+      await expect(factory.connect(deployer).setWhiteListToken(UNI))
+    })
+
+    it("whiteListTokens()", async function () {
+      expect(await factory.connect(manager1).whiteListTokens(UNI)).to.be.true
+    })
   })
 
 
@@ -114,7 +136,7 @@ describe('XXXFactory', () => {
 
     //investor is different from not investor at subscribe(), isSubscribed()
     it("subscribedFunds()", async function () {
-      expect(await factory.connect(investor).subscribedFunds()).to.have.lengthOf(0)
+      expect(await factory.connect(investor).subscribedFunds(investor.address)).to.have.lengthOf(0)
     })
 
     it("not investor yet => isSubscribed()", async function () {
@@ -131,7 +153,7 @@ describe('XXXFactory', () => {
     })
 
     it("subscribedFunds()", async function () {
-      expect(await factory.connect(investor).subscribedFunds()).to.have.lengthOf(1)
+      expect(await factory.connect(investor).subscribedFunds(investor.address)).to.have.lengthOf(1)
     })
 
     it("subscribe() must be fail : duplicate", async function () {
@@ -143,11 +165,11 @@ describe('XXXFactory', () => {
     })
 
     it("investor -> subscribedFunds()", async function () {
-      expect(await factory.connect(investor).subscribedFunds()).to.have.lengthOf(1)
+      expect(await factory.connect(investor).subscribedFunds(investor.address)).to.have.lengthOf(1)
     })
 
     it("investor2 -> subscribedFunds()", async function () {
-      expect(await factory.connect(investor2).subscribedFunds()).to.have.lengthOf(1)
+      expect(await factory.connect(investor2).subscribedFunds(investor2.address)).to.have.lengthOf(1)
     })
 
   })
@@ -163,7 +185,7 @@ describe('XXXFactory', () => {
     })
 
     it("subscribedFunds()", async function () {
-      expect(await factory.connect(notInvestor).subscribedFunds()).to.be.empty
+      expect(await factory.connect(notInvestor).subscribedFunds(notInvestor.address)).to.be.empty
     })
 
     it("subscribe()", async function () {
