@@ -14,7 +14,7 @@ import "hardhat/console.sol";
 contract XXXFactory is IXXXFactory, Constants {
     address public override owner;
     uint256 public override managerFee = 1; // 1% of investor profit ex) MANAGER_FEE = 10 -> 10% of investor profit
-    uint256 public override minWETHVolume = 1e18; // To be whiteListToken, need min weth9 volume in WETH pool
+    uint256 public override minWETHVolume = 1e18; // to be whiteListToken, needed min weth9 value of (token + weth9) pool
     
     mapping(address => bool) public override whiteListTokens;
     mapping(address => address) public getFundByManager;
@@ -103,6 +103,7 @@ contract XXXFactory is IXXXFactory, Constants {
     function checkWhiteListToken(address _token) private returns (bool) {
         uint16[3] memory fees = [500, 3000, 10000];
         uint256 volumeWETH = 0;
+        uint256 tokenDecimal = 10 ** IERC20Minimal(_token).decimals();
 
         for (uint256 i=0; i<fees.length; i++) {
             address pool = IUniswapV3Factory(UNISWAP_V3_FACTORY).getPool(_token, WETH9, uint24(fees[i]));
@@ -113,15 +114,13 @@ contract XXXFactory is IXXXFactory, Constants {
                 uint256 balance1 = IERC20Minimal(WETH9).balanceOf(pool);
                 (uint160 sqrtPriceX96,,,,,,) = IUniswapV3Pool(pool).slot0();
                 uint256 tokenPriceInWETH = (uint(sqrtPriceX96) * uint(sqrtPriceX96) * 1e18) >> (96 * 2);
-                volumeWETH += (balance0 * tokenPriceInWETH) + balance1;
+                volumeWETH += ((balance0 * tokenPriceInWETH)  / tokenDecimal) + balance1;
             }
         }
 
         if (volumeWETH >= minWETHVolume) {
-            console.log(1,volumeWETH);
             return true;
         } else {
-            console.log(2,volumeWETH);
             return false;
         }
     }

@@ -2,8 +2,8 @@
 pragma solidity =0.7.6;
 pragma abicoder v2;
 
-import '@uniswap/v3-core/contracts/interfaces/IERC20Minimal.sol';
 import '@uniswap/v3-periphery/contracts/interfaces/external/IWETH9.sol';
+import '../interfaces/IERC20Minimal.sol';
 import './Constants.sol';
 
 abstract contract Payments is Constants {

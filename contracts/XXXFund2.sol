@@ -105,7 +105,7 @@ contract XXXFund2 is
             'ANE');
         require(IXXXFactory(factory).whiteListTokens(_token), 'NWT');
 
-        IERC20(_token).transferFrom(msg.sender, address(this), _amount);
+        IERC20Minimal(_token).transferFrom(msg.sender, address(this), _amount);
         increaseToken(investorTokens[msg.sender], _token, _amount);
         emit Deposit(msg.sender, _token, _amount);
     }
