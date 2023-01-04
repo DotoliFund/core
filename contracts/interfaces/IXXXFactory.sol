@@ -4,13 +4,12 @@ pragma solidity =0.7.6;
 pragma abicoder v2;
 
 interface IXXXFactory {
-
-    /// @notice Emitted when the owner of the factory is changed
-    /// @param oldOwner The owner before the owner was changed
-    /// @param newOwner The owner after the owner was changed
+    event FactoryCreated();
     event OwnerChanged(address indexed oldOwner, address indexed newOwner);
     event Subscribe(address indexed fund, address indexed manager, address indexed investor);
     event FundCreated(address indexed fund, address indexed manager);
+    event WhiteListTokenAdded(address indexed token);
+    event WhiteListTokenRemoved(address indexed token);
 
     /// @notice Returns the current owner of the factory
     /// @dev Can be changed by the current owner via setOwner

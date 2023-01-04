@@ -31,14 +31,13 @@ contract XXXFactory is IXXXFactory, Constants {
 
     constructor() {
         owner = msg.sender;
-        emit OwnerChanged(address(0), msg.sender);
-
         whiteListTokens[WETH9] = true; //WETH mainnet
         whiteListTokens[WBTC] = true; //WBTC
         whiteListTokens[USDC] = true; //USDC
         whiteListTokens[DAI] = true; //DAI
         whiteListTokens[UNI] = true; //UNI
         whiteListTokens[XXX] = true; //XXX
+        emit FactoryCreated();
     }
 
     function createFund() external override returns (address fund) {
@@ -129,10 +128,12 @@ contract XXXFactory is IXXXFactory, Constants {
         require(msg.sender == owner);
         require(checkWhiteListToken(_token), 'CWLT');
         whiteListTokens[_token] = true;
+        emit WhiteListTokenAdded(_token);
     }
 
     function resetWhiteListToken(address _token) external override {
         require(msg.sender == owner);
         whiteListTokens[_token] = false;
+        emit WhiteListTokenRemoved(_token);
     }
 }
