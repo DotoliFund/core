@@ -39,6 +39,10 @@ const config: HardhatUserConfig = {
     ],
   },
   networks: {
+    mainnet: {
+      url: `https://mainnet.infura.io/v3/${INFURA_API_KEY}`,
+      accounts: [TEST_PRIVATE_KEY1]
+    },
     goerli: {
       url: `https://goerli.infura.io/v3/${INFURA_API_KEY}`,
       accounts: [TEST_PRIVATE_KEY1, TEST_PRIVATE_KEY2, TEST_PRIVATE_KEY3]
