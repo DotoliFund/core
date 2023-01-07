@@ -6,30 +6,27 @@ pragma abicoder v2;
 import '@uniswap/v3-periphery/contracts/libraries/Path.sol';
 import '@uniswap/swap-router-contracts/contracts/interfaces/ISwapRouter02.sol';
 import '@uniswap/v3-periphery/contracts/interfaces/INonfungiblePositionManager.sol';
+import '@uniswap/v3-periphery/contracts/interfaces/external/IWETH9.sol';
 
+import './interfaces/IERC20Minimal.sol';
 import './interfaces/IXXXFund2.sol';
 import './interfaces/IXXXFactory.sol';
 import './base/Constants.sol';
-import './base/Payments.sol';
 import './base/Token.sol';
 
 //TODO : remove console
 import "hardhat/console.sol";
 
-contract XXXFund2 is 
-    IXXXFund2,
-    Constants,
-    Payments,
-    Token
-{
+contract XXXFund2 is IXXXFund2, Constants, Token {
     using Path for bytes;
 
     address public factory;
+    address public WETH9;
     address public override manager;
 
     // investor's tokens which is not deposited to uniswap v3 liquidity position
     mapping(address => Token[]) public investorTokens;
-    // positionOwner[tokenId] => owner of position
+    // positionOwner[tokenId] => owner of uniswap v3 liquidity position
     mapping(uint256 => address) public positionOwner;
     // tokenIds[investor] => [ tokenId0, tokenId1, ... ]
     mapping(address => uint256[]) public tokenIds;
@@ -61,9 +58,20 @@ contract XXXFund2 is
     }
 
     function initialize(address _manager) override external {
-        require(msg.sender == factory, 'FORBIDDEN'); // sufficient check
+        require(msg.sender == factory, 'FORBIDDEN');
         manager = _manager;
+        WETH9 = IXXXFactory(factory).WETH9();
         emit Initialize(address(this), _manager);
+    }
+
+    function _withdraw(address _token, uint256 _amount) private {
+        if (_token == WETH9) {
+            IWETH9(WETH9).withdraw(_amount);
+            (bool success, ) = payable(msg.sender).call{value: _amount}(new bytes(0));
+            require(success, 'FW');
+        } else {
+            IERC20Minimal(_token).transfer(msg.sender, _amount);
+        }
     }
 
     function getInvestorTokens(address investor) external override view returns (Token[] memory) {
@@ -98,12 +106,11 @@ contract XXXFund2 is
         emit ManagerFeeOut(token, amount);
     }
 
-    // this low-level function should be called from a contract which performs important safety checks
     function deposit(address _token, uint256 _amount) external payable override lock {
-        bool _isSubscribed = IXXXFactory(factory).isSubscribed(msg.sender, address(this));
-        require(_isSubscribed || msg.sender == manager,
-            'ANE');
-        require(IXXXFactory(factory).whiteListTokens(_token), 'NWT');
+        bool isSubscribed = IXXXFactory(factory).isSubscribed(msg.sender, address(this));
+        bool isWhiteListToken = IXXXFactory(factory).whiteListTokens(_token);
+        require(isSubscribed, 'US');
+        require(isWhiteListToken, 'NWT');
 
         IERC20Minimal(_token).transferFrom(msg.sender, address(this), _amount);
         increaseToken(investorTokens[msg.sender], _token, _amount);
@@ -111,14 +118,16 @@ contract XXXFund2 is
     }
 
     function withdraw(address _token, uint256 _amount) external payable override lock {
-        bool _isSubscribed = IXXXFactory(factory).isSubscribed(msg.sender, address(this));
-        require(_isSubscribed, 'US');
-        uint256 managerFee = IXXXFactory(factory).managerFee();
+        bool isSubscribed = IXXXFactory(factory).isSubscribed(msg.sender, address(this));
         uint256 tokenAmount = getTokenAmount(investorTokens[msg.sender], _token);
+        require(isSubscribed, 'US');
         require(tokenAmount >= _amount, 'NET');
+
+        decreaseToken(investorTokens[msg.sender], _token, _amount);
 
         uint256 feeAmount = 0;
         uint256 withdrawAmount = 0;
+        uint256 managerFee = IXXXFactory(factory).managerFee();
         if (msg.sender == manager) {
             // manager withdraw is no need manager fee
             feeAmount = 0;
@@ -131,7 +140,6 @@ contract XXXFund2 is
             _withdraw(_token, withdrawAmount);
             feeIn(msg.sender, _token, feeAmount);
         }
-        decreaseToken(investorTokens[msg.sender], _token, _amount);
         emit Withdraw(msg.sender, _token, withdrawAmount, feeAmount);
     }
 
@@ -173,9 +181,8 @@ contract XXXFund2 is
             if (trades[i].swapType == SwapType.EXACT_INPUT_SINGLE_HOP) 
             {
                 require(IXXXFactory(factory).whiteListTokens(trades[i].tokenOut), 'NWT');
-
                 uint256 tokenBalance = getInvestorTokenAmount(trades[i].investor, trades[i].tokenIn);
-                require(tokenBalance >= trades[i].amountIn, 'TMIA');
+                require(trades[i].amountIn <= tokenBalance, 'NET');
 
                 // approve
                 IERC20Minimal(trades[i].tokenIn).approve(swapRouter, trades[i].amountIn);
@@ -198,11 +205,9 @@ contract XXXFund2 is
             {
                 address tokenOut = getLastTokenFromPath(trades[i].path);
                 (address tokenIn, , ) = trades[i].path.decodeFirstPool();
-                require(IXXXFactory(factory).whiteListTokens(tokenOut), 
-                    'NWT');
-
+                require(IXXXFactory(factory).whiteListTokens(tokenOut), 'NWT');
                 uint256 tokenBalance = getInvestorTokenAmount(trades[i].investor, tokenIn);
-                require(tokenBalance >= trades[i].amountIn, 'TMIA');
+                require(trades[i].amountIn <= tokenBalance, 'NET');
 
                 // approve
                 IERC20Minimal(tokenIn).approve(swapRouter, trades[i].amountIn);
@@ -221,9 +226,8 @@ contract XXXFund2 is
             else if (trades[i].swapType == SwapType.EXACT_OUTPUT_SINGLE_HOP) 
             {
                 require(IXXXFactory(factory).whiteListTokens(trades[i].tokenOut), 'NWT');
-
                 uint256 tokenBalance = getInvestorTokenAmount(trades[i].investor, trades[i].tokenIn);
-                require(tokenBalance >= trades[i].amountIn, 'TMIA');
+                require(trades[i].amountIn <= tokenBalance, 'NET');
 
                 // approve
                 IERC20Minimal(trades[i].tokenIn).approve(swapRouter, trades[i].amountInMaximum);
@@ -252,9 +256,8 @@ contract XXXFund2 is
                 address tokenIn = getLastTokenFromPath(trades[i].path);
                 (address tokenOut, , ) = trades[i].path.decodeFirstPool();
                 require(IXXXFactory(factory).whiteListTokens(tokenOut), 'NWT');
-
                 uint256 tokenBalance = getInvestorTokenAmount(trades[i].investor, tokenIn);
-                require(tokenBalance >= trades[i].amountInMaximum, 'TMIA');
+                require(trades[i].amountInMaximum <= tokenBalance, 'NET');
 
                 // approve
                 IERC20Minimal(tokenIn).approve(swapRouter, trades[i].amountInMaximum);
@@ -289,6 +292,15 @@ contract XXXFund2 is
         )
     {
         require(msg.sender == manager, 'NM');
+
+        bool isToken0WhiteListToken = IXXXFactory(factory).whiteListTokens(_params.token0);
+        bool isToken1WhiteListToken = IXXXFactory(factory).whiteListTokens(_params.token1);
+        require(isToken0WhiteListToken, 'NWT0');
+        require(isToken1WhiteListToken, 'NWT1');
+        uint256 token0Balance = getInvestorTokenAmount(_params.investor, _params.token0);
+        uint256 token1Balance = getInvestorTokenAmount(_params.investor, _params.token1);
+        require(_params.amount0Desired <= token0Balance, 'NET0');
+        require(_params.amount1Desired <= token1Balance, 'NET1');
 
         IERC20Minimal(_params.token0).approve(NonfungiblePositionManager, _params.amount0Desired);
         IERC20Minimal(_params.token1).approve(NonfungiblePositionManager, _params.amount1Desired);
@@ -326,9 +338,19 @@ contract XXXFund2 is
         external override returns (uint128 liquidity, uint256 amount0, uint256 amount1) 
     {
         require(msg.sender == manager, 'NM');
+        require(_params.investor == positionOwner[_params.tokenId], 'NI');
 
         (, , address token0, address token1, , , , , , , , ) 
             = INonfungiblePositionManager(NonfungiblePositionManager).positions(_params.tokenId);
+
+        bool isToken0WhiteListToken = IXXXFactory(factory).whiteListTokens(token0);
+        bool isToken1WhiteListToken = IXXXFactory(factory).whiteListTokens(token1);
+        require(isToken0WhiteListToken, 'NWT0');
+        require(isToken1WhiteListToken, 'NWT1');
+        uint256 token0Balance = getInvestorTokenAmount(_params.investor, token0);
+        uint256 token1Balance = getInvestorTokenAmount(_params.investor, token1);
+        require(_params.amount0Desired <= token0Balance, 'NET0');
+        require(_params.amount1Desired <= token1Balance, 'NET1');
 
         IERC20Minimal(token0).approve(NonfungiblePositionManager, _params.amount0Desired);
         IERC20Minimal(token1).approve(NonfungiblePositionManager, _params.amount1Desired);
@@ -354,7 +376,8 @@ contract XXXFund2 is
     function collectPositionFee(CollectPositionFeeParams calldata _params) 
         external override returns (uint256 amount0, uint256 amount1) 
     {
-        require(msg.sender == positionOwner[_params.tokenId] || msg.sender == manager, 'NO');
+        require(msg.sender == positionOwner[_params.tokenId] || msg.sender == manager, 'NA');
+        require(_params.investor == positionOwner[_params.tokenId], 'NI');
 
         INonfungiblePositionManager.CollectParams memory params =
             INonfungiblePositionManager.CollectParams({
@@ -377,7 +400,8 @@ contract XXXFund2 is
     function decreaseLiquidity(DecreaseLiquidityParams calldata _params) 
         external override returns (uint256 amount0, uint256 amount1) 
     {
-        require(msg.sender == positionOwner[_params.tokenId] || msg.sender == manager, 'NO');
+        require(msg.sender == positionOwner[_params.tokenId] || msg.sender == manager, 'NA');
+        require(_params.investor == positionOwner[_params.tokenId], 'NI');
 
         INonfungiblePositionManager.DecreaseLiquidityParams memory params =
             INonfungiblePositionManager.DecreaseLiquidityParams({

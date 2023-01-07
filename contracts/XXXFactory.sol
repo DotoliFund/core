@@ -12,6 +12,10 @@ import './XXXFund2.sol';
 import "hardhat/console.sol";
 
 contract XXXFactory is IXXXFactory, Constants {
+    address public override WETH9;
+    address public UNI;
+    address public XXX;
+
     address public override owner;
     uint256 public override managerFee = 1; // 1% of investor profit ex) MANAGER_FEE = 10 -> 10% of investor profit
     uint256 public override minWETHVolume = 1e18; // to be whiteListToken, needed min weth9 value of (token + weth9) pool
@@ -29,14 +33,14 @@ contract XXXFactory is IXXXFactory, Constants {
         unlocked = 1;
     }
 
-    constructor() {
+    constructor(address weth9, address uni, address xxx) {
         owner = msg.sender;
-        whiteListTokens[WETH9] = true; //WETH mainnet
-        whiteListTokens[WBTC] = true; //WBTC
-        whiteListTokens[USDC] = true; //USDC
-        whiteListTokens[DAI] = true; //DAI
-        whiteListTokens[UNI] = true; //UNI
-        whiteListTokens[XXX] = true; //XXX
+        WETH9 = weth9;
+        UNI = uni;
+        XXX = xxx;
+        whiteListTokens[WETH9] = true;
+        whiteListTokens[UNI] = true;
+        whiteListTokens[XXX] = true;
         emit FactoryCreated();
     }
 
@@ -46,7 +50,7 @@ contract XXXFactory is IXXXFactory, Constants {
         getFundByManager[msg.sender] = fund;
         IXXXFund2(fund).initialize(msg.sender);
 
-        //subscribe
+        //manager subscribe
         uint256 fundCount = getFundCountByInvestor[msg.sender];
         getFundByInvestor[msg.sender][fundCount] = fund;
         getFundCountByInvestor[msg.sender] += 1;
@@ -133,6 +137,7 @@ contract XXXFactory is IXXXFactory, Constants {
 
     function resetWhiteListToken(address _token) external override {
         require(msg.sender == owner);
+        require(_token != WETH9);
         whiteListTokens[_token] = false;
         emit WhiteListTokenRemoved(_token);
     }

@@ -37,7 +37,6 @@ describe('XXXFactory', () => {
   let factory: Contract
   let fund1: Contract
   let fund2: Contract
-  let WETH9: Contract
   
   before('get signer', async () => {
     [ deployer, 
@@ -51,7 +50,7 @@ describe('XXXFactory', () => {
 
   before("Deploy XXXFactory Contract", async function () {
     const XXXFactory = await ethers.getContractFactory("XXXFactory")
-    const Factory = await XXXFactory.connect(deployer).deploy()
+    const Factory = await XXXFactory.connect(deployer).deploy(WETH9, UNI, DAI) //XXX is error so use DAI for just test
     await Factory.deployed()
     factoryContractAddress = Factory.address
     factory = await ethers.getContractAt("XXXFactory", factoryContractAddress)

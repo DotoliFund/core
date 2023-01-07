@@ -15,6 +15,7 @@ interface IXXXFactory {
     /// @dev Can be changed by the current owner via setOwner
     /// @return The address of the factory owner
     function owner() external view returns (address);
+    function WETH9() external view returns (address);
     function managerFee() external view returns (uint256);
     function minWETHVolume() external view returns (uint256);
     function whiteListTokens(address _token) external view returns (bool);

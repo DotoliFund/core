@@ -5,17 +5,11 @@ pragma abicoder v2;
 import '@uniswap/v3-core/contracts/interfaces/IUniswapV3Factory.sol';
 import '@uniswap/v3-core/contracts/interfaces/pool/IUniswapV3PoolState.sol';
 import '@uniswap/v3-periphery/contracts/interfaces/INonfungiblePositionManager.sol';
-
 import './libraries/FullMath.sol';
 import './libraries/TickMath.sol';
 import './libraries/SqrtPriceMath.sol';
-
 import './interfaces/ILiquidityOracle.sol';
 
-//TODO : remove console
-import "hardhat/console.sol";
-
-/// @title LiquidityOracle library
 contract LiquidityOracle is ILiquidityOracle{
     using SafeCast for uint256;
     using SafeCast for int256;
@@ -23,9 +17,9 @@ contract LiquidityOracle is ILiquidityOracle{
     address public UniswapV3Factory;
     address public NonfungiblePositionManager;
 
-    constructor() {
-        UniswapV3Factory = 0x1F98431c8aD98523631AE4a59f267346ea31F984;
-        NonfungiblePositionManager = 0xC36442b4a4522E871399CD717aBDD847Ab11FE88;
+    constructor(address uniswapV3Factory, address nonfungiblePositionManager) {
+        UniswapV3Factory = uniswapV3Factory;
+        NonfungiblePositionManager = nonfungiblePositionManager;
     }
 
     function getPoolAddress(address token0, address token1, uint24 fee) private view returns (address) {

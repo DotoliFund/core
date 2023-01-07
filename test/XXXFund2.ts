@@ -1,7 +1,6 @@
 import { Wallet, constants, BigNumber, ContractTransaction, Contract } from 'ethers'
 import { expect } from "chai"
 import { ethers, waffle } from 'hardhat'
-import { PriceOracle } from '../typechain-types/contracts/PriceOracle'
 import { LiquidityOracle } from '../typechain-types/contracts/LiquidityOracle'
 import { XXXFactory } from '../typechain-types/contracts/XXXFactory'
 import { XXXFund2 } from '../typechain-types/contracts/XXXFund2'
@@ -24,6 +23,7 @@ import {
   USDC,
   UNI,
   DAI,
+  XXX,
   NULL_ADDRESS,
   V3_SWAP_ROUTER_ADDRESS,
   NonfungiblePositionManager,
@@ -35,6 +35,8 @@ import {
   FeeAmount,
   MaxUint128,
   TICK_SPACINGS,
+  UNISWAP_V3_FACTORY,
+  NonfungiblePositionManager
 } from "./shared/constants"
 import { getMaxTick, getMinTick } from './shared/ticks'
 
@@ -48,7 +50,6 @@ describe('XXXFund2', () => {
   let investor2: Wallet
   let notInvestor: Wallet
 
-  let priceOracleContractAddress: string
   let liquidityOracleContractAddress: string
   let factoryContractAddress: string
   let fundContractAddress: string
@@ -56,7 +57,6 @@ describe('XXXFund2', () => {
   let fund1Address: string
   let fund2Address: string
 
-  let priceOracle: Contract
   let liquidityOracle: Contract
   let factory: Contract
   let fund1: Contract
@@ -161,17 +161,12 @@ describe('XXXFund2', () => {
     }
   })
 
-  before("Deploy PriceOracle Contract", async function () {
-    const PriceOracle = await ethers.getContractFactory("PriceOracle")
-    const Oracle = await PriceOracle.connect(deployer).deploy()
-    await Oracle.deployed()
-    priceOracleContractAddress = Oracle.address
-    priceOracle = await ethers.getContractAt("PriceOracle", priceOracleContractAddress)
-  })
-
   before("Deploy LiquidityOracle Contract", async function () {
     const LiquidityOracle = await ethers.getContractFactory("LiquidityOracle")
-    const Oracle = await LiquidityOracle.connect(deployer).deploy()
+    const Oracle = await LiquidityOracle.connect(deployer).deploy(
+      UNISWAP_V3_FACTORY,
+      NonfungiblePositionManager
+    )
     await Oracle.deployed()
     liquidityOracleContractAddress = Oracle.address
     liquidityOracle = await ethers.getContractAt("LiquidityOracle", liquidityOracleContractAddress)
@@ -179,7 +174,7 @@ describe('XXXFund2', () => {
 
   before("Deploy XXXFactory Contract", async function () {
     const XXXFactory = await ethers.getContractFactory("XXXFactory")
-    const Factory = await XXXFactory.connect(deployer).deploy()
+    const Factory = await XXXFactory.connect(deployer).deploy(WETH9, UNI, DAI) //XXX is error so use DAI for just test
     await Factory.deployed()
     factoryContractAddress = Factory.address
     factory = await ethers.getContractAt("XXXFactory", factoryContractAddress)
@@ -562,21 +557,6 @@ describe('XXXFund2', () => {
         const tokenAmount = await liquidityOracle.connect(manager1).getPositionTokenAmount(tokenIds[0].toNumber())
       })
 
-      it("priceOracle token0, token1, amount0, amount1", async function () {
-        const tokenIds = await fund1.connect(manager1).getPositionTokenIds(manager1.address)
-        const tokenAmount = await liquidityOracle.connect(manager1).getPositionTokenAmount(tokenIds[0].toNumber())
-        const token0 = tokenAmount.token0
-        const token1 = tokenAmount.token1
-        const amount0 = tokenAmount.amount0
-        const amount1 = tokenAmount.amount1
-        const token0priceETH = await priceOracle.connect(manager1).getPriceETH(token0, amount0, WETH9)
-        const token1priceETH = await priceOracle.connect(manager1).getPriceETH(token1, amount1, WETH9)
-        const ethPriceInUSD = await priceOracle.connect(manager1).getPriceUSD(WETH9, ethers.utils.parseEther("1.0"), USDC)
-        console.log(token0priceETH)
-        console.log(token1priceETH)
-        console.log(ethPriceInUSD)
-      })
-
       it("(fund1) getInvestorTokens ", async function () {
         const tokenIds = await fund1.connect(manager1).getInvestorTokens(manager1.address)
         const token0 = tokenIds[0].tokenAddress
@@ -587,10 +567,6 @@ describe('XXXFund2', () => {
         console.log(tokenIds[0].amount)
         console.log(tokenIds[1].tokenAddress)
         console.log(tokenIds[1].amount)
-        const token0AmountETH = await priceOracle.connect(manager1).getPriceETH(token0, amount0, WETH9)
-        const token1AmountETH = await priceOracle.connect(manager1).getPriceETH(token1, amount1, WETH9)
-        console.log(token0AmountETH)
-        console.log(token1AmountETH)
       })
 
       it("collect position fee", async function () {
@@ -1030,21 +1006,6 @@ describe('XXXFund2', () => {
         const tokenAmount = await liquidityOracle.connect(manager1).getPositionTokenAmount(tokenIds[0].toNumber())
       })
 
-      it("priceOracle token0, token1, amount0, amount1", async function () {
-        const tokenIds = await fund1.connect(manager1).getPositionTokenIds(investor1.address)
-        const tokenAmount = await liquidityOracle.connect(manager1).getPositionTokenAmount(tokenIds[0].toNumber())
-        const token0 = tokenAmount.token0
-        const token1 = tokenAmount.token1
-        const amount0 = tokenAmount.amount0
-        const amount1 = tokenAmount.amount1
-        const token0priceETH = await priceOracle.connect(manager1).getPriceETH(token0, amount0, WETH9)
-        const token1priceETH = await priceOracle.connect(manager1).getPriceETH(token1, amount1, WETH9)
-        const ethPriceInUSD = await priceOracle.connect(manager1).getPriceUSD(WETH9, ethers.utils.parseEther("1.0"), USDC)
-        console.log(token0priceETH)
-        console.log(token1priceETH)
-        console.log(ethPriceInUSD)
-      })
-
       it("(fund1) getInvestorTokens ", async function () {
         const tokenIds = await fund1.connect(manager1).getInvestorTokens(investor1.address)
         const token0 = tokenIds[0].tokenAddress
@@ -1055,10 +1016,6 @@ describe('XXXFund2', () => {
         console.log(tokenIds[0].amount)
         console.log(tokenIds[1].tokenAddress)
         console.log(tokenIds[1].amount)
-        const token0AmountETH = await priceOracle.connect(manager1).getPriceETH(token0, amount0, WETH9)
-        const token1AmountETH = await priceOracle.connect(manager1).getPriceETH(token1, amount1, WETH9)
-        console.log(token0AmountETH)
-        console.log(token1AmountETH)
       })
 
       it("collect position fee", async function () {
