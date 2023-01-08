@@ -24,16 +24,14 @@ describe('XXXFactory', () => {
   let manager2: Wallet
   let investor: Wallet
   let investor2: Wallet
-  let notInvestor: Wallet
+  let noInvestor: Wallet
 
-  let oracleContractAddress: string
   let factoryContractAddress: string
   let fundContractAddress: string
 
   let fund1Address: string
   let fund2Address: string
 
-  let oracle: Contract
   let factory: Contract
   let fund1: Contract
   let fund2: Contract
@@ -44,7 +42,7 @@ describe('XXXFactory', () => {
       manager2, 
       investor, 
       investor2,
-      notInvestor
+      noInvestor
     ] = await (ethers as any).getSigners()
   })
 
@@ -83,112 +81,145 @@ describe('XXXFactory', () => {
     fund2 = await ethers.getContractAt("XXXFund2", fund2Address)
   })
 
-  describe('sender : manager1', () => {
+  describe('manager1', () => {
 
-    it("getFundByManager()", async function () {
+    it("manager is managing fund1", async function () {
       expect(await factory.connect(manager1).getFundByManager(manager1.address)).to.equal(fund1Address)
     })
 
-    it("isSubscribed()", async function () {
+    it("check manager is subscribed to fund1", async function () {
       expect(await factory.connect(manager1).isSubscribed(manager1.address, fund1Address)).to.be.true
     })
 
-    it("subscribedFunds()", async function () {
+    it("manager's subscribed fund count is 1", async function () {
       expect(await factory.connect(manager1).subscribedFunds(manager1.address)).to.have.lengthOf(1)
     })
 
-    it("subscribe()", async function () {
+    it("duplicated subscribe must be failed", async function () {
       await expect(factory.connect(manager1).subscribe(fund1Address)).to.be.reverted
     })
 
-    it("whiteListTokens()", async function () {
+    it("UNI is white list token", async function () {
       expect(await factory.connect(manager1).whiteListTokens(UNI)).to.be.true
     })
 
-    it("resetWhiteListToken()", async function () {
+    it("reset UNI from white list token", async function () {
       await expect(factory.connect(deployer).resetWhiteListToken(UNI))
     })
 
-    it("whiteListTokens()", async function () {
+    it("cheak UNI is not white list token", async function () {
       expect(await factory.connect(manager1).whiteListTokens(UNI)).to.be.false
     })
 
-    it("setWhiteListToken()", async function () {
+    it("set UNI to white list token", async function () {
       await expect(factory.connect(deployer).setWhiteListToken(UNI))
     })
 
-    it("whiteListTokens()", async function () {
+    it("cheak UNI is white list token", async function () {
       expect(await factory.connect(manager1).whiteListTokens(UNI)).to.be.true
+    })
+
+    it("cheak USDC is not white list token", async function () {
+      expect(await factory.connect(manager1).whiteListTokens(USDC)).to.be.false
+    })
+
+    it("set USDC to white list token", async function () {
+      await expect(factory.connect(deployer).setWhiteListToken(USDC))
+    })
+
+    it("cheak USDC is white list token", async function () {
+      expect(await factory.connect(manager1).whiteListTokens(USDC)).to.be.true
+    })
+
+    it("cheak manager fee is 1", async function () {
+      expect(await factory.connect(manager1).managerFee()).to.equal(1)
+    })
+
+    it("set manager fee to 2", async function () {
+      expect(await factory.connect(deployer).setManagerFee(2))
+    })
+
+    it("cheak manager fee is 2", async function () {
+      expect(await factory.connect(manager1).managerFee()).to.equal(2)
+    })
+
+    // min WETH Volume which is for check white list token
+    it("check minWETHVolume  is 1e18", async function () {
+      const parseEther1 = ethers.utils.parseEther("1.0")
+      expect(await factory.connect(manager1).minWETHVolume()).to.equal(parseEther1)
+    })
+
+    it("set minWETHVolume is 2e18", async function () {
+      const parseEther2 = ethers.utils.parseEther("2.0")
+      expect(await factory.connect(deployer).setMinWETHVolume(parseEther2))
+    })
+
+    it("check minWETHVolume is 2e18", async function () {
+      const parseEther2 = ethers.utils.parseEther("2.0")
+      expect(await factory.connect(manager1).minWETHVolume()).to.equal(parseEther2)
     })
   })
 
 
-  describe('sender : investor', () => {
+  describe('investor', () => {
 
-    it("getFundByManager() investor has no fund", async function () {
+    it("investor has no fund", async function () {
       expect(await factory.connect(investor).getFundByManager(investor.address)).to.equal(NULL_ADDRESS)
     })
 
-    it("isSubscribed()", async function () {
-      expect(await factory.connect(investor).isSubscribed(fund1Address,investor.address)).to.be.false
-    })
-
-    //investor is different from not investor at subscribe(), isSubscribed()
-    it("subscribedFunds()", async function () {
+    it("investor's subscribed fund count is 0", async function () {
       expect(await factory.connect(investor).subscribedFunds(investor.address)).to.have.lengthOf(0)
     })
 
-    it("not investor yet => isSubscribed()", async function () {
+    it("check investor not subscribed to fund1", async function () {
       expect(await factory.connect(investor).isSubscribed(investor.address, fund1Address)).to.be.false
     })
 
-    it("register investor => subscribe()", async function () {
+    it("investor subscribe to fund1", async function () {
       await factory.connect(investor).subscribe(fund1Address)
     })
 
-    it("check investor registered => isSubscribed()", async function () {
-      const isRegistered = await factory.connect(investor).isSubscribed(investor.address, fund1Address)
-      expect(isRegistered).to.be.true    
+    it("check investor subscribed to fund1", async function () {
+      expect(await factory.connect(investor).isSubscribed(investor.address, fund1Address)).to.be.true
     })
 
-    it("subscribedFunds()", async function () {
+    it("investor's subscribed fund count is 1", async function () {
       expect(await factory.connect(investor).subscribedFunds(investor.address)).to.have.lengthOf(1)
     })
 
-    it("subscribe() must be fail : duplicate", async function () {
+    it("duplicated subscribe must be failed", async function () {
       await expect(factory.connect(investor).subscribe(fund1Address)).to.be.reverted
     })
 
-    it("register investor2 => subscribe()", async function () {
+    it("investor2 subscribe to fund1", async function () {
       await factory.connect(investor2).subscribe(fund1Address)
     })
 
-    it("investor -> subscribedFunds()", async function () {
-      expect(await factory.connect(investor).subscribedFunds(investor.address)).to.have.lengthOf(1)
-    })
-
-    it("investor2 -> subscribedFunds()", async function () {
+    it("investor2's subscribed fund count is 1", async function () {
       expect(await factory.connect(investor2).subscribedFunds(investor2.address)).to.have.lengthOf(1)
     })
-
   })
 
-  describe('sender : not investor', () => {
+  describe('no investor', () => {
 
-    it("getFundByManager()", async function () {
-      expect(await factory.connect(notInvestor).getFundByManager(notInvestor.address)).to.equal(NULL_ADDRESS)
+    it("noInvestor has no fund", async function () {
+      expect(await factory.connect(noInvestor).getFundByManager(noInvestor.address)).to.equal(NULL_ADDRESS)
     })
 
-    it("isSubscribed()", async function () {
-      expect(await factory.connect(notInvestor).isSubscribed(fund1Address,notInvestor.address)).to.be.false
+    it("investor not registered to fund1", async function () {
+      expect(await factory.connect(noInvestor).isSubscribed(fund1Address,noInvestor.address)).to.be.false
     })
 
-    it("subscribedFunds()", async function () {
-      expect(await factory.connect(notInvestor).subscribedFunds(notInvestor.address)).to.be.empty
+    it("noInvestor's subscribed fund count is 0", async function () {
+      expect(await factory.connect(noInvestor).subscribedFunds(noInvestor.address)).to.be.empty
     })
 
-    it("subscribe()", async function () {
-      await factory.connect(notInvestor).subscribe(fund1Address)
+    it("noInvestor subscribe to fund1", async function () {
+      await factory.connect(noInvestor).subscribe(fund1Address)
+    })
+
+    it("check noInvestor subscribed to fund1", async function () {
+      expect(await factory.connect(investor).isSubscribed(investor.address, fund1Address)).to.be.true
     })
   })
 })
