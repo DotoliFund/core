@@ -2775,5 +2775,85 @@ describe('XXXFund2', () => {
         await expect(fund1.connect(manager1).feeOut(UNI, 5000000)).to.be.reverted
       })
     })
+
+    describe("white list token test", async function () {
+
+      it("can't reset weth9 from WhiteListToken", async function () {
+        await expect(factory.connect(deployer).resetWhiteListToken(WETH9)).to.be.reverted
+      })
+
+      it("can't set already white list token", async function () {
+        await expect(factory.connect(deployer).setWhiteListToken(UNI)).to.be.reverted
+      })
+
+      it("can't reset not white list token ", async function () {
+        await expect(factory.connect(deployer).resetWhiteListToken(USDC)).to.be.reverted
+      })
+
+      it("success setting white list token when more than minWETHVolume ", async function () {
+        let isUNIWhiteListToken = await factory.connect(manager1).whiteListTokens(UNI)
+        expect(isUNIWhiteListToken).to.be.true
+
+        await factory.connect(deployer).resetWhiteListToken(UNI)
+
+        isUNIWhiteListToken = await factory.connect(manager1).whiteListTokens(UNI)
+        expect(isUNIWhiteListToken).to.be.false
+
+        await factory.connect(deployer).setMinWETHVolume(ethers.utils.parseEther("100.0"))
+        await factory.connect(deployer).setWhiteListToken(UNI)
+
+        isUNIWhiteListToken = await factory.connect(manager1).whiteListTokens(UNI)
+        expect(isUNIWhiteListToken).to.be.true
+      })
+
+      it("fail setting white list token when less than minWETHVolume ", async function () {
+        let isUNIWhiteListToken = await factory.connect(manager1).whiteListTokens(UNI)
+        expect(isUNIWhiteListToken).to.be.true
+
+        await factory.connect(deployer).resetWhiteListToken(UNI)
+
+        isUNIWhiteListToken = await factory.connect(manager1).whiteListTokens(UNI)
+        expect(isUNIWhiteListToken).to.be.false
+
+        await factory.connect(deployer).setMinWETHVolume(ethers.utils.parseEther("1000000.0"))
+        await expect(factory.connect(deployer).setWhiteListToken(UNI)).to.be.reverted
+      })
+
+      it("fail deposit when not white list token", async function () {
+
+      })
+
+      it("success withdraw when not white list token", async function () {
+
+      })
+
+      it("success swap in when not white list token", async function () {
+
+      })
+
+      it("fail swap out when not white list token", async function () {
+
+      })
+
+      it("fail mint position when not white list token", async function () {
+
+      })
+
+      it("fail increase liquidity when not white list token", async function () {
+
+      })
+
+      it("success decrease liquidity when not white list token", async function () {
+
+      })
+
+      it("success collect fee from liquidity when not white list token", async function () {
+
+      })
+
+      it("success fee out when not white list token", async function () {
+
+      })
+    })
   })
 })

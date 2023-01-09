@@ -130,6 +130,7 @@ contract XXXFactory is IXXXFactory, Constants {
 
     function setWhiteListToken(address _token) external override {
         require(msg.sender == owner);
+        require(whiteListTokens[_token] == false, 'WLT');
         require(checkWhiteListToken(_token), 'CWLT');
         whiteListTokens[_token] = true;
         emit WhiteListTokenAdded(_token);
@@ -137,6 +138,7 @@ contract XXXFactory is IXXXFactory, Constants {
 
     function resetWhiteListToken(address _token) external override {
         require(msg.sender == owner);
+        require(whiteListTokens[_token] == true, 'WLT');
         require(_token != WETH9);
         whiteListTokens[_token] = false;
         emit WhiteListTokenRemoved(_token);
