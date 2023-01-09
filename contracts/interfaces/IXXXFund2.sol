@@ -19,7 +19,6 @@ interface IXXXFund2 is IToken {
         address investor;
         address tokenIn;
         address tokenOut;
-        address recipient;
         uint24 fee;
         uint256 amountIn;
         uint256 amountOut;

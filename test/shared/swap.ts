@@ -19,7 +19,6 @@ export interface SwapParams {
   investor: string
   tokenIn: string
   tokenOut: string
-  recipient: string
   fee: number
   amountIn: BigNumber
   amountOut: BigNumber
@@ -36,7 +35,6 @@ export function exactInputSingleParams(
   amountIn: BigNumber,
   amountOutMinimum: BigNumber,
   sqrtPriceLimitX96: BigNumber,
-	fundAddress: string
 ): SwapParams[] {
 	const params: SwapParams[] = [
 		{
@@ -44,7 +42,6 @@ export function exactInputSingleParams(
       investor: investor,
       tokenIn: tokenIn,
       tokenOut: tokenOut,
-      recipient: fundAddress,
       fee: FeeAmount.MEDIUM,
       amountIn,
       amountOut: BigNumber.from(0),
@@ -64,7 +61,6 @@ export function exactOutputSingleParams(
   amountOut: BigNumber,
   amountInMaximum: BigNumber,
   sqrtPriceLimitX96: BigNumber,
-	fundAddress: string
 ): SwapParams[] {
 	const params: SwapParams[] = [
 		{
@@ -72,7 +68,6 @@ export function exactOutputSingleParams(
 	    investor: investor,
 	    tokenIn: tokenIn,
 	    tokenOut: tokenOut,
-	    recipient: fundAddress,
 	    fee: FeeAmount.MEDIUM,
 	    amountIn: BigNumber.from(0),
 	    amountOut,
@@ -90,7 +85,6 @@ export function exactInputParams(
 	tokens: string[],
   amountIn: BigNumber,
   amountOutMinimum: BigNumber,
-	fundAddress: string
 ): SwapParams[] {
   const path = encodePath(tokens, new Array(tokens.length - 1).fill(FeeAmount.MEDIUM))
 	const params: SwapParams[] = [
@@ -99,7 +93,6 @@ export function exactInputParams(
 			investor: investor,
 			tokenIn: NULL_ADDRESS,
 			tokenOut: NULL_ADDRESS,
-			recipient: fundAddress,
 			fee: 0,
       amountIn,
       amountOut: BigNumber.from(0),
@@ -117,7 +110,6 @@ export function exactOutputParams(
 	tokens: string[],
 	amountOut: BigNumber,
 	amountInMaximum: BigNumber,
-	fundAddress: string
 ): SwapParams[] {
 	const path = encodePath(tokens.slice().reverse(), new Array(tokens.length - 1).fill(FeeAmount.MEDIUM))
 	const params: SwapParams[] = [
@@ -126,7 +118,6 @@ export function exactOutputParams(
 			investor: investor,
 			tokenIn: NULL_ADDRESS,
 			tokenOut: NULL_ADDRESS,
-			recipient: fundAddress,
 			fee: 0,
 			amountIn: BigNumber.from(0),
 			amountOut,

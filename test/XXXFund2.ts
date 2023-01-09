@@ -302,8 +302,7 @@ describe('XXXFund2', () => {
             UNI,
             swapInputAmount,
             amountOutMinimum,
-            BigNumber.from(0),
-            fund1Address
+            BigNumber.from(0)
           )
           await fund1.connect(manager1).swap(params, { value: 0 })
           
@@ -329,8 +328,7 @@ describe('XXXFund2', () => {
             WETH9, 
             swapInputAmount, 
             amountOutMinimum, 
-            BigNumber.from(0),
-            fund1Address
+            BigNumber.from(0)
           )
           await fund1.connect(manager1).swap(params, { value: 0 })
 
@@ -360,8 +358,7 @@ describe('XXXFund2', () => {
             UNI, 
             swapOutputAmount, 
             amountInMaximum, 
-            BigNumber.from(0),
-            fund1Address
+            BigNumber.from(0)
           )
           await fund1.connect(manager1).swap(params, { value: 0 })
 
@@ -387,8 +384,7 @@ describe('XXXFund2', () => {
             WETH9, 
             swapOutputAmount, 
             amountInMaximum, 
-            BigNumber.from(0),
-            fund1Address
+            BigNumber.from(0)
           )
           await fund1.connect(manager1).swap(params, { value: 0 })
 
@@ -417,8 +413,7 @@ describe('XXXFund2', () => {
             manager1.address,
             tokens,
             swapInputAmount,
-            amountOutMinimum,
-            fund1Address
+            amountOutMinimum
           )
           await fund1.connect(manager1).swap(params, { value: 0 })
 
@@ -443,8 +438,7 @@ describe('XXXFund2', () => {
             manager1.address,
             tokens,
             swapInputAmount,
-            amountOutMinimum,
-            fund1Address
+            amountOutMinimum
           )
           await fund1.connect(manager1).swap(params, { value: 0 })
 
@@ -473,8 +467,7 @@ describe('XXXFund2', () => {
             manager1.address,
             tokens,
             swapOutputAmount,
-            amountInMaximum,
-            fund1Address
+            amountInMaximum
           )
           await fund1.connect(manager1).swap(params, { value: 0 })
 
@@ -604,8 +597,7 @@ describe('XXXFund2', () => {
         manager1.address,
         tokens,
         swapInputAmount,
-        amountOutMinimum,
-        fund1Address
+        amountOutMinimum
       )
       await expect(fund1.connect(investor1).swap(params, { value: 0 })).to.be.reverted
     })
@@ -716,8 +708,7 @@ describe('XXXFund2', () => {
           UNI, 
           swapInputAmount, 
           amountOutMinimum, 
-          BigNumber.from(0),
-          fund1Address
+          BigNumber.from(0)
         )
         await expect(fund1.connect(investor1).swap(params, { value: 0 })).to.be.reverted
       })
@@ -732,8 +723,7 @@ describe('XXXFund2', () => {
           UNI, 
           swapOutputAmount, 
           amountInMaximum, 
-          BigNumber.from(0),
-          fund1Address
+          BigNumber.from(0)
         )
         await expect(fund1.connect(investor1).swap(params, { value: 0 })).to.be.reverted
       })
@@ -747,8 +737,7 @@ describe('XXXFund2', () => {
           investor1.address,
           tokens,
           swapInputAmount,
-          amountOutMinimum,
-          fund1Address
+          amountOutMinimum
         )
         await expect(fund1.connect(investor1).swap(params, { value: 0 })).to.be.reverted
       })
@@ -762,8 +751,7 @@ describe('XXXFund2', () => {
           investor1.address,
           tokens,
           swapOutputAmount,
-          amountInMaximum,
-          fund1Address
+          amountInMaximum
         )
         await expect(fund1.connect(investor1).swap(params, { value: 0 })).to.be.reverted
       })
@@ -785,8 +773,7 @@ describe('XXXFund2', () => {
           UNI, 
           swapInputAmount, 
           amountOutMinimum, 
-          BigNumber.from(0),
-          fund1Address
+          BigNumber.from(0)
         )
         await fund1.connect(manager1).swap(params, { value: 0 })
 
@@ -830,8 +817,7 @@ describe('XXXFund2', () => {
           UNI, 
           swapOutputAmount, 
           amountInMaximum, 
-          BigNumber.from(0),
-          fund1Address
+          BigNumber.from(0)
         )
         await fund1.connect(manager1).swap(params, { value: 0 })
 
@@ -872,8 +858,7 @@ describe('XXXFund2', () => {
           investor1.address,
           tokens,
           swapInputAmount,
-          amountOutMinimum,
-          fund1Address
+          amountOutMinimum
         )
         await fund1.connect(manager1).swap(params, { value: 0 })
 
@@ -917,8 +902,7 @@ describe('XXXFund2', () => {
           investor1.address,
           tokens,
           swapOutputAmount,
-          amountInMaximum,
-          fund1Address
+          amountInMaximum
         )
         await fund1.connect(manager1).swap(params, { value: 0 })
 
@@ -1069,16 +1053,23 @@ describe('XXXFund2', () => {
           FeeAmount.MEDIUM,
           getMinTick(TICK_SPACINGS[FeeAmount.MEDIUM]),
           getMaxTick(TICK_SPACINGS[FeeAmount.MEDIUM]),
-          BigNumber.from(200000000),
-          BigNumber.from(1000000),
+          BigNumber.from(20000000000),
+          BigNumber.from(100000000),
           BigNumber.from(2000000),
           BigNumber.from(10000),
         )
-        await fund1.connect(manager1).mintNewPosition(params, { value: 0 })
+        await expect(fund1.connect(manager1).mintNewPosition(params, { value: 0 })).to.be.reverted
       })
 
       it("reset UNI from white list token", async function () {
-        await expect(factory.connect(deployer).resetWhiteListToken(UNI))
+        let isUNIWhiteListToken = await factory.connect(manager1).whiteListTokens(UNI)
+        expect(isUNIWhiteListToken).to.be.true
+
+        await factory.connect(deployer).resetWhiteListToken(UNI)
+
+        isUNIWhiteListToken = await factory.connect(manager1).whiteListTokens(UNI)
+        expect(isUNIWhiteListToken).to.be.false
+
       })
 
       it("mint new position -> not white list token", async function () {
@@ -1098,7 +1089,13 @@ describe('XXXFund2', () => {
       })
 
       it("set UNI to white list token", async function () {
-        await expect(factory.connect(deployer).setWhiteListToken(UNI))
+        let isUNIWhiteListToken = await factory.connect(manager1).whiteListTokens(UNI)
+        expect(isUNIWhiteListToken).to.be.false
+
+        await factory.connect(deployer).setWhiteListToken(UNI)
+
+        isUNIWhiteListToken = await factory.connect(manager1).whiteListTokens(UNI)
+        expect(isUNIWhiteListToken).to.be.true
       })
 
       it("increase liquidity -> wrong investor", async function () {
@@ -1271,8 +1268,7 @@ describe('XXXFund2', () => {
         manager1.address,
         tokens,
         swapInputAmount,
-        amountOutMinimum,
-        fund2Address
+        amountOutMinimum
       )
       await expect(fund2.connect(manager1).swap(params, { value: 0 })).to.be.reverted
     })
@@ -1296,8 +1292,7 @@ describe('XXXFund2', () => {
         manager2.address,
         tokens,
         swapInputAmount,
-        amountOutMinimum,
-        fund1Address
+        amountOutMinimum
       )
       await expect(fund1.connect(manager2).swap(params, { value: 0 })).to.be.reverted
     })
@@ -1495,8 +1490,7 @@ describe('XXXFund2', () => {
           UNI, 
           swapInputAmount, 
           amountOutMinimum, 
-          BigNumber.from(0),
-          fund2Address
+          BigNumber.from(0)
         )
         await expect(fund2.connect(manager1).swap(params, { value: 0 })).to.be.reverted
       })
@@ -1511,8 +1505,7 @@ describe('XXXFund2', () => {
           UNI, 
           swapOutputAmount, 
           amountInMaximum, 
-          BigNumber.from(0),
-          fund2Address
+          BigNumber.from(0)
         )
         await expect(fund2.connect(manager1).swap(params, { value: 0 })).to.be.reverted
       })
@@ -1526,8 +1519,7 @@ describe('XXXFund2', () => {
           manager1.address,
           tokens,
           swapInputAmount,
-          amountOutMinimum,
-          fund2Address
+          amountOutMinimum
         )
         await expect(fund2.connect(manager1).swap(params, { value: 0 })).to.be.reverted
       })
@@ -1541,8 +1533,7 @@ describe('XXXFund2', () => {
           manager1.address,
           tokens,
           swapOutputAmount,
-          amountInMaximum,
-          fund2Address
+          amountInMaximum
         )
         await expect(fund2.connect(manager1).swap(params, { value: 0 })).to.be.reverted
       })
@@ -1564,8 +1555,7 @@ describe('XXXFund2', () => {
           UNI, 
           swapInputAmount, 
           amountOutMinimum, 
-          BigNumber.from(0),
-          fund2Address
+          BigNumber.from(0)
         )
         await fund2.connect(manager2).swap(params, { value: 0 })
 
@@ -1609,8 +1599,7 @@ describe('XXXFund2', () => {
           UNI, 
           swapOutputAmount, 
           amountInMaximum, 
-          BigNumber.from(0),
-          fund2Address
+          BigNumber.from(0)
         )
         await fund2.connect(manager2).swap(params, { value: 0 })
 
@@ -1651,8 +1640,7 @@ describe('XXXFund2', () => {
           manager1.address,
           tokens,
           swapInputAmount,
-          amountOutMinimum,
-          fund2Address
+          amountOutMinimum
         )
         await fund2.connect(manager2).swap(params, { value: 0 })
 
@@ -1696,8 +1684,7 @@ describe('XXXFund2', () => {
           manager1.address,
           tokens,
           swapOutputAmount,
-          amountInMaximum,
-          fund2Address
+          amountInMaximum
         )
         await fund2.connect(manager2).swap(params, { value: 0 })
 
@@ -1743,8 +1730,7 @@ describe('XXXFund2', () => {
           UNI, 
           swapInputAmount, 
           amountOutMinimum, 
-          BigNumber.from(0),
-          fund2Address
+          BigNumber.from(0)
         )
         await fund2.connect(manager2).swap(params, { value: 0 })
 
@@ -1783,8 +1769,7 @@ describe('XXXFund2', () => {
           UNI, 
           swapOutputAmount, 
           amountInMaximum, 
-          BigNumber.from(0),
-          fund2Address
+          BigNumber.from(0)
         )
         await fund2.connect(manager2).swap(params, { value: 0 })
 
@@ -1820,8 +1805,7 @@ describe('XXXFund2', () => {
           manager2.address,
           tokens,
           swapInputAmount,
-          amountOutMinimum,
-          fund2Address
+          amountOutMinimum
         )
         await fund2.connect(manager2).swap(params, { value: 0 })
 
@@ -1859,8 +1843,7 @@ describe('XXXFund2', () => {
           manager2.address,
           tokens,
           swapOutputAmount,
-          amountInMaximum,
-          fund2Address
+          amountInMaximum
         )
         await fund2.connect(manager2).swap(params, { value: 0 })
 
@@ -2332,8 +2315,7 @@ describe('XXXFund2', () => {
           UNI, 
           swapInputAmount, 
           amountOutMinimum, 
-          BigNumber.from(0),
-          fund1Address
+          BigNumber.from(0)
         )
         await fund1.connect(manager1).swap(params, { value: 0 })
 
@@ -2378,8 +2360,7 @@ describe('XXXFund2', () => {
           UNI, 
           swapOutputAmount, 
           amountInMaximum, 
-          BigNumber.from(0),
-          fund1Address
+          BigNumber.from(0)
         )
         await fund1.connect(manager1).swap(params, { value: 0 })
 
@@ -2420,8 +2401,7 @@ describe('XXXFund2', () => {
           manager2.address,
           tokens,
           swapInputAmount,
-          amountOutMinimum,
-          fund1Address
+          amountOutMinimum
         )
         await fund1.connect(manager1).swap(params, { value: 0 })
 
@@ -2465,8 +2445,7 @@ describe('XXXFund2', () => {
           manager2.address,
           tokens,
           swapOutputAmount,
-          amountInMaximum,
-          fund1Address
+          amountInMaximum
         )
         await fund1.connect(manager1).swap(params, { value: 0 })
 
@@ -2817,42 +2796,184 @@ describe('XXXFund2', () => {
 
         await factory.connect(deployer).setMinWETHVolume(ethers.utils.parseEther("1000000.0"))
         await expect(factory.connect(deployer).setWhiteListToken(UNI)).to.be.reverted
+
+        isUNIWhiteListToken = await factory.connect(manager1).whiteListTokens(UNI)
+        expect(isUNIWhiteListToken).to.be.false
+
+        await factory.connect(deployer).setMinWETHVolume(ethers.utils.parseEther("1000.0"))
+        await factory.connect(deployer).setWhiteListToken(UNI)
+
+        isUNIWhiteListToken = await factory.connect(manager1).whiteListTokens(UNI)
+        expect(isUNIWhiteListToken).to.be.true
       })
 
       it("fail deposit when not white list token", async function () {
+        let isUNIWhiteListToken = await factory.connect(manager1).whiteListTokens(UNI)
+        expect(isUNIWhiteListToken).to.be.true
 
+        await factory.connect(deployer).resetWhiteListToken(UNI)
+
+        isUNIWhiteListToken = await factory.connect(manager1).whiteListTokens(UNI)
+        expect(isUNIWhiteListToken).to.be.false
+
+        const fund2Before = await getFundAccount(fund2.address)
+        const manager2Before = await getManagerAccount(manager2.address)
+
+        await uni.connect(manager2).approve(fund2Address, constants.MaxUint256)
+        await expect(fund2.connect(manager2).deposit(UNI, 100000)).to.be.reverted
       })
 
       it("success withdraw when not white list token", async function () {
+        let isUNIWhiteListToken = await factory.connect(manager1).whiteListTokens(UNI)
+        expect(isUNIWhiteListToken).to.be.false
 
-      })
+        const fund2Before = await getFundAccount(fund2.address)
+        const manager1Before = await getManagerAccount(manager1.address)
+        const manager2Before = await getManagerAccount(manager2.address)
 
-      it("success swap in when not white list token", async function () {
+        const withdraw_amount = ethers.utils.parseEther("0.000000000000001")
+        await fund2.connect(manager1).withdraw(UNI, withdraw_amount)
+        const fee = withdraw_amount.mul(MANAGER_FEE).div(100)
+        const investorWithdrawAmount = withdraw_amount.sub(fee)
 
-      })
+        const fund2After = await getFundAccount(fund2.address)
+        const manager1After = await getManagerAccount(manager1.address)
+        const manager2After = await getManagerAccount(manager2.address)
 
-      it("fail swap out when not white list token", async function () {
-
-      })
-
-      it("fail mint position when not white list token", async function () {
-
-      })
-
-      it("fail increase liquidity when not white list token", async function () {
-
-      })
-
-      it("success decrease liquidity when not white list token", async function () {
-
-      })
-
-      it("success collect fee from liquidity when not white list token", async function () {
-
+        expect(manager1After.fund2UNI).to.equal(manager1Before.fund2UNI.sub(withdraw_amount))
+        expect(manager2After.rewardTokens[1][0]).to.equal(UNI) // tokenAddress
+        expect(manager2After.rewardTokens[1][1]).to.equal(manager2Before.rewardTokens[1][1].add(fee)) // amount
+        expect(fund2After.uni).to.equal(fund2Before.uni.sub(investorWithdrawAmount))
       })
 
       it("success fee out when not white list token", async function () {
+        let isUNIWhiteListToken = await factory.connect(manager1).whiteListTokens(UNI)
+        expect(isUNIWhiteListToken).to.be.false
 
+        const manager2Before = await getManagerAccount(manager2.address)
+        const feeTokens = await fund2.connect(manager2).getFeeTokens()
+        console.log(feeTokens)
+        await fund2.connect(manager2).feeOut(UNI, 100000)
+        const manager2After = await getManagerAccount(manager2.address)
+
+        expect(manager2After.uni).to.equal(manager2Before.uni.add(100000))
+      })
+
+      it("success swap in when not white list token", async function () {
+        let isUNIWhiteListToken = await factory.connect(manager1).whiteListTokens(UNI)
+        expect(isUNIWhiteListToken).to.be.false
+
+        const swapInputAmount = BigNumber.from(10000)
+        const amountOutMinimum = BigNumber.from(1)
+
+        const fund2Before = await getFundAccount(fund2.address)
+        const manager1Before = await getInvestorAccount(manager1.address)
+
+        //swap
+        const params = exactInputSingleParams(
+          manager1.address,
+          UNI,
+          WETH9, 
+          swapInputAmount, 
+          amountOutMinimum, 
+          BigNumber.from(0)
+        )
+        await fund2.connect(manager2).swap(params, { value: 0 })
+
+        const fund2After = await getFundAccount(fund2.address)
+        const manager1After = await getManagerAccount(manager1.address)
+
+        expect(fund2After.uni).to.equal(fund2Before.uni.sub(swapInputAmount))
+        expect(manager1After.fund2UNI).to.equal(manager1Before.fund2UNI.sub(swapInputAmount))
+      })
+
+      it("fail swap out when not white list token", async function () {
+        let isUNIWhiteListToken = await factory.connect(manager1).whiteListTokens(UNI)
+        expect(isUNIWhiteListToken).to.be.false
+
+        const swapInputAmount = BigNumber.from(10000)
+        const amountOutMinimum = BigNumber.from(1)
+
+        const fund2Before = await getFundAccount(fund2.address)
+        const manager1Before = await getInvestorAccount(manager1.address)
+
+        //swap
+        const params = exactInputSingleParams(
+          manager1.address,
+          WETH9,
+          UNI, 
+          swapInputAmount, 
+          amountOutMinimum, 
+          BigNumber.from(0)
+        )
+        await expect(fund2.connect(manager2).swap(params, { value: 0 })).to.be.reverted
+      })
+
+      it("fail mint position when not white list token", async function () {
+        let isUNIWhiteListToken = await factory.connect(manager1).whiteListTokens(UNI)
+        expect(isUNIWhiteListToken).to.be.false
+
+        const params = mintNewPositionParams(
+          manager1.address,
+          WETH9,
+          UNI,
+          FeeAmount.MEDIUM,
+          getMinTick(TICK_SPACINGS[FeeAmount.MEDIUM]),
+          getMaxTick(TICK_SPACINGS[FeeAmount.MEDIUM]),
+          BigNumber.from(20000),
+          BigNumber.from(100),
+          BigNumber.from(2000),
+          BigNumber.from(10),
+        )
+        await expect(fund2.connect(manager2).mintNewPosition(params, { value: 0 })).to.be.reverted
+      })
+
+      it("fail increase liquidity when not white list token", async function () {
+        let isUNIWhiteListToken = await factory.connect(manager1).whiteListTokens(UNI)
+        expect(isUNIWhiteListToken).to.be.false
+
+        const tokenIds = await fund2.connect(manager2).getPositionTokenIds(manager1.address)
+        const nonfungiblePositionManager = await ethers.getContractAt("INonfungiblePositionManager", NonfungiblePositionManager)
+        const tokenIdInfo = await nonfungiblePositionManager.positions(tokenIds[0])
+        console.log(tokenIdInfo)
+        const params = increaseLiquidityParams(
+          manager1.address,
+          tokenIds[0],
+          BigNumber.from(20000),
+          BigNumber.from(100),
+          BigNumber.from(2000),
+          BigNumber.from(10),
+        )
+        await expect(fund2.connect(manager2).increaseLiquidity(params, { value: 0 })).to.be.reverted
+      })
+
+      it("success collect fee from liquidity when not white list token", async function () {
+        let isUNIWhiteListToken = await factory.connect(manager1).whiteListTokens(UNI)
+        expect(isUNIWhiteListToken).to.be.false
+
+        const tokenIds = await fund2.connect(manager2).getPositionTokenIds(manager1.address)
+        const params = collectPositionFeeParams(
+          manager1.address,
+          tokenIds[0],
+          MaxUint128,
+          MaxUint128
+        )
+        await fund2.connect(manager2).collectPositionFee(params, { value: 0 })
+      })
+
+      it("success decrease liquidity when not white list token", async function () {
+        let isUNIWhiteListToken = await factory.connect(manager1).whiteListTokens(UNI)
+        expect(isUNIWhiteListToken).to.be.false
+
+        const tokenIds = await fund2.connect(manager2).getPositionTokenIds(manager1.address)
+        const params = decreaseLiquidityParams(
+          manager1.address,
+          tokenIds[0],
+          1000,
+          BigNumber.from(2000),
+          BigNumber.from(10),
+        )
+        await fund2.connect(manager2).decreaseLiquidity(params, { value: 0 })
       })
     })
   })
