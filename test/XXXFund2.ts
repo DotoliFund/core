@@ -2757,8 +2757,9 @@ describe('XXXFund2', () => {
 
     describe("white list token test", async function () {
 
-      it("can't reset weth9 from WhiteListToken", async function () {
+      it("can't reset weth9 or xxx from WhiteListToken", async function () {
         await expect(factory.connect(deployer).resetWhiteListToken(WETH9)).to.be.reverted
+        await expect(factory.connect(deployer).resetWhiteListToken(XXX)).to.be.reverted
       })
 
       it("can't set already white list token", async function () {
@@ -2974,6 +2975,51 @@ describe('XXXFund2', () => {
           BigNumber.from(10),
         )
         await fund2.connect(manager2).decreaseLiquidity(params, { value: 0 })
+      })
+
+      it("success add other token to white list token when more than min weth volume", async function () {
+        const gitcoin = '0xDe30da39c46104798bB5aA3fe8B9e0e1F348163F'
+        const livepeer = '0x58b6A8A3302369DAEc383334672404Ee733aB239'
+        const theGraph = '0xc944E90C64B2c07662A292be6244BDf05Cda44a7'
+
+        let isGitcoinWLT = await factory.connect(manager1).whiteListTokens(gitcoin)
+        expect(isGitcoinWLT).to.be.false
+        let isLivepeerWLT = await factory.connect(manager1).whiteListTokens(livepeer)
+        expect(isLivepeerWLT).to.be.false
+        let isTheGraphWLT = await factory.connect(manager1).whiteListTokens(theGraph)
+        expect(isTheGraphWLT).to.be.false
+
+        await factory.connect(deployer).setMinWETHVolume(ethers.utils.parseEther("10.0"))
+        
+        await factory.connect(deployer).setWhiteListToken(gitcoin)
+        await factory.connect(deployer).setWhiteListToken(livepeer)
+        await factory.connect(deployer).setWhiteListToken(theGraph)
+
+        await factory.connect(deployer).resetWhiteListToken(gitcoin)
+        await factory.connect(deployer).resetWhiteListToken(livepeer)
+        await factory.connect(deployer).resetWhiteListToken(theGraph)
+      })
+
+      it("fail add other token to white list token when less than min weth volume", async function () {
+        await factory.connect(deployer).setMinWETHVolume(ethers.utils.parseEther("1000000.0"))
+
+        const gitcoin = '0xDe30da39c46104798bB5aA3fe8B9e0e1F348163F'
+        const livepeer = '0x58b6A8A3302369DAEc383334672404Ee733aB239'
+        const theGraph = '0xc944E90C64B2c07662A292be6244BDf05Cda44a7'
+
+        let isUSDCWLT = await factory.connect(manager1).whiteListTokens(gitcoin)
+        expect(isUSDCWLT).to.be.false
+        let isGitcoinWLT = await factory.connect(manager1).whiteListTokens(gitcoin)
+        expect(isGitcoinWLT).to.be.false
+        let isLivepeerWLT = await factory.connect(manager1).whiteListTokens(livepeer)
+        expect(isLivepeerWLT).to.be.false
+        let isTheGraphWLT = await factory.connect(manager1).whiteListTokens(theGraph)
+        expect(isTheGraphWLT).to.be.false
+
+        await expect(factory.connect(deployer).setWhiteListToken(USDC)).to.be.reverted
+        //await factory.connect(deployer).setWhiteListToken(gitcoin)
+        //await expect(factory.connect(deployer).setWhiteListToken(livepeer)).to.be.reverted
+        //await expect(factory.connect(deployer).setWhiteListToken(theGraph)).to.be.reverted
       })
     })
   })

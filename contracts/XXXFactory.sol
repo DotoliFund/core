@@ -5,8 +5,10 @@ pragma abicoder v2;
 
 import '@uniswap/v3-core/contracts/interfaces/IUniswapV3Factory.sol';
 import '@uniswap/v3-core/contracts/interfaces/IUniswapV3Pool.sol';
+import './libraries/FullMath.sol';
 import './interfaces/IXXXFactory.sol';
 import './XXXFund2.sol';
+
 
 //TODO : remove console log
 import "hardhat/console.sol";
@@ -17,7 +19,7 @@ contract XXXFactory is IXXXFactory, Constants {
     address public XXX;
 
     address public override owner;
-    uint256 public override managerFee = 1; // 1% of investor profit ex) MANAGER_FEE = 10 -> 10% of investor profit
+    uint256 public override managerFee = 1; // 10000 : 1%, 3000 : 0.3%
     uint256 public override minWETHVolume = 1e18; // to be whiteListToken, needed min weth9 value of (token + weth9) pool
     
     mapping(address => bool) public override whiteListTokens;
@@ -106,19 +108,35 @@ contract XXXFactory is IXXXFactory, Constants {
     function checkWhiteListToken(address _token) private returns (bool) {
         uint16[3] memory fees = [500, 3000, 10000];
         uint256 volumeWETH = 0;
-        uint256 tokenDecimal = 10 ** IERC20Minimal(_token).decimals();
 
         for (uint256 i=0; i<fees.length; i++) {
             address pool = IUniswapV3Factory(UNISWAP_V3_FACTORY).getPool(_token, WETH9, uint24(fees[i]));
             if (pool == address(0)) {
                 continue;
-            } else {
-                uint256 balance0 = IERC20Minimal(_token).balanceOf(pool);
-                uint256 balance1 = IERC20Minimal(WETH9).balanceOf(pool);
-                (uint160 sqrtPriceX96,,,,,,) = IUniswapV3Pool(pool).slot0();
-                uint256 tokenPriceInWETH = (uint(sqrtPriceX96) * uint(sqrtPriceX96) * 1e18) >> (96 * 2);
-                volumeWETH += ((balance0 * tokenPriceInWETH)  / tokenDecimal) + balance1;
             }
+            address token0 = IUniswapV3Pool(pool).token0();
+            address token1 = IUniswapV3Pool(pool).token1();
+            uint256 token0Decimal = 10 ** IERC20Minimal(token0).decimals();
+            uint256 token1Decimal = 10 ** IERC20Minimal(token1).decimals();
+
+            uint256 amount0 = IERC20Minimal(token0).balanceOf(pool);
+            uint256 amount1 = IERC20Minimal(token1).balanceOf(pool);
+            (uint160 sqrtPriceX96,,,,,,) = IUniswapV3Pool(pool).slot0();
+
+            uint256 numerator = uint256(sqrtPriceX96) * uint256(sqrtPriceX96);
+            uint256 price0 = FullMath.mulDiv(numerator, token0Decimal, 1 << 192);
+            //tokenPriceInWETH
+            if (token0 == WETH9) {
+                volumeWETH += ((amount1 / price0) * token1Decimal) + amount0;
+                console.log(token1);
+                console.log(volumeWETH / token0Decimal);
+            } else if (token1 == WETH9) {
+                volumeWETH += ((amount0 / token0Decimal) * price0) + amount1;
+                console.log(token0);
+                console.log(volumeWETH / token1Decimal);
+            } else {
+                continue;
+            }        
         }
 
         if (volumeWETH >= minWETHVolume) {
@@ -139,7 +157,7 @@ contract XXXFactory is IXXXFactory, Constants {
     function resetWhiteListToken(address _token) external override {
         require(msg.sender == owner);
         require(whiteListTokens[_token] == true, 'WLT');
-        require(_token != WETH9);
+        require(_token != WETH9 && _token != XXX);
         whiteListTokens[_token] = false;
         emit WhiteListTokenRemoved(_token);
     }
