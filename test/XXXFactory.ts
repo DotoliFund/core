@@ -132,15 +132,15 @@ describe('XXXFactory', () => {
     })
 
     it("cheak manager fee is 1", async function () {
-      expect(await factory.connect(manager1).managerFee()).to.equal(1)
+      expect(await factory.connect(manager1).managerFee()).to.equal(10000)
     })
 
     it("set manager fee to 2", async function () {
-      expect(await factory.connect(deployer).setManagerFee(2))
+      expect(await factory.connect(deployer).setManagerFee(20000))
     })
 
     it("cheak manager fee is 2", async function () {
-      expect(await factory.connect(manager1).managerFee()).to.equal(2)
+      expect(await factory.connect(manager1).managerFee()).to.equal(20000)
     })
 
     // min WETH Volume which is for check white list token

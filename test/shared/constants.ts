@@ -23,7 +23,7 @@ export const WITHDRAW_AMOUNT = ethers.utils.parseEther("0.5")
 export const WETH_SWAP_INPUT_AMOUNT = ethers.utils.parseEther("0.3")
 
 
-export const MANAGER_FEE = 1
+export const MANAGER_FEE = 10000
 export const WHITE_LIST_TOKENS = [
   WETH9,
   UNI,

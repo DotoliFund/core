@@ -645,7 +645,7 @@ describe('XXXFund2', () => {
       const investor1Before = await getInvestorAccount(investor1.address)
 
       await fund1.connect(investor1).withdraw(WETH9, WITHDRAW_AMOUNT)
-      const fee = WITHDRAW_AMOUNT.mul(MANAGER_FEE).div(100)
+      const fee = WITHDRAW_AMOUNT.mul(MANAGER_FEE).div(10000)
       const investorWithdrawAmount = WITHDRAW_AMOUNT.sub(fee)
 
       const fund1After = await getFundAccount(fund1.address)
@@ -682,7 +682,7 @@ describe('XXXFund2', () => {
       const manager1Before = await getManagerAccount(manager1.address)
 
       await fund1.connect(investor1).withdraw(WETH9, WITHDRAW_AMOUNT)
-      const fee = WITHDRAW_AMOUNT.mul(MANAGER_FEE).div(100)
+      const fee = WITHDRAW_AMOUNT.mul(MANAGER_FEE).div(10000)
       const investorWithdrawAmount = WITHDRAW_AMOUNT.sub(fee)
 
       const fund1After = await getFundAccount(fund1.address)
@@ -787,7 +787,7 @@ describe('XXXFund2', () => {
 
         //withdraw uni
         await fund1.connect(investor1).withdraw(UNI, withdrawAmountUNI)
-        const fee = withdrawAmountUNI.mul(MANAGER_FEE).div(100)
+        const fee = withdrawAmountUNI.mul(MANAGER_FEE).div(10000)
         const investorWithdrawAmount = withdrawAmountUNI.sub(fee)
 
         const fund1After = await getFundAccount(fund1.address)
@@ -830,7 +830,7 @@ describe('XXXFund2', () => {
 
         //withdraw uni
         await fund1.connect(investor1).withdraw(UNI, withdrawAmountUNI)
-        const fee = withdrawAmountUNI.mul(MANAGER_FEE).div(100)
+        const fee = withdrawAmountUNI.mul(MANAGER_FEE).div(10000)
         const investorWithdrawAmount = withdrawAmountUNI.sub(fee)
 
         const fund1After = await getFundAccount(fund1.address)
@@ -872,7 +872,7 @@ describe('XXXFund2', () => {
 
         //withdraw uni
         await fund1.connect(investor1).withdraw(UNI, withdrawAmountUNI)
-        const fee = withdrawAmountUNI.mul(MANAGER_FEE).div(100)
+        const fee = withdrawAmountUNI.mul(MANAGER_FEE).div(10000)
         const investorWithdrawAmount = withdrawAmountUNI.sub(fee)
 
         const fund1After = await getFundAccount(fund1.address)
@@ -915,7 +915,7 @@ describe('XXXFund2', () => {
 
         //withdraw uni
         await fund1.connect(investor1).withdraw(UNI, withdrawAmountUNI)
-        const fee = withdrawAmountUNI.mul(MANAGER_FEE).div(100)
+        const fee = withdrawAmountUNI.mul(MANAGER_FEE).div(10000)
         const investorWithdrawAmount = withdrawAmountUNI.sub(fee)
 
         const fund1After = await getFundAccount(fund1.address)
@@ -1228,13 +1228,13 @@ describe('XXXFund2', () => {
       })
 
       it("fee out -> not manager", async function () {
-        const feeTokens = await fund1.connect(manager1).getFeeTokens()
-        console.log(feeTokens)
         await expect(fund1.connect(investor1).feeOut(UNI, 100000)).to.be.reverted
       })
 
       it("fee out -> too many token amount", async function () {
-        await expect(fund1.connect(manager1).feeOut(UNI, 2000000)).to.be.reverted
+        const feeTokens = await fund1.connect(manager1).getFeeTokens()
+        console.log(feeTokens)
+        await expect(fund1.connect(manager1).feeOut(UNI, 2000000000)).to.be.reverted
       })
     })
   })
@@ -1333,7 +1333,7 @@ describe('XXXFund2', () => {
       const manager1Before = await getManagerAccount(manager1.address)
 
       await fund2.connect(manager1).withdraw(WETH9, WITHDRAW_AMOUNT)
-      const fee = WITHDRAW_AMOUNT.mul(MANAGER_FEE).div(100)
+      const fee = WITHDRAW_AMOUNT.mul(MANAGER_FEE).div(10000)
       const investorWithdrawAmount = WITHDRAW_AMOUNT.sub(fee)
 
       const fund2After = await getFundAccount(fund2.address)
@@ -1382,7 +1382,7 @@ describe('XXXFund2', () => {
       const manager2Before = await getManagerAccount(manager2.address)
 
       await fund2.connect(manager1).withdraw(WETH9, WITHDRAW_AMOUNT)
-      const fee = WITHDRAW_AMOUNT.mul(MANAGER_FEE).div(100)
+      const fee = WITHDRAW_AMOUNT.mul(MANAGER_FEE).div(10000)
       const investorWithdrawAmount = WITHDRAW_AMOUNT.sub(fee)
 
       const fund2After = await getFundAccount(fund2.address)
@@ -1569,7 +1569,7 @@ describe('XXXFund2', () => {
 
         //withdraw uni
         await fund2.connect(manager1).withdraw(UNI, withdrawAmountUNI)
-        const fee = withdrawAmountUNI.mul(MANAGER_FEE).div(100)
+        const fee = withdrawAmountUNI.mul(MANAGER_FEE).div(10000)
         const investorWithdrawAmount = withdrawAmountUNI.sub(fee)
 
         const fund2After = await getFundAccount(fund2.address)
@@ -1612,7 +1612,7 @@ describe('XXXFund2', () => {
 
         //withdraw uni
         await fund2.connect(manager1).withdraw(UNI, withdrawAmountUNI)
-        const fee = withdrawAmountUNI.mul(MANAGER_FEE).div(100)
+        const fee = withdrawAmountUNI.mul(MANAGER_FEE).div(10000)
         const investorWithdrawAmount = withdrawAmountUNI.sub(fee)
 
         const fund2After = await getFundAccount(fund2.address)
@@ -1654,7 +1654,7 @@ describe('XXXFund2', () => {
 
         //withdraw uni
         await fund2.connect(manager1).withdraw(UNI, withdrawAmountUNI)
-        const fee = withdrawAmountUNI.mul(MANAGER_FEE).div(100)
+        const fee = withdrawAmountUNI.mul(MANAGER_FEE).div(10000)
         const investorWithdrawAmount = withdrawAmountUNI.sub(fee)
 
         const fund2After = await getFundAccount(fund2.address)
@@ -1697,7 +1697,7 @@ describe('XXXFund2', () => {
 
         //withdraw uni
         await fund2.connect(manager1).withdraw(UNI, withdrawAmountUNI)
-        const fee = withdrawAmountUNI.mul(MANAGER_FEE).div(100)
+        const fee = withdrawAmountUNI.mul(MANAGER_FEE).div(10000)
         const investorWithdrawAmount = withdrawAmountUNI.sub(fee)
 
         const fund2After = await getFundAccount(fund2.address)
@@ -2196,13 +2196,13 @@ describe('XXXFund2', () => {
       })
 
       it("fee out -> not manager", async function () {
-        const feeTokens = await fund2.connect(manager2).getFeeTokens()
-        console.log(feeTokens)
         await expect(fund2.connect(manager1).feeOut(UNI, 100000)).to.be.reverted
       })
 
       it("fee out -> too many token amount", async function () {
-        await expect(fund2.connect(manager2).feeOut(UNI, 2000000)).to.be.reverted
+        const feeTokens = await fund2.connect(manager2).getFeeTokens()
+        console.log(feeTokens)
+        await expect(fund2.connect(manager2).feeOut(UNI, 2000000000)).to.be.reverted
       })
     })
 
@@ -2233,7 +2233,7 @@ describe('XXXFund2', () => {
         const manager2Before = await getManagerAccount(manager2.address)
 
         await fund1.connect(manager2).withdraw(WETH9, WITHDRAW_AMOUNT)
-        const fee = WITHDRAW_AMOUNT.mul(MANAGER_FEE).div(100)
+        const fee = WITHDRAW_AMOUNT.mul(MANAGER_FEE).div(10000)
         const investorWithdrawAmount = WITHDRAW_AMOUNT.sub(fee)
 
         const fund1After = await getFundAccount(fund1.address)
@@ -2283,7 +2283,7 @@ describe('XXXFund2', () => {
         const manager2Before = await getManagerAccount(manager2.address)
 
         await fund1.connect(manager2).withdraw(WETH9, WITHDRAW_AMOUNT)
-        const fee = WITHDRAW_AMOUNT.mul(MANAGER_FEE).div(100)
+        const fee = WITHDRAW_AMOUNT.mul(MANAGER_FEE).div(10000)
         const investorWithdrawAmount = WITHDRAW_AMOUNT.sub(fee)
 
         const fund1After = await getFundAccount(fund1.address)
@@ -2329,7 +2329,7 @@ describe('XXXFund2', () => {
 
         //withdraw uni
         await fund1.connect(manager2).withdraw(UNI, withdrawAmountUNI)
-        const fee = withdrawAmountUNI.mul(MANAGER_FEE).div(100)
+        const fee = withdrawAmountUNI.mul(MANAGER_FEE).div(10000)
         const investorWithdrawAmount = withdrawAmountUNI.sub(fee)
 
         const fund1After = await getFundAccount(fund1.address)
@@ -2373,7 +2373,7 @@ describe('XXXFund2', () => {
 
         //withdraw uni
         await fund1.connect(manager2).withdraw(UNI, withdrawAmountUNI)
-        const fee = withdrawAmountUNI.mul(MANAGER_FEE).div(100)
+        const fee = withdrawAmountUNI.mul(MANAGER_FEE).div(10000)
         const investorWithdrawAmount = withdrawAmountUNI.sub(fee)
 
         const fund1After = await getFundAccount(fund1.address)
@@ -2415,7 +2415,7 @@ describe('XXXFund2', () => {
 
         //withdraw uni
         await fund1.connect(manager2).withdraw(UNI, withdrawAmountUNI)
-        const fee = withdrawAmountUNI.mul(MANAGER_FEE).div(100)
+        const fee = withdrawAmountUNI.mul(MANAGER_FEE).div(10000)
         const investorWithdrawAmount = withdrawAmountUNI.sub(fee)
 
         const fund1After = await getFundAccount(fund1.address)
@@ -2458,7 +2458,7 @@ describe('XXXFund2', () => {
 
         //withdraw uni
         await fund1.connect(manager2).withdraw(UNI, withdrawAmountUNI)
-        const fee = withdrawAmountUNI.mul(MANAGER_FEE).div(100)
+        const fee = withdrawAmountUNI.mul(MANAGER_FEE).div(10000)
         const investorWithdrawAmount = withdrawAmountUNI.sub(fee)
 
         const fund1After = await getFundAccount(fund1.address)
@@ -2745,13 +2745,13 @@ describe('XXXFund2', () => {
       })
 
       it("fee out -> not manager", async function () {
-        const feeTokens = await fund1.connect(manager1).getFeeTokens()
-        console.log(feeTokens)
         await expect(fund1.connect(manager2).feeOut(UNI, 100000)).to.be.reverted
       })
 
       it("fee out -> too many token amount", async function () {
-        await expect(fund1.connect(manager1).feeOut(UNI, 5000000)).to.be.reverted
+        const feeTokens = await fund1.connect(manager1).getFeeTokens()
+        console.log(feeTokens)
+        await expect(fund1.connect(manager1).feeOut(UNI, 2000000000)).to.be.reverted
       })
     })
 
@@ -2834,7 +2834,7 @@ describe('XXXFund2', () => {
 
         const withdraw_amount = ethers.utils.parseEther("0.000000000000001")
         await fund2.connect(manager1).withdraw(UNI, withdraw_amount)
-        const fee = withdraw_amount.mul(MANAGER_FEE).div(100)
+        const fee = withdraw_amount.mul(MANAGER_FEE).div(10000)
         const investorWithdrawAmount = withdraw_amount.sub(fee)
 
         const fund2After = await getFundAccount(fund2.address)
@@ -3007,7 +3007,7 @@ describe('XXXFund2', () => {
         const livepeer = '0x58b6A8A3302369DAEc383334672404Ee733aB239'
         const theGraph = '0xc944E90C64B2c07662A292be6244BDf05Cda44a7'
 
-        let isUSDCWLT = await factory.connect(manager1).whiteListTokens(gitcoin)
+        let isUSDCWLT = await factory.connect(manager1).whiteListTokens(USDC)
         expect(isUSDCWLT).to.be.false
         let isGitcoinWLT = await factory.connect(manager1).whiteListTokens(gitcoin)
         expect(isGitcoinWLT).to.be.false
@@ -3017,9 +3017,9 @@ describe('XXXFund2', () => {
         expect(isTheGraphWLT).to.be.false
 
         await expect(factory.connect(deployer).setWhiteListToken(USDC)).to.be.reverted
-        //await factory.connect(deployer).setWhiteListToken(gitcoin)
-        //await expect(factory.connect(deployer).setWhiteListToken(livepeer)).to.be.reverted
-        //await expect(factory.connect(deployer).setWhiteListToken(theGraph)).to.be.reverted
+        await expect(factory.connect(deployer).setWhiteListToken(gitcoin)).to.be.reverted
+        await expect(factory.connect(deployer).setWhiteListToken(livepeer)).to.be.reverted
+        await expect(factory.connect(deployer).setWhiteListToken(theGraph)).to.be.reverted
       })
     })
   })

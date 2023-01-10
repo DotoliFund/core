@@ -19,7 +19,7 @@ contract XXXFactory is IXXXFactory, Constants {
     address public XXX;
 
     address public override owner;
-    uint256 public override managerFee = 1; // 10000 : 1%, 3000 : 0.3%
+    uint256 public override managerFee = 10000; // 10000 : 1%, 3000 : 0.3%
     uint256 public override minWETHVolume = 1e18; // to be whiteListToken, needed min weth9 value of (token + weth9) pool
     
     mapping(address => bool) public override whiteListTokens;
