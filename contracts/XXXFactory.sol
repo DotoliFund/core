@@ -128,11 +128,9 @@ contract XXXFactory is IXXXFactory, Constants {
             //tokenPriceInWETH
             if (token0 == WETH9) {
                 volumeWETH += ((amount1 / price0) * token1Decimal) + amount0;
-                console.log(token1);
                 console.log(volumeWETH / token0Decimal);
             } else if (token1 == WETH9) {
                 volumeWETH += ((amount0 / token0Decimal) * price0) + amount1;
-                console.log(token0);
                 console.log(volumeWETH / token1Decimal);
             } else {
                 continue;

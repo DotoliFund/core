@@ -20,6 +20,7 @@ import {
 } from './shared/liquidity'
 import { 
   WETH9,
+  WBTC,
   USDC,
   UNI,
   DAI,
@@ -173,7 +174,7 @@ describe('XXXFund2', () => {
 
   before("Deploy XXXFactory Contract", async function () {
     const XXXFactory = await ethers.getContractFactory("XXXFactory")
-    const Factory = await XXXFactory.connect(deployer).deploy(WETH9, UNI, DAI) //XXX is error so use DAI for just test
+    const Factory = await XXXFactory.connect(deployer).deploy(WETH9, UNI, XXX)
     await Factory.deployed()
     factoryContractAddress = Factory.address
     factory = await ethers.getContractAt("XXXFactory", factoryContractAddress)
@@ -2982,6 +2983,12 @@ describe('XXXFund2', () => {
         const livepeer = '0x58b6A8A3302369DAEc383334672404Ee733aB239'
         const theGraph = '0xc944E90C64B2c07662A292be6244BDf05Cda44a7'
 
+        let isWBTCWLT = await factory.connect(manager1).whiteListTokens(WBTC)
+        expect(isWBTCWLT).to.be.false
+        let isUSDCWLT = await factory.connect(manager1).whiteListTokens(USDC)
+        expect(isUSDCWLT).to.be.false
+        let isDAIWLT = await factory.connect(manager1).whiteListTokens(DAI)
+        expect(isDAIWLT).to.be.false
         let isGitcoinWLT = await factory.connect(manager1).whiteListTokens(gitcoin)
         expect(isGitcoinWLT).to.be.false
         let isLivepeerWLT = await factory.connect(manager1).whiteListTokens(livepeer)
@@ -2991,10 +2998,22 @@ describe('XXXFund2', () => {
 
         await factory.connect(deployer).setMinWETHVolume(ethers.utils.parseEther("10.0"))
         
+        console.log('WBTC')
+        await factory.connect(deployer).setWhiteListToken(WBTC)
+        console.log('USDC')
+        await factory.connect(deployer).setWhiteListToken(USDC)
+        console.log('DAI')
+        await factory.connect(deployer).setWhiteListToken(DAI)
+        console.log('GTC')
         await factory.connect(deployer).setWhiteListToken(gitcoin)
+        console.log('LPT')
         await factory.connect(deployer).setWhiteListToken(livepeer)
+        console.log('GRT')
         await factory.connect(deployer).setWhiteListToken(theGraph)
 
+        await factory.connect(deployer).resetWhiteListToken(WBTC)
+        await factory.connect(deployer).resetWhiteListToken(USDC)
+        await factory.connect(deployer).resetWhiteListToken(DAI)
         await factory.connect(deployer).resetWhiteListToken(gitcoin)
         await factory.connect(deployer).resetWhiteListToken(livepeer)
         await factory.connect(deployer).resetWhiteListToken(theGraph)
@@ -3003,23 +3022,86 @@ describe('XXXFund2', () => {
       it("fail add other token to white list token when less than min weth volume", async function () {
         await factory.connect(deployer).setMinWETHVolume(ethers.utils.parseEther("1000000.0"))
 
+        const curve = '0xD533a949740bb3306d119CC777fa900bA034cd52'
+        const maker = '0x9f8F72aA9304c8B593d555F12eF6589cC3A579A2'
+        const compound = '0xc00e94Cb662C3520282E6f5717214004A7f26888'
+        const enjin = '0xF629cBd94d3791C9250152BD8dfBDF380E2a3B9c'
+        const shiba = '0x95aD61b0a150d79219dCF64E1E6Cc01f0B64C4cE'
+        const sushi = '0x6B3595068778DD592e39A122f4f5a5cF09C90fE2'
+        const sand = '0x3845badAde8e6dFF049820680d1F14bD3903a5d0'
+        const yearn = '0x3845badAde8e6dFF049820680d1F14bD3903a5d0'
         const gitcoin = '0xDe30da39c46104798bB5aA3fe8B9e0e1F348163F'
         const livepeer = '0x58b6A8A3302369DAEc383334672404Ee733aB239'
         const theGraph = '0xc944E90C64B2c07662A292be6244BDf05Cda44a7'
+        const matic = '0x7D1AfA7B718fb893dB30A3aBc0Cfc608AaCfeBB0'
+        const audio = '0x18aAA7115705e8be94bfFEBDE57Af9BFc265B998'
+        const near = '0x85F17Cf997934a597031b2E18a9aB6ebD4B9f6a4'
+        const link = '0x514910771AF9Ca656af840dff83E8264EcF986CA'
+        const bat = '0x0D8775F648430679A709E98d2b0Cb6250d2887EF'
+        const ocean = '0x967da4048cD07aB37855c090aAF366e4ce1b9F48'
+        const mana = '0x0F5D2fB29fb7d3CFeE444a200298f468908cC942'
 
+
+        let isWBTCWLT = await factory.connect(manager1).whiteListTokens(WBTC)
+        expect(isWBTCWLT).to.be.false
         let isUSDCWLT = await factory.connect(manager1).whiteListTokens(USDC)
         expect(isUSDCWLT).to.be.false
+        let isDAIWLT = await factory.connect(manager1).whiteListTokens(DAI)
+        expect(isDAIWLT).to.be.false
+
+
+
         let isGitcoinWLT = await factory.connect(manager1).whiteListTokens(gitcoin)
         expect(isGitcoinWLT).to.be.false
         let isLivepeerWLT = await factory.connect(manager1).whiteListTokens(livepeer)
         expect(isLivepeerWLT).to.be.false
         let isTheGraphWLT = await factory.connect(manager1).whiteListTokens(theGraph)
         expect(isTheGraphWLT).to.be.false
+        let isMaticWLT = await factory.connect(manager1).whiteListTokens(matic)
+        expect(isMaticWLT).to.be.false
+        let isAudioWLT = await factory.connect(manager1).whiteListTokens(audio)
+        expect(isAudioWLT).to.be.false
+        let isNearWLT = await factory.connect(manager1).whiteListTokens(near)
+        expect(isNearWLT).to.be.false
+        let isLinkWLT = await factory.connect(manager1).whiteListTokens(link)
+        expect(isLinkWLT).to.be.false
+        let isBatWLT = await factory.connect(manager1).whiteListTokens(bat)
+        expect(isBatWLT).to.be.false
+        let isOceanWLT = await factory.connect(manager1).whiteListTokens(ocean)
+        expect(isOceanWLT).to.be.false
+        let isManaWLT = await factory.connect(manager1).whiteListTokens(mana)
+        expect(isManaWLT).to.be.false
 
+
+        console.log('WBTC')
+        await expect(factory.connect(deployer).setWhiteListToken(WBTC)).to.be.reverted
+        console.log('USDC')
         await expect(factory.connect(deployer).setWhiteListToken(USDC)).to.be.reverted
+        console.log('DAI')
+        await expect(factory.connect(deployer).setWhiteListToken(DAI)).to.be.reverted
+
+
+
+        console.log('GTC')
         await expect(factory.connect(deployer).setWhiteListToken(gitcoin)).to.be.reverted
+        console.log('LPT')
         await expect(factory.connect(deployer).setWhiteListToken(livepeer)).to.be.reverted
+        console.log('GRT')
         await expect(factory.connect(deployer).setWhiteListToken(theGraph)).to.be.reverted
+        console.log('MATIC')
+        await expect(factory.connect(deployer).setWhiteListToken(matic)).to.be.reverted
+        console.log('AUDIO')
+        await expect(factory.connect(deployer).setWhiteListToken(audio)).to.be.reverted
+        console.log('NEAR')
+        await expect(factory.connect(deployer).setWhiteListToken(near)).to.be.reverted
+        console.log('LINK')
+        await expect(factory.connect(deployer).setWhiteListToken(link)).to.be.reverted
+        console.log('BAT')
+        await expect(factory.connect(deployer).setWhiteListToken(bat)).to.be.reverted
+        console.log('OCEAN')
+        await expect(factory.connect(deployer).setWhiteListToken(ocean)).to.be.reverted
+        console.log('MANA')
+        await expect(factory.connect(deployer).setWhiteListToken(mana)).to.be.reverted
       })
     })
   })
