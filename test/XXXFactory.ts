@@ -144,19 +144,19 @@ describe('XXXFactory', () => {
     })
 
     // min WETH Volume which is for check white list token
-    it("check minWETHVolume  is 1e18", async function () {
+    it("check minPoolAmount  is 1e18", async function () {
       const parseEther1 = ethers.utils.parseEther("1.0")
-      expect(await factory.connect(manager1).minWETHVolume()).to.equal(parseEther1)
+      expect(await factory.connect(manager1).minPoolAmount()).to.equal(parseEther1)
     })
 
-    it("set minWETHVolume is 2e18", async function () {
+    it("set minPoolAmount is 2e18", async function () {
       const parseEther2 = ethers.utils.parseEther("2.0")
-      expect(await factory.connect(deployer).setMinWETHVolume(parseEther2))
+      expect(await factory.connect(deployer).setMinPoolAmount(parseEther2))
     })
 
-    it("check minWETHVolume is 2e18", async function () {
+    it("check minPoolAmount is 2e18", async function () {
       const parseEther2 = ethers.utils.parseEther("2.0")
-      expect(await factory.connect(manager1).minWETHVolume()).to.equal(parseEther2)
+      expect(await factory.connect(manager1).minPoolAmount()).to.equal(parseEther2)
     })
   })
 

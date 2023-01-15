@@ -135,7 +135,7 @@ contract XXXFund2 is IXXXFund2, Constants, Token {
             _withdraw(_token, _amount);
         } else {
             // send manager fee.
-            feeAmount = _amount * managerFee / 10000;
+            feeAmount = _amount * managerFee / 10000 / 100;
             withdrawAmount = _amount - feeAmount;
             _withdraw(_token, withdrawAmount);
             feeIn(msg.sender, _token, feeAmount);

@@ -2771,7 +2771,7 @@ describe('XXXFund2', () => {
         await expect(factory.connect(deployer).resetWhiteListToken(USDC)).to.be.reverted
       })
 
-      it("success setting white list token when more than minWETHVolume ", async function () {
+      it("success setting white list token when more than minPoolAmount ", async function () {
         let isUNIWhiteListToken = await factory.connect(manager1).whiteListTokens(UNI)
         expect(isUNIWhiteListToken).to.be.true
 
@@ -2780,14 +2780,14 @@ describe('XXXFund2', () => {
         isUNIWhiteListToken = await factory.connect(manager1).whiteListTokens(UNI)
         expect(isUNIWhiteListToken).to.be.false
 
-        await factory.connect(deployer).setMinWETHVolume(ethers.utils.parseEther("100.0"))
+        await factory.connect(deployer).setMinPoolAmount(ethers.utils.parseEther("100.0"))
         await factory.connect(deployer).setWhiteListToken(UNI)
 
         isUNIWhiteListToken = await factory.connect(manager1).whiteListTokens(UNI)
         expect(isUNIWhiteListToken).to.be.true
       })
 
-      it("fail setting white list token when less than minWETHVolume ", async function () {
+      it("fail setting white list token when less than minPoolAmount ", async function () {
         let isUNIWhiteListToken = await factory.connect(manager1).whiteListTokens(UNI)
         expect(isUNIWhiteListToken).to.be.true
 
@@ -2796,13 +2796,13 @@ describe('XXXFund2', () => {
         isUNIWhiteListToken = await factory.connect(manager1).whiteListTokens(UNI)
         expect(isUNIWhiteListToken).to.be.false
 
-        await factory.connect(deployer).setMinWETHVolume(ethers.utils.parseEther("1000000.0"))
+        await factory.connect(deployer).setMinPoolAmount(ethers.utils.parseEther("1000000.0"))
         await expect(factory.connect(deployer).setWhiteListToken(UNI)).to.be.reverted
 
         isUNIWhiteListToken = await factory.connect(manager1).whiteListTokens(UNI)
         expect(isUNIWhiteListToken).to.be.false
 
-        await factory.connect(deployer).setMinWETHVolume(ethers.utils.parseEther("1000.0"))
+        await factory.connect(deployer).setMinPoolAmount(ethers.utils.parseEther("1000.0"))
         await factory.connect(deployer).setWhiteListToken(UNI)
 
         isUNIWhiteListToken = await factory.connect(manager1).whiteListTokens(UNI)
@@ -2996,7 +2996,7 @@ describe('XXXFund2', () => {
         let isTheGraphWLT = await factory.connect(manager1).whiteListTokens(theGraph)
         expect(isTheGraphWLT).to.be.false
 
-        await factory.connect(deployer).setMinWETHVolume(ethers.utils.parseEther("10.0"))
+        await factory.connect(deployer).setMinPoolAmount(ethers.utils.parseEther("10.0"))
         
         console.log('WBTC')
         await factory.connect(deployer).setWhiteListToken(WBTC)
@@ -3020,7 +3020,7 @@ describe('XXXFund2', () => {
       })
 
       it("fail add other token to white list token when less than min weth volume", async function () {
-        await factory.connect(deployer).setMinWETHVolume(ethers.utils.parseEther("1000000.0"))
+        await factory.connect(deployer).setMinPoolAmount(ethers.utils.parseEther("1000000.0"))
 
         const curve = '0xD533a949740bb3306d119CC777fa900bA034cd52'
         const maker = '0x9f8F72aA9304c8B593d555F12eF6589cC3A579A2'

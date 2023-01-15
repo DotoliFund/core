@@ -71,7 +71,7 @@ const config: HardhatUserConfig = {
     hardhat: {
       chainId: 31337,
       forking: {
-        url: `https://eth-mainnet.alchemyapi.io/v2/${API_URL_MAINNET}`,
+        url: `https://eth-mainnet.g.alchemy.com/v2/${API_URL_MAINNET}`,
         //blockNumber: 14390000
       },
       //allowUnlimitedContractSize: true,

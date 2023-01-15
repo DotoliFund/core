@@ -20,7 +20,7 @@ contract XXXFactory is IXXXFactory, Constants {
 
     address public override owner;
     uint256 public override managerFee = 10000; // 10000 : 1%, 3000 : 0.3%
-    uint256 public override minWETHVolume = 1e18; // to be whiteListToken, needed min weth9 value of (token + weth9) pool
+    uint256 public override minPoolAmount = 1e18; // to be whiteListToken, needed min weth9 value of (token + weth9) pool
     
     mapping(address => bool) public override whiteListTokens;
     mapping(address => address) public getFundByManager;
@@ -66,14 +66,17 @@ contract XXXFactory is IXXXFactory, Constants {
         owner = newOwner;
     }
 
-    function setMinWETHVolume(uint256 volume) external override {
+    // minimum pool amount in eth to be white list token
+    function setMinPoolAmount(uint256 amount) external override {
         require(msg.sender == owner);
-        minWETHVolume = volume;
+        minPoolAmount = amount;
+        emit MinPoolAmountChanged(amount);
     }
 
     function setManagerFee(uint256 _managerFee) external override {
         require(msg.sender == owner);
         managerFee = _managerFee;
+        emit ManagerFeeChanged(_managerFee);
     }
 
     function isSubscribed(address investor, address fund) public override view returns (bool) {
@@ -107,7 +110,7 @@ contract XXXFactory is IXXXFactory, Constants {
 
     function checkWhiteListToken(address _token) private returns (bool) {
         uint16[3] memory fees = [500, 3000, 10000];
-        uint256 volumeWETH = 0;
+        uint256 poolAmount = 0;
 
         for (uint256 i=0; i<fees.length; i++) {
             address pool = IUniswapV3Factory(UNISWAP_V3_FACTORY).getPool(_token, WETH9, uint24(fees[i]));
@@ -127,17 +130,17 @@ contract XXXFactory is IXXXFactory, Constants {
             uint256 price0 = FullMath.mulDiv(numerator, token0Decimal, 1 << 192);
             //tokenPriceInWETH
             if (token0 == WETH9) {
-                volumeWETH += ((amount1 / price0) * token1Decimal) + amount0;
-                console.log(volumeWETH / token0Decimal);
+                poolAmount += ((amount1 / price0) * token1Decimal) + amount0;
+                console.log(poolAmount / token0Decimal);
             } else if (token1 == WETH9) {
-                volumeWETH += ((amount0 / token0Decimal) * price0) + amount1;
-                console.log(volumeWETH / token1Decimal);
+                poolAmount += ((amount0 / token0Decimal) * price0) + amount1;
+                console.log(poolAmount / token1Decimal);
             } else {
                 continue;
             }        
         }
 
-        if (volumeWETH >= minWETHVolume) {
+        if (poolAmount >= minPoolAmount) {
             return true;
         } else {
             return false;
