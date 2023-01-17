@@ -3,7 +3,7 @@
 pragma solidity =0.7.6;
 pragma abicoder v2;
 
-interface IXXXFactory {
+interface IDotoliFactory {
     event FactoryCreated();
     event OwnerChanged(address indexed oldOwner, address indexed newOwner);
     event MinPoolAmountChanged(uint256 amount);

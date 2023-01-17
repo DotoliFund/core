@@ -5,7 +5,7 @@ pragma abicoder v2;
 
 import './IToken.sol';
 
-interface IXXXFund2 is IToken {
+interface IDotoliFund is IToken {
 
     enum SwapType{
         EXACT_INPUT_SINGLE_HOP,

@@ -2,8 +2,8 @@ import { Wallet, constants, BigNumber, ContractTransaction, Contract } from 'eth
 import { expect } from "chai"
 import { ethers, waffle } from 'hardhat'
 import { LiquidityOracle } from '../typechain-types/contracts/LiquidityOracle'
-import { XXXFactory } from '../typechain-types/contracts/XXXFactory'
-import { XXXFund2 } from '../typechain-types/contracts/XXXFund2'
+import { DotoliFactory } from '../typechain-types/contracts/DotoliFactory'
+import { DotoliFund } from '../typechain-types/contracts/DotoliFund'
 import { getCreate2Address } from './shared/utilities'
 import { encodePath } from './shared/path'
 import { 
@@ -24,7 +24,7 @@ import {
   USDC,
   UNI,
   DAI,
-  XXX,
+  DOTOLI,
   NULL_ADDRESS,
   V3_SWAP_ROUTER_ADDRESS,
   WETH_CHARGE_AMOUNT,
@@ -41,7 +41,7 @@ import {
 import { getMaxTick, getMinTick } from './shared/ticks'
 
 
-describe('XXXFund2', () => {
+describe('DotoliFund', () => {
 
   let deployer: Wallet 
   let manager1: Wallet
@@ -172,39 +172,39 @@ describe('XXXFund2', () => {
     liquidityOracle = await ethers.getContractAt("LiquidityOracle", liquidityOracleContractAddress)
   })
 
-  before("Deploy XXXFactory Contract", async function () {
-    const XXXFactory = await ethers.getContractFactory("XXXFactory")
-    const Factory = await XXXFactory.connect(deployer).deploy(WETH9, XXX)
+  before("Deploy DotoliFactory Contract", async function () {
+    const DotoliFactory = await ethers.getContractFactory("DotoliFactory")
+    const Factory = await DotoliFactory.connect(deployer).deploy(WETH9, DOTOLI)
     await Factory.deployed()
     factoryContractAddress = Factory.address
-    factory = await ethers.getContractAt("XXXFactory", factoryContractAddress)
+    factory = await ethers.getContractAt("DotoliFactory", factoryContractAddress)
   })
 
-  before("Deploy XXXFund2 Contract", async function () {
-    const XXXFund = await ethers.getContractFactory("XXXFund2")
-    const Fund = await XXXFund.connect(deployer).deploy()
+  before("Deploy DotoliFund Contract", async function () {
+    const DotoliFund = await ethers.getContractFactory("DotoliFund")
+    const Fund = await DotoliFund.connect(deployer).deploy()
     await Fund.deployed()
     fundContractAddress = Fund.address
   })
 
   it("create 1st fund", async function () {
     await factory.connect(manager1).createFund()
-    const fundBytecode = (await ethers.getContractFactory('XXXFund2')).bytecode
+    const fundBytecode = (await ethers.getContractFactory('DotoliFund')).bytecode
     const expectedFundAddress = getCreate2Address(factoryContractAddress, manager1.address, fundBytecode)
     const savedFundAddress = await factory.connect(manager1).getFundByManager(manager1.address)
     expect(savedFundAddress).to.equal(expectedFundAddress)
     fund1Address = savedFundAddress
-    fund1 = await ethers.getContractAt("XXXFund2", fund1Address)
+    fund1 = await ethers.getContractAt("DotoliFund", fund1Address)
   })
 
   it("create 2nd fund", async function () {
     await factory.connect(manager2).createFund()
-    const fundBytecode = (await ethers.getContractFactory('XXXFund2')).bytecode
+    const fundBytecode = (await ethers.getContractFactory('DotoliFund')).bytecode
     const expectedFundAddress = getCreate2Address(factoryContractAddress, manager2.address, fundBytecode)
     const savedFundAddress = await factory.connect(manager2).getFundByManager(manager2.address)
     expect(savedFundAddress).to.equal(expectedFundAddress)
     fund2Address = savedFundAddress
-    fund2 = await ethers.getContractAt("XXXFund2", fund2Address)
+    fund2 = await ethers.getContractAt("DotoliFund", fund2Address)
   })
 
   describe('manager1', () => {
@@ -214,7 +214,7 @@ describe('XXXFund2', () => {
     })
 
     it("check correct factory", async function () {
-      fund1 = await ethers.getContractAt("XXXFund2", fund1Address)
+      fund1 = await ethers.getContractAt("DotoliFund", fund1Address)
       expect(await fund1.connect(manager1).factory()).to.equal(factoryContractAddress)
     })
 
@@ -2784,9 +2784,9 @@ describe('XXXFund2', () => {
 
     describe("white list token test", async function () {
 
-      it("can't reset weth9 or xxx from WhiteListToken", async function () {
+      it("can't reset weth9 or dotoli from WhiteListToken", async function () {
         await expect(factory.connect(deployer).resetWhiteListToken(WETH9)).to.be.reverted
-        await expect(factory.connect(deployer).resetWhiteListToken(XXX)).to.be.reverted
+        await expect(factory.connect(deployer).resetWhiteListToken(DOTOLI)).to.be.reverted
       })
 
       it("can't set already white list token", async function () {

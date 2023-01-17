@@ -9,15 +9,15 @@ import '@uniswap/v3-periphery/contracts/interfaces/INonfungiblePositionManager.s
 import '@uniswap/v3-periphery/contracts/interfaces/external/IWETH9.sol';
 
 import './interfaces/IERC20Minimal.sol';
-import './interfaces/IXXXFund2.sol';
-import './interfaces/IXXXFactory.sol';
+import './interfaces/IDotoliFund.sol';
+import './interfaces/IDotoliFactory.sol';
 import './base/Constants.sol';
 import './base/Token.sol';
 
 //TODO : remove console
 import "hardhat/console.sol";
 
-contract XXXFund2 is IXXXFund2, Constants, Token {
+contract DotoliFund is IDotoliFund, Constants, Token {
     using Path for bytes;
 
     address public factory;
@@ -49,7 +49,7 @@ contract XXXFund2 is IXXXFund2, Constants, Token {
         if (msg.sender == WETH9) {
             // when call IWETH9(WETH9).withdraw(amount) in this contract, go into here.
         } else {
-            bool isSubscribed = IXXXFactory(factory).isSubscribed(msg.sender, address(this));
+            bool isSubscribed = IDotoliFactory(factory).isSubscribed(msg.sender, address(this));
             require(isSubscribed, 'US');
             IWETH9(WETH9).deposit{value: msg.value}();
             increaseToken(investorTokens[msg.sender], WETH9, msg.value);
@@ -60,7 +60,7 @@ contract XXXFund2 is IXXXFund2, Constants, Token {
     function initialize(address _manager) override external {
         require(msg.sender == factory, 'FORBIDDEN');
         manager = _manager;
-        WETH9 = IXXXFactory(factory).WETH9();
+        WETH9 = IDotoliFactory(factory).WETH9();
         emit Initialize(address(this), _manager);
     }
 
@@ -107,8 +107,8 @@ contract XXXFund2 is IXXXFund2, Constants, Token {
     }
 
     function deposit(address _token, uint256 _amount) external payable override lock {
-        bool isSubscribed = IXXXFactory(factory).isSubscribed(msg.sender, address(this));
-        bool isWhiteListToken = IXXXFactory(factory).whiteListTokens(_token);
+        bool isSubscribed = IDotoliFactory(factory).isSubscribed(msg.sender, address(this));
+        bool isWhiteListToken = IDotoliFactory(factory).whiteListTokens(_token);
         require(isSubscribed, 'US');
         require(isWhiteListToken, 'NWT');
 
@@ -118,7 +118,7 @@ contract XXXFund2 is IXXXFund2, Constants, Token {
     }
 
     function withdraw(address _token, uint256 _amount) external payable override lock {
-        bool isSubscribed = IXXXFactory(factory).isSubscribed(msg.sender, address(this));
+        bool isSubscribed = IDotoliFactory(factory).isSubscribed(msg.sender, address(this));
         uint256 tokenAmount = getTokenAmount(investorTokens[msg.sender], _token);
         require(isSubscribed, 'US');
         require(tokenAmount >= _amount, 'NET');
@@ -127,7 +127,7 @@ contract XXXFund2 is IXXXFund2, Constants, Token {
 
         uint256 feeAmount = 0;
         uint256 withdrawAmount = 0;
-        uint256 managerFee = IXXXFactory(factory).managerFee();
+        uint256 managerFee = IDotoliFactory(factory).managerFee();
         if (msg.sender == manager) {
             // manager withdraw is no need manager fee
             feeAmount = 0;
@@ -180,7 +180,7 @@ contract XXXFund2 is IXXXFund2, Constants, Token {
 
             if (trades[i].swapType == SwapType.EXACT_INPUT_SINGLE_HOP) 
             {
-                require(IXXXFactory(factory).whiteListTokens(trades[i].tokenOut), 'NWT');
+                require(IDotoliFactory(factory).whiteListTokens(trades[i].tokenOut), 'NWT');
                 uint256 tokenBalance = getInvestorTokenAmount(trades[i].investor, trades[i].tokenIn);
                 require(trades[i].amountIn <= tokenBalance, 'NET');
 
@@ -205,7 +205,7 @@ contract XXXFund2 is IXXXFund2, Constants, Token {
             {
                 address tokenOut = getLastTokenFromPath(trades[i].path);
                 (address tokenIn, , ) = trades[i].path.decodeFirstPool();
-                require(IXXXFactory(factory).whiteListTokens(tokenOut), 'NWT');
+                require(IDotoliFactory(factory).whiteListTokens(tokenOut), 'NWT');
                 uint256 tokenBalance = getInvestorTokenAmount(trades[i].investor, tokenIn);
                 require(trades[i].amountIn <= tokenBalance, 'NET');
 
@@ -225,7 +225,7 @@ contract XXXFund2 is IXXXFund2, Constants, Token {
             } 
             else if (trades[i].swapType == SwapType.EXACT_OUTPUT_SINGLE_HOP) 
             {
-                require(IXXXFactory(factory).whiteListTokens(trades[i].tokenOut), 'NWT');
+                require(IDotoliFactory(factory).whiteListTokens(trades[i].tokenOut), 'NWT');
                 uint256 tokenBalance = getInvestorTokenAmount(trades[i].investor, trades[i].tokenIn);
                 require(trades[i].amountIn <= tokenBalance, 'NET');
 
@@ -255,7 +255,7 @@ contract XXXFund2 is IXXXFund2, Constants, Token {
             {
                 address tokenIn = getLastTokenFromPath(trades[i].path);
                 (address tokenOut, , ) = trades[i].path.decodeFirstPool();
-                require(IXXXFactory(factory).whiteListTokens(tokenOut), 'NWT');
+                require(IDotoliFactory(factory).whiteListTokens(tokenOut), 'NWT');
                 uint256 tokenBalance = getInvestorTokenAmount(trades[i].investor, tokenIn);
                 require(trades[i].amountInMaximum <= tokenBalance, 'NET');
 
@@ -293,8 +293,8 @@ contract XXXFund2 is IXXXFund2, Constants, Token {
     {
         require(msg.sender == manager, 'NM');
 
-        bool isToken0WhiteListToken = IXXXFactory(factory).whiteListTokens(_params.token0);
-        bool isToken1WhiteListToken = IXXXFactory(factory).whiteListTokens(_params.token1);
+        bool isToken0WhiteListToken = IDotoliFactory(factory).whiteListTokens(_params.token0);
+        bool isToken1WhiteListToken = IDotoliFactory(factory).whiteListTokens(_params.token1);
         require(isToken0WhiteListToken, 'NWT0');
         require(isToken1WhiteListToken, 'NWT1');
         uint256 token0Balance = getInvestorTokenAmount(_params.investor, _params.token0);
@@ -343,8 +343,8 @@ contract XXXFund2 is IXXXFund2, Constants, Token {
         (, , address token0, address token1, , , , , , , , ) 
             = INonfungiblePositionManager(NonfungiblePositionManager).positions(_params.tokenId);
 
-        bool isToken0WhiteListToken = IXXXFactory(factory).whiteListTokens(token0);
-        bool isToken1WhiteListToken = IXXXFactory(factory).whiteListTokens(token1);
+        bool isToken0WhiteListToken = IDotoliFactory(factory).whiteListTokens(token0);
+        bool isToken1WhiteListToken = IDotoliFactory(factory).whiteListTokens(token1);
         require(isToken0WhiteListToken, 'NWT0');
         require(isToken1WhiteListToken, 'NWT1');
         uint256 token0Balance = getInvestorTokenAmount(_params.investor, token0);

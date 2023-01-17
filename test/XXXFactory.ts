@@ -1,8 +1,8 @@
 import { Wallet, constants, BigNumber, Contract } from 'ethers'
 import { expect } from "chai"
 import { ethers, waffle } from 'hardhat'
-import { XXXFactory } from '../typechain-types/contracts/XXXFactory'
-import { XXXFund2 } from '../typechain-types/contracts/XXXFund2'
+import { DotoliFactory } from '../typechain-types/contracts/DotoliFactory'
+import { DotoliFund } from '../typechain-types/contracts/DotoliFund'
 import { getCreate2Address } from './shared/utilities'
 
 import { 
@@ -17,7 +17,7 @@ import {
 } from "./shared/constants"
 
 
-describe('XXXFactory', () => {
+describe('DotoliFactory', () => {
 
   let deployer: Wallet 
   let manager1: Wallet
@@ -46,39 +46,39 @@ describe('XXXFactory', () => {
     ] = await (ethers as any).getSigners()
   })
 
-  before("Deploy XXXFactory Contract", async function () {
-    const XXXFactory = await ethers.getContractFactory("XXXFactory")
-    const Factory = await XXXFactory.connect(deployer).deploy(WETH9, DAI) //XXX is error so use DAI for just test
+  before("Deploy DotoliFactory Contract", async function () {
+    const DotoliFactory = await ethers.getContractFactory("DotoliFactory")
+    const Factory = await DotoliFactory.connect(deployer).deploy(WETH9, DAI) //Dotoli is error so use DAI for just test
     await Factory.deployed()
     factoryContractAddress = Factory.address
-    factory = await ethers.getContractAt("XXXFactory", factoryContractAddress)
+    factory = await ethers.getContractAt("DotoliFactory", factoryContractAddress)
   })
 
-  before("Deploy XXXFund2 Contract", async function () {
-    const XXXFund = await ethers.getContractFactory("XXXFund2")
-    const Fund = await XXXFund.connect(deployer).deploy()
+  before("Deploy DotoliFund Contract", async function () {
+    const DotoliFund = await ethers.getContractFactory("DotoliFund")
+    const Fund = await DotoliFund.connect(deployer).deploy()
     await Fund.deployed()
     fundContractAddress = Fund.address
   })
 
   it("create 1st fund", async function () {
     await factory.connect(manager1).createFund()
-    const fundBytecode = (await ethers.getContractFactory('XXXFund2')).bytecode
+    const fundBytecode = (await ethers.getContractFactory('DotoliFund')).bytecode
     const expectedFundAddress = getCreate2Address(factoryContractAddress, manager1.address, fundBytecode)
     const savedFundAddress = await factory.connect(manager1).getFundByManager(manager1.address)
     expect(savedFundAddress).to.equal(expectedFundAddress)
     fund1Address = savedFundAddress
-    fund1 = await ethers.getContractAt("XXXFund2", fund1Address)
+    fund1 = await ethers.getContractAt("DotoliFund", fund1Address)
   })
 
   it("create 2nd fund", async function () {
     await factory.connect(manager2).createFund()
-    const fundBytecode = (await ethers.getContractFactory('XXXFund2')).bytecode
+    const fundBytecode = (await ethers.getContractFactory('DotoliFund')).bytecode
     const expectedFundAddress = getCreate2Address(factoryContractAddress, manager2.address, fundBytecode)
     const savedFundAddress = await factory.connect(manager2).getFundByManager(manager2.address)
     expect(savedFundAddress).to.equal(expectedFundAddress)
     fund2Address = savedFundAddress
-    fund2 = await ethers.getContractAt("XXXFund2", fund2Address)
+    fund2 = await ethers.getContractAt("DotoliFund", fund2Address)
   })
 
   describe('manager1', () => {

@@ -6,16 +6,16 @@ pragma abicoder v2;
 import '@uniswap/v3-core/contracts/interfaces/IUniswapV3Factory.sol';
 import '@uniswap/v3-core/contracts/interfaces/IUniswapV3Pool.sol';
 import './libraries/FullMath.sol';
-import './interfaces/IXXXFactory.sol';
-import './XXXFund2.sol';
+import './interfaces/IDotoliFactory.sol';
+import './DotoliFund.sol';
 
 
 //TODO : remove console log
 import "hardhat/console.sol";
 
-contract XXXFactory is IXXXFactory, Constants {
+contract DotoliFactory is IDotoliFactory, Constants {
     address public override WETH9;
-    address public XXX;
+    address public DOTOLI;
 
     address public override owner;
     uint256 public override managerFee = 10000; // 10000 : 1%, 3000 : 0.3%
@@ -34,20 +34,20 @@ contract XXXFactory is IXXXFactory, Constants {
         unlocked = 1;
     }
 
-    constructor(address weth9, address xxx) {
+    constructor(address weth9, address dotoli) {
         owner = msg.sender;
         WETH9 = weth9;
-        XXX = xxx;
+        DOTOLI = dotoli;
         whiteListTokens[WETH9] = true;
-        whiteListTokens[XXX] = true;
+        whiteListTokens[DOTOLI] = true;
         emit FactoryCreated();
     }
 
     function createFund() external override returns (address fund) {
         require(getFundByManager[msg.sender] == address(0), 'FUND_EXISTS');
-        fund = address(new XXXFund2{salt: keccak256(abi.encode(address(this), msg.sender))}());
+        fund = address(new DotoliFund{salt: keccak256(abi.encode(address(this), msg.sender))}());
         getFundByManager[msg.sender] = fund;
-        IXXXFund2(fund).initialize(msg.sender);
+        IDotoliFund(fund).initialize(msg.sender);
 
         //manager subscribe
         uint256 fundCount = getFundCountByInvestor[msg.sender];
@@ -99,7 +99,7 @@ contract XXXFactory is IXXXFactory, Constants {
     function subscribe(address fund) external override lock {
         require(!isSubscribed(msg.sender, fund), 'AR');
         uint256 fundCount = getFundCountByInvestor[msg.sender];
-        address manager = IXXXFund2(fund).manager();
+        address manager = IDotoliFund(fund).manager();
         getFundByInvestor[msg.sender][fundCount] = fund;
         getFundCountByInvestor[msg.sender] += 1;
         emit Subscribe(fund, manager, msg.sender);
@@ -155,7 +155,7 @@ contract XXXFactory is IXXXFactory, Constants {
     function resetWhiteListToken(address _token) external override {
         require(msg.sender == owner);
         require(whiteListTokens[_token] == true, 'WLT');
-        require(_token != WETH9 && _token != XXX);
+        require(_token != WETH9 && _token != DOTOLI);
         whiteListTokens[_token] = false;
         emit WhiteListTokenRemoved(_token);
     }

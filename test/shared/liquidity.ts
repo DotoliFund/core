@@ -1,5 +1,5 @@
 import { BigNumber, ContractTransaction } from 'ethers'
-import { XXXFund2 } from '../../typechain-types/contracts/XXXFund2'
+import { DotoliFund } from '../../typechain-types/contracts/DotoliFund'
 import { encodePath } from './path'
 import { ethers } from 'hardhat'
 import {
