@@ -48,7 +48,7 @@ describe('XXXFactory', () => {
 
   before("Deploy XXXFactory Contract", async function () {
     const XXXFactory = await ethers.getContractFactory("XXXFactory")
-    const Factory = await XXXFactory.connect(deployer).deploy(WETH9, UNI, DAI) //XXX is error so use DAI for just test
+    const Factory = await XXXFactory.connect(deployer).deploy(WETH9, DAI) //XXX is error so use DAI for just test
     await Factory.deployed()
     factoryContractAddress = Factory.address
     factory = await ethers.getContractAt("XXXFactory", factoryContractAddress)
@@ -97,14 +97,6 @@ describe('XXXFactory', () => {
 
     it("duplicated subscribe must be failed", async function () {
       await expect(factory.connect(manager1).subscribe(fund1Address)).to.be.reverted
-    })
-
-    it("UNI is white list token", async function () {
-      expect(await factory.connect(manager1).whiteListTokens(UNI)).to.be.true
-    })
-
-    it("reset UNI from white list token", async function () {
-      await expect(factory.connect(deployer).resetWhiteListToken(UNI))
     })
 
     it("cheak UNI is not white list token", async function () {

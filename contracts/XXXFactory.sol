@@ -15,7 +15,6 @@ import "hardhat/console.sol";
 
 contract XXXFactory is IXXXFactory, Constants {
     address public override WETH9;
-    address public UNI;
     address public XXX;
 
     address public override owner;
@@ -35,13 +34,11 @@ contract XXXFactory is IXXXFactory, Constants {
         unlocked = 1;
     }
 
-    constructor(address weth9, address uni, address xxx) {
+    constructor(address weth9, address xxx) {
         owner = msg.sender;
         WETH9 = weth9;
-        UNI = uni;
         XXX = xxx;
         whiteListTokens[WETH9] = true;
-        whiteListTokens[UNI] = true;
         whiteListTokens[XXX] = true;
         emit FactoryCreated();
     }
