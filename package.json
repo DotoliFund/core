@@ -1,21 +1,20 @@
 {
-  "name": "DotoliFund",
-  "description": "Smart contracts for Open Fund",
+  "name": "@dotolifund/core",
+  "description": "Smart contracts for Dotoli Fund",
   "license": "GPL-2.0-or-later",
   "publishConfig": {
     "access": "public"
   },
-  "version": "0.0.1",
-  "homepage": "https://uniswap.org",
+  "version": "0.0.2",
+  "homepage": "https://dotoli.org",
   "keywords": [
     "DotoliFund",
-    "openfund",
     "dotoli",
     "uniswap"
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/fundDeveloper22/core"
+    "url": "https://github.com/DotoliFund/core"
   },
   "files": [
     "contracts/base",
