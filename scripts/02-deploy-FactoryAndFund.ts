@@ -15,7 +15,7 @@ async function main() {
   //goerli
   const WETH9 = '0xB4FBF271143F4FBf7B91A5ded31805e42b2208d6'
   //const UNI = '0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984'
-  const Dotoli = '0x5D8aa1475Fb7A56229fafcB4e7F2B31264dc0C11'
+  const Dotoli = '0xaf75db6618d2955Db5580160958FC667a4a2Aa46'
 
   const DotoliFactory = await ethers.getContractFactory("DotoliFactory");
   const Factory = await DotoliFactory.deploy(WETH9, Dotoli);
@@ -28,7 +28,7 @@ async function main() {
   console.log("Fund address : ", Fund.address);
 
   const factoryContract = await ethers.getContractAt("DotoliFactory", Factory.address)
-  const TimeLockAddress = '0x4596A568AE4E6D3121527900901AD700Be7B0188';
+  const TimeLockAddress = '0xCBE1C35272735dEaF720bB6F1687651BD1bbFdF7';
   const transferTx = await factoryContract.setOwner(TimeLockAddress)
   await transferTx.wait(1)
 }
