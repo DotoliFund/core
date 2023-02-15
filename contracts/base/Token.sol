@@ -3,9 +3,8 @@ pragma solidity =0.7.6;
 pragma abicoder v2;
 
 import '../interfaces/IToken.sol';
-import '../base/Constants.sol';
 
-abstract contract Token is IToken, Constants {
+abstract contract Token is IToken {
 
     function getTokens(Token[] memory tokens) internal view returns (Token[] memory) {
         Token[] memory _tokens = new Token[](tokens.length);

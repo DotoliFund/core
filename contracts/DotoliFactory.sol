@@ -13,7 +13,9 @@ import './DotoliFund.sol';
 //TODO : remove console log
 import "hardhat/console.sol";
 
-contract DotoliFactory is IDotoliFactory, Constants {
+contract DotoliFactory is IDotoliFactory {
+
+    address public UNISWAP_V3_FACTORY = 0x1F98431c8aD98523631AE4a59f267346ea31F984;
     address public override WETH9;
     address public DOTOLI;
 
