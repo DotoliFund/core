@@ -7,7 +7,8 @@ import '@uniswap/swap-router-contracts/contracts/interfaces/ISwapRouter02.sol';
 import '@uniswap/v3-periphery/contracts/interfaces/INonfungiblePositionManager.sol';
 
 import './interfaces/IERC20Minimal.sol';
-import './interfaces/IDotoliFactory.sol';
+import './interfaces/IRouter.sol';
+//import './interfaces/IDotoliFactory.sol';
 
 //TODO : remove console
 import "hardhat/console.sol";
@@ -15,9 +16,8 @@ import "hardhat/console.sol";
 contract Router is IRouter {
     uint128 MAX_INT = 2**128 - 1;
 
-    address public swapRouter = 0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45;
+    address public uniswapV3SwapRouter = 0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45;
     address public nonfungiblePositionManager = 0xC36442b4a4522E871399CD717aBDD847Ab11FE88;
-    address public dotoliFactory;
 
     struct Deposit {
         address owner;
@@ -37,83 +37,83 @@ contract Router is IRouter {
         unlocked = 1;
     }
 
-    constructor(address _dotoliFactory) {
-        dotoliFactory = _dotoliFactory;
+    constructor() {
+
     }
 
-    function swap(SwapParams calldata trade) external payable override lock returns (uint256) {
+    function swapRouter(SwapParams calldata trade) external payable override lock returns (uint256) {
 
-        if (trades[i].swapType == SwapType.EXACT_INPUT_SINGLE_HOP) {
-            IERC20Minimal(trades[i].tokenIn).transferFrom(msg.sender, address(this), trades[i].amountIn);
-            IERC20Minimal(trades[i].tokenIn).approve(swapRouter, trades[i].amountIn);
+        if (trade.swapType == SwapType.EXACT_INPUT_SINGLE_HOP) {
+            IERC20Minimal(trade.tokenIn).transferFrom(msg.sender, address(this), trade.amountIn);
+            IERC20Minimal(trade.tokenIn).approve(uniswapV3SwapRouter, trade.amountIn);
 
             ISwapRouter02.ExactInputSingleParams memory params =
                 IV3SwapRouter.ExactInputSingleParams({
-                    tokenIn: trades[i].tokenIn,
-                    tokenOut: trades[i].tokenOut,
-                    fee: trades[i].fee,
+                    tokenIn: trade.tokenIn,
+                    tokenOut: trade.tokenOut,
+                    fee: trade.fee,
                     recipient: msg.sender,
-                    amountIn: trades[i].amountIn,
-                    amountOutMinimum: trades[i].amountOutMinimum,
+                    amountIn: trade.amountIn,
+                    amountOutMinimum: trade.amountOutMinimum,
                     sqrtPriceLimitX96: 0
                 });
 
-            uint256 amountOut = ISwapRouter02(swapRouter).exactInputSingle(params);
+            uint256 amountOut = ISwapRouter02(uniswapV3SwapRouter).exactInputSingle(params);
             return amountOut;
 
-        } else if (trades[i].swapType == SwapType.EXACT_INPUT_MULTI_HOP) {
-            IERC20Minimal(trades[i].tokenIn).transferFrom(msg.sender, address(this), trades[i].amountIn);
-            IERC20Minimal(trades[i].tokenIn).approve(swapRouter, trades[i].amountIn);
+        } else if (trade.swapType == SwapType.EXACT_INPUT_MULTI_HOP) {
+            IERC20Minimal(trade.tokenIn).transferFrom(msg.sender, address(this), trade.amountIn);
+            IERC20Minimal(trade.tokenIn).approve(uniswapV3SwapRouter, trade.amountIn);
 
             ISwapRouter02.ExactInputParams memory params =
                 IV3SwapRouter.ExactInputParams({
-                    path: trades[i].path,
+                    path: trade.path,
                     recipient: msg.sender,
-                    amountIn: trades[i].amountIn,
-                    amountOutMinimum: trades[i].amountOutMinimum
+                    amountIn: trade.amountIn,
+                    amountOutMinimum: trade.amountOutMinimum
                 });
 
-            uint256 amountOut = ISwapRouter02(swapRouter).exactInput(params);
+            uint256 amountOut = ISwapRouter02(uniswapV3SwapRouter).exactInput(params);
             return amountOut;
 
-        } else if (trades[i].swapType == SwapType.EXACT_OUTPUT_SINGLE_HOP) {
-            IERC20Minimal(trades[i].tokenIn).transferFrom(msg.sender, address(this), trades[i].amountInMaximum);
-            IERC20Minimal(trades[i].tokenIn).approve(swapRouter, trades[i].amountInMaximum);
+        } else if (trade.swapType == SwapType.EXACT_OUTPUT_SINGLE_HOP) {
+            IERC20Minimal(trade.tokenIn).transferFrom(msg.sender, address(this), trade.amountInMaximum);
+            IERC20Minimal(trade.tokenIn).approve(uniswapV3SwapRouter, trade.amountInMaximum);
 
             ISwapRouter02.ExactOutputSingleParams memory params =
                 IV3SwapRouter.ExactOutputSingleParams({
-                    tokenIn: trades[i].tokenIn,
-                    tokenOut: trades[i].tokenOut,
-                    fee: trades[i].fee,
+                    tokenIn: trade.tokenIn,
+                    tokenOut: trade.tokenOut,
+                    fee: trade.fee,
                     recipient: msg.sender,
-                    amountOut: trades[i].amountOut,
-                    amountInMaximum: trades[i].amountInMaximum,
+                    amountOut: trade.amountOut,
+                    amountInMaximum: trade.amountInMaximum,
                     sqrtPriceLimitX96: 0
                 });
 
-            uint256 amountIn = ISwapRouter02(swapRouter).exactOutputSingle(params);
-            if (amountIn < trades[i].amountInMaximum) {
-                IERC20Minimal(trades[i].tokenIn).approve(swapRouter, 0);
-                IERC20Minimal(trades[i].tokenIn).transfer(msg.sender, trades[i].amountInMaximum - amountIn);
+            uint256 amountIn = ISwapRouter02(uniswapV3SwapRouter).exactOutputSingle(params);
+            if (amountIn < trade.amountInMaximum) {
+                IERC20Minimal(trade.tokenIn).approve(uniswapV3SwapRouter, 0);
+                IERC20Minimal(trade.tokenIn).transfer(msg.sender, trade.amountInMaximum - amountIn);
             }
             return amountIn;
 
-        } else if (trades[i].swapType == SwapType.EXACT_OUTPUT_MULTI_HOP) {
-            IERC20Minimal(trades[i].tokenIn).transferFrom(msg.sender, address(this), trades[i].amountInMaximum);
-            IERC20Minimal(trades[i].tokenIn).approve(swapRouter, trades[i].amountInMaximum);
+        } else if (trade.swapType == SwapType.EXACT_OUTPUT_MULTI_HOP) {
+            IERC20Minimal(trade.tokenIn).transferFrom(msg.sender, address(this), trade.amountInMaximum);
+            IERC20Minimal(trade.tokenIn).approve(uniswapV3SwapRouter, trade.amountInMaximum);
 
             ISwapRouter02.ExactOutputParams memory params =
                 IV3SwapRouter.ExactOutputParams({
-                    path: trades[i].path,
+                    path: trade.path,
                     recipient: msg.sender,
-                    amountOut: trades[i].amountOut,
-                    amountInMaximum: trades[i].amountInMaximum
+                    amountOut: trade.amountOut,
+                    amountInMaximum: trade.amountInMaximum
                 });
 
-            uint256 amountIn = ISwapRouter02(swapRouter).exactOutput(params);
-            if (amountIn < trades[i].amountInMaximum) {
-                IERC20Minimal(trades[i].tokenIn).approve(swapRouter, 0);
-                IERC20Minimal(trades[i].tokenIn).transferFrom(address(this), msg.sender, trades[i].amountInMaximum - amountIn);
+            uint256 amountIn = ISwapRouter02(uniswapV3SwapRouter).exactOutput(params);
+            if (amountIn < trade.amountInMaximum) {
+                IERC20Minimal(trade.tokenIn).approve(uniswapV3SwapRouter, 0);
+                IERC20Minimal(trade.tokenIn).transferFrom(address(this), msg.sender, trade.amountInMaximum - amountIn);
             }
             return amountIn;
         }
@@ -128,11 +128,11 @@ contract Router is IRouter {
         deposits[tokenId] = Deposit({owner: owner, liquidity: liquidity, token0: token0, token1: token1});
     }
 
-    function mintNewPosition(MintNewPositionParams calldata _params) external override 
-        returns (uint256 tokenId, uint256 liquidity, address token0, address token1, uint256 amount0, uint256 amount1) 
+    function mint(MintParams calldata _params) external override 
+        returns (uint256 tokenId, uint128 liquidity, address token0, address token1, uint256 amount0, uint256 amount1) 
     {
-        IERC20Minimal(_params.token0).transferFrom(msg.sender, address(this), trades[i].amount0Desired);
-        IERC20Minimal(_params.token1).transferFrom(msg.sender, address(this), trades[i].amount1Desired);
+        IERC20Minimal(_params.token0).transferFrom(msg.sender, address(this), _params.amount0Desired);
+        IERC20Minimal(_params.token1).transferFrom(msg.sender, address(this), _params.amount1Desired);
 
         IERC20Minimal(_params.token0).approve(nonfungiblePositionManager, _params.amount0Desired);
         IERC20Minimal(_params.token1).approve(nonfungiblePositionManager, _params.amount1Desired);
@@ -173,8 +173,8 @@ contract Router is IRouter {
         }
     }
 
-    function increaseLiquidity(IncreaseLiquidityParams calldata _params) 
-        external override returns (uint256 liquidity, address token0, address token1, uint256 amount0, uint256 amount1) 
+    function increase(IncreaseParams calldata _params) 
+        external override returns (uint128 liquidity, address token0, address token1, uint256 amount0, uint256 amount1) 
     {
         IERC20Minimal(_params.token0).transferFrom(msg.sender, address(this), _params.amount0Desired);
         IERC20Minimal(_params.token1).transferFrom(msg.sender, address(this), _params.amount1Desired);
@@ -191,11 +191,13 @@ contract Router is IRouter {
                 amount1Min: _params.amount1Min,
                 deadline: _params.deadline
             });
-
-        (liquidity, token0, token1, amount0, amount1) = INonfungiblePositionManager(nonfungiblePositionManager).increaseLiquidity(params);
+        (liquidity, amount0, amount1) = INonfungiblePositionManager(nonfungiblePositionManager).increaseLiquidity(params);
+        
+        (, , token0, token1, , , , , , , , ) 
+            = INonfungiblePositionManager(nonfungiblePositionManager).positions(_params.tokenId);
     }
 
-    function collectPositionFee(CollectPositionFeeParams calldata _params) 
+    function collect(CollectParams calldata _params) 
         external override returns (address token0, address token1, uint256 amount0, uint256 amount1) 
     {   
         INonfungiblePositionManager.CollectParams memory params =
@@ -211,10 +213,10 @@ contract Router is IRouter {
             = INonfungiblePositionManager(nonfungiblePositionManager).positions(_params.tokenId);
     }
 
-    function decreaseLiquidity(DecreaseLiquidityParams calldata _params) 
+    function decrease(DecreaseParams calldata _params) 
         external override returns (address token0, address token1, uint256 amount0, uint256 amount1) 
     {
-        require(msg.sender == deposits[tokenId].owner, 'NA');
+        require(msg.sender == deposits[_params.tokenId].owner, 'NA');
 
         INonfungiblePositionManager.DecreaseLiquidityParams memory params =
             INonfungiblePositionManager.DecreaseLiquidityParams({
@@ -234,7 +236,7 @@ contract Router is IRouter {
                 amount1Max: MAX_INT
             });
         (amount0, amount1) = INonfungiblePositionManager(nonfungiblePositionManager).collect(collectParams);
-
+        
         (, , token0, token1, , , , , , , , ) 
             = INonfungiblePositionManager(nonfungiblePositionManager).positions(_params.tokenId);
     }

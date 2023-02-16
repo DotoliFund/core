@@ -3,7 +3,6 @@ pragma solidity =0.7.6;
 pragma abicoder v2;
 
 interface IToken {
-
     struct Token {
         address tokenAddress;
         uint256 amount;

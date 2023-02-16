@@ -15,9 +15,10 @@ import "hardhat/console.sol";
 
 contract DotoliFactory is IDotoliFactory {
 
-    address public UNISWAP_V3_FACTORY = 0x1F98431c8aD98523631AE4a59f267346ea31F984;
-    address public override WETH9;
-    address public DOTOLI;
+    address public uniswapV3Factory = 0x1F98431c8aD98523631AE4a59f267346ea31F984;
+    address public dotoli;
+    address public override weth9;
+    address public override router;
 
     address public override owner;
     uint256 public override managerFee = 10000; // 10000 : 1%, 3000 : 0.3%
@@ -36,12 +37,13 @@ contract DotoliFactory is IDotoliFactory {
         unlocked = 1;
     }
 
-    constructor(address weth9, address dotoli) {
+    constructor(address _dotoli, address _weth9, address _router) {
         owner = msg.sender;
-        WETH9 = weth9;
-        DOTOLI = dotoli;
-        whiteListTokens[WETH9] = true;
-        whiteListTokens[DOTOLI] = true;
+        dotoli = _dotoli;
+        weth9 = _weth9;
+        router = _router;
+        whiteListTokens[weth9] = true;
+        whiteListTokens[dotoli] = true;
         emit FactoryCreated();
     }
 
@@ -112,7 +114,7 @@ contract DotoliFactory is IDotoliFactory {
         uint256 poolAmount = 0;
 
         for (uint256 i=0; i<fees.length; i++) {
-            address pool = IUniswapV3Factory(UNISWAP_V3_FACTORY).getPool(_token, WETH9, uint24(fees[i]));
+            address pool = IUniswapV3Factory(uniswapV3Factory).getPool(_token, weth9, uint24(fees[i]));
             if (pool == address(0)) {
                 continue;
             }
@@ -128,10 +130,10 @@ contract DotoliFactory is IDotoliFactory {
             uint256 numerator = uint256(sqrtPriceX96) * uint256(sqrtPriceX96);
             uint256 price0 = FullMath.mulDiv(numerator, token0Decimal, 1 << 192);
             //tokenPriceInWETH
-            if (token0 == WETH9) {
+            if (token0 == weth9) {
                 poolAmount += ((amount1 / price0) * token1Decimal) + amount0;
                 console.log(poolAmount / token0Decimal);
-            } else if (token1 == WETH9) {
+            } else if (token1 == weth9) {
                 poolAmount += ((amount0 / token0Decimal) * price0) + amount1;
                 console.log(poolAmount / token1Decimal);
             } else {
@@ -157,7 +159,7 @@ contract DotoliFactory is IDotoliFactory {
     function resetWhiteListToken(address _token) external override {
         require(msg.sender == owner);
         require(whiteListTokens[_token] == true, 'WLT');
-        require(_token != WETH9 && _token != DOTOLI);
+        require(_token != weth9 && _token != dotoli);
         whiteListTokens[_token] = false;
         emit WhiteListTokenRemoved(_token);
     }
