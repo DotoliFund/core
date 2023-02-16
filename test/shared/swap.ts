@@ -16,6 +16,7 @@ export enum SwapType {
 
 export interface SwapParams {
   swapType: number
+  fundId: number
   investor: string
   tokenIn: string
   tokenOut: string
@@ -39,6 +40,7 @@ export function exactInputSingleParams(
 	const params: SwapParams[] = [
 		{
       swapType: SwapType.EXACT_INPUT_SINGLE_HOP,
+      fundId: 0,
       investor: investor,
       tokenIn: tokenIn,
       tokenOut: tokenOut,
@@ -65,6 +67,7 @@ export function exactOutputSingleParams(
 	const params: SwapParams[] = [
 		{
 	    swapType: SwapType.EXACT_OUTPUT_SINGLE_HOP,
+	    fundId: 0,
 	    investor: investor,
 	    tokenIn: tokenIn,
 	    tokenOut: tokenOut,
@@ -90,6 +93,7 @@ export function exactInputParams(
 	const params: SwapParams[] = [
 		{
 			swapType: SwapType.EXACT_INPUT_MULTI_HOP,
+			fundId: 0,
 			investor: investor,
 			tokenIn: NULL_ADDRESS,
 			tokenOut: NULL_ADDRESS,
@@ -115,6 +119,7 @@ export function exactOutputParams(
 	const params: SwapParams[] = [
 		{
 			swapType: SwapType.EXACT_OUTPUT_MULTI_HOP,
+			fundId: 0,
 			investor: investor,
 			tokenIn: NULL_ADDRESS,
 			tokenOut: NULL_ADDRESS,

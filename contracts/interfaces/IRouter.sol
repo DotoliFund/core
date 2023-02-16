@@ -13,6 +13,7 @@ interface IRouter {
 
     struct SwapParams {
         SwapType swapType;
+        uint256 fundId;
         address investor;
         address tokenIn;
         address tokenOut;
@@ -26,6 +27,7 @@ interface IRouter {
     }
 
     struct MintParams {
+        uint256 fundId;
         address investor;
         address token0;
         address token1;
@@ -40,6 +42,7 @@ interface IRouter {
     }
         
     struct IncreaseParams {
+        uint256 fundId;
         address investor;
         uint256 tokenId;
         address token0;
@@ -52,6 +55,7 @@ interface IRouter {
     }
 
     struct CollectParams {
+        uint256 fundId;
         address investor;
         uint256 tokenId;
         uint128 amount0Max;
@@ -59,6 +63,7 @@ interface IRouter {
     }
 
     struct DecreaseParams {
+        uint256 fundId;
         address investor;
         uint256 tokenId;
         uint128 liquidity;

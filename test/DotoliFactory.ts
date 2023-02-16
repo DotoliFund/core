@@ -1,9 +1,10 @@
 import { Wallet, constants, BigNumber, Contract } from 'ethers'
 import { expect } from "chai"
 import { ethers, waffle } from 'hardhat'
+import { UniswapV3Oracle } from '../typechain-types/contracts/UniswapV3Oracle'
+import { Router } from '../typechain-types/contracts/Router'
 import { DotoliFactory } from '../typechain-types/contracts/DotoliFactory'
 import { DotoliFund } from '../typechain-types/contracts/DotoliFund'
-import { getCreate2Address } from './shared/utilities'
 
 import { 
   NULL_ADDRESS,
@@ -12,6 +13,8 @@ import {
   UNI,
   DAI,
   V3_SWAP_ROUTER_ADDRESS,
+  UNISWAP_V3_FACTORY,
+  NonfungiblePositionManager,
   MANAGER_FEE,
   WHITE_LIST_TOKENS,
 } from "./shared/constants"
@@ -26,15 +29,18 @@ describe('DotoliFactory', () => {
   let investor2: Wallet
   let noInvestor: Wallet
 
-  let factoryContractAddress: string
-  let fundContractAddress: string
+  let oracleAddress: string
+  let routerAddress: string
+  let factoryAddress: string
+  let fundAddress: string
 
-  let fund1Address: string
-  let fund2Address: string
-
+  let oracle: Contract
+  let router: Contract
   let factory: Contract
-  let fund1: Contract
-  let fund2: Contract
+  let fund: Contract
+
+  let fundId1: string
+  let fundId2: string
   
   before('get signer', async () => {
     [ deployer, 
@@ -46,57 +52,74 @@ describe('DotoliFactory', () => {
     ] = await (ethers as any).getSigners()
   })
 
+  before("Deploy UniswapV3Oracle Contract", async function () {
+    const UniswapV3Oracle = await ethers.getContractFactory("UniswapV3Oracle")
+    const Oracle = await UniswapV3Oracle.connect(deployer).deploy(UNISWAP_V3_FACTORY, NonfungiblePositionManager, WETH9)
+    await Oracle.deployed()
+    oracleAddress = Oracle.address
+    oracle = await ethers.getContractAt("UniswapV3Oracle", oracleAddress)
+  })
+
+  before("Deploy Router Contract", async function () {
+    const Router = await ethers.getContractFactory("Router")
+    const Route_ = await Router.connect(deployer).deploy()
+    await Route_.deployed()
+    routerAddress = Route_.address
+    router = await ethers.getContractAt("Router", routerAddress)
+  })
+
   before("Deploy DotoliFactory Contract", async function () {
     const DotoliFactory = await ethers.getContractFactory("DotoliFactory")
-    const Factory = await DotoliFactory.connect(deployer).deploy(WETH9, DAI) //Dotoli is error so use DAI for just test
+    const Factory = await DotoliFactory.connect(deployer).deploy(DAI, WETH9, routerAddress, oracleAddress) //Dotoli is error so use DAI for just test
     await Factory.deployed()
-    factoryContractAddress = Factory.address
-    factory = await ethers.getContractAt("DotoliFactory", factoryContractAddress)
+    factoryAddress = Factory.address
+    factory = await ethers.getContractAt("DotoliFactory", factoryAddress)
   })
 
   before("Deploy DotoliFund Contract", async function () {
     const DotoliFund = await ethers.getContractFactory("DotoliFund")
-    const Fund = await DotoliFund.connect(deployer).deploy()
+    const Fund = await DotoliFund.connect(deployer).deploy(factoryAddress, WETH9, routerAddress)
     await Fund.deployed()
-    fundContractAddress = Fund.address
+    fundAddress = Fund.address
+    fund = await ethers.getContractAt("DotoliFund", fundAddress)
   })
 
   it("create 1st fund", async function () {
-    await factory.connect(manager1).createFund()
-    const fundBytecode = (await ethers.getContractFactory('DotoliFund')).bytecode
-    const expectedFundAddress = getCreate2Address(factoryContractAddress, manager1.address, fundBytecode)
-    const savedFundAddress = await factory.connect(manager1).getFundByManager(manager1.address)
-    expect(savedFundAddress).to.equal(expectedFundAddress)
-    fund1Address = savedFundAddress
-    fund1 = await ethers.getContractAt("DotoliFund", fund1Address)
+    await fund.connect(manager1).createFund()
+    const savedFundId = await fund.connect(manager1).managingFund(manager1.address)
+    expect(savedFundId).to.equal(BigNumber.from(1))
+    fundId1 = savedFundId
+
+    const fundIdCount = await fund.connect(manager1).fundIdCount()
+    expect(fundIdCount).to.equal(BigNumber.from(1))
   })
 
   it("create 2nd fund", async function () {
-    await factory.connect(manager2).createFund()
-    const fundBytecode = (await ethers.getContractFactory('DotoliFund')).bytecode
-    const expectedFundAddress = getCreate2Address(factoryContractAddress, manager2.address, fundBytecode)
-    const savedFundAddress = await factory.connect(manager2).getFundByManager(manager2.address)
-    expect(savedFundAddress).to.equal(expectedFundAddress)
-    fund2Address = savedFundAddress
-    fund2 = await ethers.getContractAt("DotoliFund", fund2Address)
+    await fund.connect(manager2).createFund()
+    const savedFundId = await fund.connect(manager2).managingFund(manager2.address)
+    expect(savedFundId).to.equal(BigNumber.from(2))
+    fundId2 = savedFundId
+
+    const fundIdCount = await fund.connect(manager1).fundIdCount()
+    expect(fundIdCount).to.equal(BigNumber.from(2))
   })
 
   describe('manager1', () => {
 
     it("manager is managing fund1", async function () {
-      expect(await factory.connect(manager1).getFundByManager(manager1.address)).to.equal(fund1Address)
+      expect(await fund.connect(manager1).managingFund(manager1.address)).to.be.above(0)
     })
 
     it("check manager is subscribed to fund1", async function () {
-      expect(await factory.connect(manager1).isSubscribed(manager1.address, fund1Address)).to.be.true
+      expect(await fund.connect(manager1).isSubscribed(manager1.address, fundId1)).to.be.true
     })
 
     it("manager's subscribed fund count is 1", async function () {
-      expect(await factory.connect(manager1).subscribedFunds(manager1.address)).to.have.lengthOf(1)
+      expect(await fund.connect(manager1).subscribedFunds(manager1.address)).to.have.lengthOf(1)
     })
 
     it("duplicated subscribe must be failed", async function () {
-      await expect(factory.connect(manager1).subscribe(fund1Address)).to.be.reverted
+      await expect(fund.connect(manager1).subscribe(fundId1)).to.be.reverted
     })
 
     it("cheak UNI is not white list token", async function () {
@@ -104,7 +127,8 @@ describe('DotoliFactory', () => {
     })
 
     it("set UNI to white list token", async function () {
-      await expect(factory.connect(deployer).setWhiteListToken(UNI))
+      const minPoolAmount = await factory.connect(manager1).minPoolAmount()
+      await expect(factory.connect(deployer).setWhiteListToken(UNI, minPoolAmount))
     })
 
     it("cheak UNI is white list token", async function () {
@@ -116,7 +140,8 @@ describe('DotoliFactory', () => {
     })
 
     it("set USDC to white list token", async function () {
-      await expect(factory.connect(deployer).setWhiteListToken(USDC))
+      const minPoolAmount = await factory.connect(manager1).minPoolAmount()
+      await expect(factory.connect(deployer).setWhiteListToken(USDC, minPoolAmount))
     })
 
     it("cheak USDC is white list token", async function () {
@@ -156,62 +181,62 @@ describe('DotoliFactory', () => {
   describe('investor', () => {
 
     it("investor has no fund", async function () {
-      expect(await factory.connect(investor).getFundByManager(investor.address)).to.equal(NULL_ADDRESS)
+      expect(await fund.connect(investor).managingFund(investor.address)).to.equal(0)
     })
 
     it("investor's subscribed fund count is 0", async function () {
-      expect(await factory.connect(investor).subscribedFunds(investor.address)).to.have.lengthOf(0)
+      expect(await fund.connect(investor).subscribedFunds(investor.address)).to.have.lengthOf(0)
     })
 
     it("check investor not subscribed to fund1", async function () {
-      expect(await factory.connect(investor).isSubscribed(investor.address, fund1Address)).to.be.false
+      expect(await fund.connect(investor).isSubscribed(investor.address, fundId1)).to.be.false
     })
 
     it("investor subscribe to fund1", async function () {
-      await factory.connect(investor).subscribe(fund1Address)
+      await fund.connect(investor).subscribe(fundId1)
     })
 
     it("check investor subscribed to fund1", async function () {
-      expect(await factory.connect(investor).isSubscribed(investor.address, fund1Address)).to.be.true
+      expect(await fund.connect(investor).isSubscribed(investor.address, fundId1)).to.be.true
     })
 
     it("investor's subscribed fund count is 1", async function () {
-      expect(await factory.connect(investor).subscribedFunds(investor.address)).to.have.lengthOf(1)
+      expect(await fund.connect(investor).subscribedFunds(investor.address)).to.have.lengthOf(1)
     })
 
     it("duplicated subscribe must be failed", async function () {
-      await expect(factory.connect(investor).subscribe(fund1Address)).to.be.reverted
+      await expect(fund.connect(investor).subscribe(fundId1)).to.be.reverted
     })
 
     it("investor2 subscribe to fund1", async function () {
-      await factory.connect(investor2).subscribe(fund1Address)
+      await fund.connect(investor2).subscribe(fundId1)
     })
 
     it("investor2's subscribed fund count is 1", async function () {
-      expect(await factory.connect(investor2).subscribedFunds(investor2.address)).to.have.lengthOf(1)
+      expect(await fund.connect(investor2).subscribedFunds(investor2.address)).to.have.lengthOf(1)
     })
   })
 
   describe('no investor', () => {
 
     it("noInvestor has no fund", async function () {
-      expect(await factory.connect(noInvestor).getFundByManager(noInvestor.address)).to.equal(NULL_ADDRESS)
+      expect(await fund.connect(noInvestor).managingFund(noInvestor.address)).to.equal(0)
     })
 
     it("investor not registered to fund1", async function () {
-      expect(await factory.connect(noInvestor).isSubscribed(fund1Address,noInvestor.address)).to.be.false
+      expect(await fund.connect(noInvestor).isSubscribed(noInvestor.address, fundId1)).to.be.false
     })
 
     it("noInvestor's subscribed fund count is 0", async function () {
-      expect(await factory.connect(noInvestor).subscribedFunds(noInvestor.address)).to.be.empty
+      expect(await fund.connect(noInvestor).subscribedFunds(noInvestor.address)).to.be.empty
     })
 
     it("noInvestor subscribe to fund1", async function () {
-      await factory.connect(noInvestor).subscribe(fund1Address)
+      await fund.connect(noInvestor).subscribe(fundId1)
     })
 
     it("check noInvestor subscribed to fund1", async function () {
-      expect(await factory.connect(investor).isSubscribed(investor.address, fund1Address)).to.be.true
+      expect(await fund.connect(investor).isSubscribed(investor.address, fundId1)).to.be.true
     })
   })
 })

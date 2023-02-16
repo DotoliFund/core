@@ -1,5 +1,4 @@
 import { BigNumber, ContractTransaction } from 'ethers'
-import { DotoliFund } from '../../typechain-types/contracts/DotoliFund'
 import { encodePath } from './path'
 import { ethers } from 'hardhat'
 import {
@@ -9,7 +8,8 @@ import {
 
 const DEADLINE = "0x835f19fb"
 
-export interface MintNewPositionParams {
+export interface MintParams {
+	fundId: number
   investor: string
   token0: string
   token1: string
@@ -23,7 +23,8 @@ export interface MintNewPositionParams {
   deadline: number
 }
 
-export interface IncreaseLiquidityParams {
+export interface IncreaseParams {
+	fundId: number
   investor: string
   tokenId: number
   amount0Desired: BigNumber
@@ -33,14 +34,16 @@ export interface IncreaseLiquidityParams {
   deadline: number
 }
 
-export interface CollectPositionFeeParams {
+export interface CollectParams {
+	fundId: number
   investor: string
   tokenId: number
   amount0Max: BigNumber
   amount1Max: BigNumber
 }
 
-export interface DecreaseLiquidityParams {
+export interface DecreaseParams {
+	fundId: number
   investor: string
   tokenId: number
   liquidity: number
@@ -49,7 +52,8 @@ export interface DecreaseLiquidityParams {
   deadline: number
 }
 
-export function mintNewPositionParams(
+export function mintParams(
+	fundId: number,
 	investor: string,
 	token0: string,
 	token1: string,
@@ -60,8 +64,9 @@ export function mintNewPositionParams(
 	amount1Desired: BigNumber,
 	amount0Min: BigNumber,
 	amount1Min: BigNumber
-): MintNewPositionParams {
-	const params: MintNewPositionParams = {
+): MintParams {
+	const params: MintParams = {
+		fundId: fundId,
 		investor: investor,
 		token0: token0,
 		token1: token1,
@@ -77,15 +82,17 @@ export function mintNewPositionParams(
 	return params
 }
 
-export function increaseLiquidityParams(
+export function increaseParams(
+	fundId: number,
 	investor: string,
 	tokenId: number,
 	amount0Desired: BigNumber,
 	amount1Desired: BigNumber,
 	amount0Min: BigNumber,
 	amount1Min: BigNumber
-): IncreaseLiquidityParams {
-	const params: IncreaseLiquidityParams = {
+): IncreaseParams {
+	const params: IncreaseParams = {
+		fundId: fundId,
 		investor: investor,
 		tokenId: tokenId,
 		amount0Desired: amount0Desired,
@@ -97,13 +104,15 @@ export function increaseLiquidityParams(
 	return params
 }
 
-export function collectPositionFeeParams(
+export function collectParams(
+	fundId: number,
 	investor: string,
 	tokenId: number,
 	amount0Max: BigNumber,
 	amount1Max: BigNumber
-): CollectPositionFeeParams {
-	const params: CollectPositionFeeParams = {
+): CollectParams {
+	const params: CollectParams = {
+		fundId: fundId,
 		investor: investor,
 		tokenId: tokenId,
 		amount0Max: amount0Max,
@@ -112,14 +121,16 @@ export function collectPositionFeeParams(
 	return params
 }
 
-export function decreaseLiquidityParams(
+export function decreaseParams(
+	fundId: number,
 	investor: string,
 	tokenId: number,
 	liquidity: number,
 	amount0Min: BigNumber,
 	amount1Min: BigNumber
-): DecreaseLiquidityParams {
-	const params: DecreaseLiquidityParams = {
+): DecreaseParams {
+	const params: DecreaseParams = {
+		fundId: fundId,
 		investor: investor,
 		tokenId: tokenId,
 		liquidity: liquidity,
