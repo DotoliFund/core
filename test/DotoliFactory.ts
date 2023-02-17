@@ -127,8 +127,7 @@ describe('DotoliFactory', () => {
     })
 
     it("set UNI to white list token", async function () {
-      const minPoolAmount = await factory.connect(manager1).minPoolAmount()
-      await expect(factory.connect(deployer).setWhiteListToken(UNI, minPoolAmount))
+      await expect(factory.connect(deployer).setWhiteListToken(UNI))
     })
 
     it("cheak UNI is white list token", async function () {
@@ -140,8 +139,7 @@ describe('DotoliFactory', () => {
     })
 
     it("set USDC to white list token", async function () {
-      const minPoolAmount = await factory.connect(manager1).minPoolAmount()
-      await expect(factory.connect(deployer).setWhiteListToken(USDC, minPoolAmount))
+      await expect(factory.connect(deployer).setWhiteListToken(USDC))
     })
 
     it("cheak USDC is white list token", async function () {

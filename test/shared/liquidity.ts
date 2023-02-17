@@ -10,17 +10,17 @@ const DEADLINE = "0x835f19fb"
 
 export interface MintParams {
 	fundId: number
-  investor: string
-  token0: string
-  token1: string
-  fee: number
-  tickLower: number
-  tickUpper: number
-  amount0Desired: BigNumber
-  amount1Desired: BigNumber
-  amount0Min: BigNumber
-  amount1Min: BigNumber
-  deadline: number
+	investor: string
+	token0: string
+	token1: string
+	fee: number
+	tickLower: number
+	tickUpper: number
+	amount0Desired: BigNumber
+	amount1Desired: BigNumber
+	amount0Min: BigNumber
+	amount1Min: BigNumber
+	deadline: number
 }
 
 export interface IncreaseParams {

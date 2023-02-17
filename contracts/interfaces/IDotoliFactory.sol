@@ -27,6 +27,6 @@ interface IDotoliFactory {
     function setOwner(address _owner) external;
     function setManagerFee(uint256 _managerFee) external;
     function setMinPoolAmount(uint256 volume) external;
-    function setWhiteListToken(address _token, uint256 minPoolAmount) external;
+    function setWhiteListToken(address _token) external;
     function resetWhiteListToken(address _token) external;
 }

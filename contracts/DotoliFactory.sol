@@ -62,7 +62,7 @@ contract DotoliFactory is IDotoliFactory {
         emit ManagerFeeChanged(_managerFee);
     }
 
-    function setWhiteListToken(address _token, uint256 minPoolAmount) external override {
+    function setWhiteListToken(address _token) external override {
         require(msg.sender == owner);
         require(whiteListTokens[_token] == false, 'WLT');
         require(IUniswapV3Oracle(oracle).checkWhiteListToken(_token, minPoolAmount), 'CWLT');

@@ -72,6 +72,8 @@ interface IRouter {
         uint256 deadline;
     }
 
+    function getLastTokenFromPath(bytes memory path) external view returns (address);
+    
     function swapRouter(SwapParams calldata trades) external payable returns (uint256);
     function mint(MintParams calldata params) external returns (uint256 tokenId, uint128 liquidity, address token0, address token1, uint256 amount0, uint256 amount1);
     function increase(IncreaseParams calldata params) external returns (uint128 liquidity, address token0, address token1, uint256 amount0, uint256 amount1);

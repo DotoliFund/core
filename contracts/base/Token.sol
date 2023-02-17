@@ -33,14 +33,14 @@ abstract contract Token is IToken {
             }
         }
         if (isNewToken) {
-            tokens.push(Token(token, amount));      
+            tokens.push(Token(token, amount));
         }
     }
 
     function decreaseToken(Token[] storage tokens, address token, uint256 amount) internal returns (bool) {
         for (uint256 i=0; i<tokens.length; i++) {
             if (tokens[i].tokenAddress == token) {
-                require(tokens[i].amount >= amount, 'TNE');
+                require(tokens[i].amount >= amount, 'NET');
                 tokens[i].amount -= amount;
                 if (tokens[i].amount == 0) {
                     uint256 lastIndex = tokens.length-1;

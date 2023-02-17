@@ -5,15 +5,17 @@ pragma abicoder v2;
 
 import '@uniswap/swap-router-contracts/contracts/interfaces/ISwapRouter02.sol';
 import '@uniswap/v3-periphery/contracts/interfaces/INonfungiblePositionManager.sol';
+import '@uniswap/v3-periphery/contracts/libraries/Path.sol';
 
 import './interfaces/IERC20Minimal.sol';
 import './interfaces/IRouter.sol';
-//import './interfaces/IDotoliFactory.sol';
 
 //TODO : remove console
 import "hardhat/console.sol";
 
 contract Router is IRouter {
+    using Path for bytes;
+
     uint128 MAX_INT = 2**128 - 1;
 
     address public uniswapV3SwapRouter = 0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45;
@@ -41,8 +43,25 @@ contract Router is IRouter {
 
     }
 
-    function swapRouter(SwapParams calldata trade) external payable override lock returns (uint256) {
+    function getLastTokenFromPath(bytes memory path) public view override returns (address) {
+        address _tokenOut;
 
+        while (true) {
+            bool hasMultiplePools = path.hasMultiplePools();
+
+            if (hasMultiplePools) {
+                path = path.skipToken();
+            } else {
+                (address tokenIn, address tokenOut, uint24 fee) = path.decodeFirstPool();
+                _tokenOut = tokenOut;
+                break;
+            }
+        }
+        return _tokenOut;
+    }
+
+    function swapRouter(SwapParams calldata trade) external payable override lock returns (uint256) {
+        
         if (trade.swapType == SwapType.EXACT_INPUT_SINGLE_HOP) {
             IERC20Minimal(trade.tokenIn).transferFrom(msg.sender, address(this), trade.amountIn);
             IERC20Minimal(trade.tokenIn).approve(uniswapV3SwapRouter, trade.amountIn);
@@ -62,8 +81,9 @@ contract Router is IRouter {
             return amountOut;
 
         } else if (trade.swapType == SwapType.EXACT_INPUT_MULTI_HOP) {
-            IERC20Minimal(trade.tokenIn).transferFrom(msg.sender, address(this), trade.amountIn);
-            IERC20Minimal(trade.tokenIn).approve(uniswapV3SwapRouter, trade.amountIn);
+            (address tokenIn, , ) = trade.path.decodeFirstPool();
+            IERC20Minimal(tokenIn).transferFrom(msg.sender, address(this), trade.amountIn);
+            IERC20Minimal(tokenIn).approve(uniswapV3SwapRouter, trade.amountIn);
 
             ISwapRouter02.ExactInputParams memory params =
                 IV3SwapRouter.ExactInputParams({
@@ -99,8 +119,9 @@ contract Router is IRouter {
             return amountIn;
 
         } else if (trade.swapType == SwapType.EXACT_OUTPUT_MULTI_HOP) {
-            IERC20Minimal(trade.tokenIn).transferFrom(msg.sender, address(this), trade.amountInMaximum);
-            IERC20Minimal(trade.tokenIn).approve(uniswapV3SwapRouter, trade.amountInMaximum);
+            address tokenIn = getLastTokenFromPath(trade.path);
+            IERC20Minimal(tokenIn).transferFrom(msg.sender, address(this), trade.amountInMaximum);
+            IERC20Minimal(tokenIn).approve(uniswapV3SwapRouter, trade.amountInMaximum);
 
             ISwapRouter02.ExactOutputParams memory params =
                 IV3SwapRouter.ExactOutputParams({
@@ -112,8 +133,8 @@ contract Router is IRouter {
 
             uint256 amountIn = ISwapRouter02(uniswapV3SwapRouter).exactOutput(params);
             if (amountIn < trade.amountInMaximum) {
-                IERC20Minimal(trade.tokenIn).approve(uniswapV3SwapRouter, 0);
-                IERC20Minimal(trade.tokenIn).transferFrom(address(this), msg.sender, trade.amountInMaximum - amountIn);
+                IERC20Minimal(tokenIn).approve(uniswapV3SwapRouter, 0);
+                IERC20Minimal(tokenIn).transferFrom(address(this), msg.sender, trade.amountInMaximum - amountIn);
             }
             return amountIn;
         }
