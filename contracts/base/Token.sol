@@ -6,14 +6,6 @@ import '../interfaces/IToken.sol';
 
 abstract contract Token is IToken {
 
-    function getTokens(Token[] memory tokens) internal view returns (Token[] memory) {
-        Token[] memory _tokens = new Token[](tokens.length);
-        for (uint i = 0; i < tokens.length; i++) {
-            _tokens[i] = tokens[i];
-        }
-        return _tokens;
-    }
-
     function getTokenAmount(Token[] memory tokens, address token) internal view returns (uint256) {
         for (uint256 i=0; i<tokens.length; i++) {
             if (tokens[i].tokenAddress == token) {

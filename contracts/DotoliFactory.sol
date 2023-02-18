@@ -6,7 +6,6 @@ pragma abicoder v2;
 import './interfaces/IDotoliFactory.sol';
 import './interfaces/IUniswapV3Oracle.sol';
 
-
 //TODO : remove console log
 import "hardhat/console.sol";
 

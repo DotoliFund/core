@@ -25,13 +25,13 @@ export interface MintParams {
 
 export interface IncreaseParams {
 	fundId: number
-  investor: string
-  tokenId: number
-  amount0Desired: BigNumber
-  amount1Desired: BigNumber
-  amount0Min: BigNumber
-  amount1Min: BigNumber
-  deadline: number
+	investor: string
+	tokenId: number
+	amount0Desired: BigNumber
+	amount1Desired: BigNumber
+	amount0Min: BigNumber
+	amount1Min: BigNumber
+	deadline: number
 }
 
 export interface CollectParams {

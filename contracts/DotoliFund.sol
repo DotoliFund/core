@@ -26,15 +26,15 @@ contract DotoliFund is Token, IDotoliFund {
     uint256 public fundIdCount = 0;
 
     mapping(address => uint256) public managingFund;
-    mapping(address => mapping(uint256 => uint256)) public investingFund;
+    mapping(address => mapping(uint256 => uint256)) public investingFunds;
     mapping(address => uint256) public investingFundCount;
 
-    mapping(uint256 => address) public manager;                             //fundId -> manager
-    mapping(uint256 => Token[]) public fundTokens;                          //fundId -> fundTokens
-    mapping(uint256 => mapping(address => Token[])) public investorTokens;  //fundId -> investor -> investorTokens
-    mapping(uint256 => Token[]) public feeTokens;                           //fundId -> feeTokens
-    mapping(uint256 => address) public positionOwner;                       // positionOwner[tokenId] => owner of uniswap v3 liquidity position
-    mapping(address => uint256[]) public tokenIds;                          // tokenIds[investor] => [ tokenId0, tokenId1, ... ]
+    mapping(uint256 => address) public manager;                             // manager[fundId]
+    mapping(uint256 => Token[]) public fundTokens;                          // fundTokens[fundId]
+    mapping(uint256 => Token[]) public feeTokens;                           // feeTokens[fundId]
+    mapping(uint256 => mapping(address => Token[])) public investorTokens;  // investorTokens[fundId][investor]
+    mapping(uint256 => mapping(address => uint256[])) public tokenIds;        // tokenIds[fundId][investor]
+    mapping(uint256 => address) public tokenIdOwner;                        // tokenIdOwner[tokenId] => owner of uniswap v3 liquidity position
 
     uint256 private unlocked = 1;
     modifier lock() {
@@ -51,16 +51,19 @@ contract DotoliFund is Token, IDotoliFund {
         emit FundCreated();
     }
 
+    // function getFundTokens(uint256 fundId) external override view returns (Token[] memory) {
+    //     return getTokens(fundTokens[fundId]);
+    // }
     function getFundTokens(uint256 fundId) external override view returns (Token[] memory) {
-        return getTokens(fundTokens[fundId]);
+        return fundTokens[fundId];
     }
 
     function getInvestorTokens(uint256 fundId, address investor) external override view returns (Token[] memory) {
-        return getTokens(investorTokens[fundId][investor]);
+        return investorTokens[fundId][investor];
     }
 
     function getFeeTokens(uint256 fundId) external override view returns (Token[] memory) {
-        return getTokens(feeTokens[fundId]);
+        return feeTokens[fundId];
     }
 
     function getFundTokenAmount(uint256 fundId, address token) public override view returns (uint256) {
@@ -71,9 +74,8 @@ contract DotoliFund is Token, IDotoliFund {
         return getTokenAmount(investorTokens[fundId][investor], token);
     }
 
-    function getPositionTokenIds(address investor) external override view returns (uint256[] memory _tokenIds) {
-        uint256[] memory _tokenIds = tokenIds[investor];
-        return _tokenIds;
+    function getTokenIds(uint256 fundId, address investor) external override view returns (uint256[] memory _tokenIds) {
+        _tokenIds = tokenIds[fundId][investor];
     }
 
     function decode(bytes memory data) private pure returns (bytes32 result) {
@@ -126,7 +128,7 @@ contract DotoliFund is Token, IDotoliFund {
         fundId = ++fundIdCount;
         managingFund[msg.sender] = fundId;
         uint256 fundCount = investingFundCount[msg.sender];
-        investingFund[msg.sender][fundCount] = fundId;
+        investingFunds[msg.sender][fundCount] = fundId;
         investingFundCount[msg.sender] += 1;
         manager[fundId] = msg.sender;
         emit NewFund(fundId, msg.sender);
@@ -135,7 +137,7 @@ contract DotoliFund is Token, IDotoliFund {
     function isSubscribed(address investor, uint256 fundId) public override view returns (bool) {
         uint256 fundCount = investingFundCount[investor];
         for (uint256 i=0; i<fundCount; i++) {
-            if (fundId == investingFund[investor][i]) {
+            if (fundId == investingFunds[investor][i]) {
                 return true;
             }
         }
@@ -147,15 +149,15 @@ contract DotoliFund is Token, IDotoliFund {
         uint256[] memory fundIds;
         fundIds = new uint256[](fundCount);
         for (uint256 i=0; i<fundCount; i++) {
-            fundIds[i] = investingFund[investor][i];
+            fundIds[i] = investingFunds[investor][i];
         }
         return fundIds;
     }
-    
+
     function subscribe(uint256 fundId) external override lock {
         require(!isSubscribed(msg.sender, fundId), 'AR');
         uint256 fundCount = investingFundCount[msg.sender];
-        investingFund[msg.sender][fundCount] = fundId;
+        investingFunds[msg.sender][fundCount] = fundId;
         investingFundCount[msg.sender] += 1;
         emit Subscribe(fundId, msg.sender);
     }
@@ -303,18 +305,16 @@ contract DotoliFund is Token, IDotoliFund {
         IERC20Minimal(_params.token0).approve(router, _params.amount0Desired);
         IERC20Minimal(_params.token1).approve(router, _params.amount1Desired);
 
-        address token0;
-        address token1;
+        (tokenId, liquidity, amount0, amount1) = IRouter(router).mint(_params);
 
-        (tokenId, liquidity, token0, token1, amount0, amount1) = IRouter(router).mint(_params);
-
+        (address token0, address token1) = IRouter(router).getLiquidityToken(tokenId);
         decreaseToken(fundTokens[_params.fundId], token0, amount0);
         decreaseToken(fundTokens[_params.fundId], token1, amount1);
         decreaseToken(investorTokens[_params.fundId][_params.investor], token0, amount0);
         decreaseToken(investorTokens[_params.fundId][_params.investor], token1, amount1);
 
-        positionOwner[tokenId] = _params.investor;
-        tokenIds[_params.investor].push(tokenId);
+        tokenIdOwner[tokenId] = _params.investor;
+        tokenIds[_params.fundId][_params.investor].push(tokenId);
 
         emit MintNewPosition(_params.investor, token0, token1, amount0, amount1);
     }
@@ -323,25 +323,23 @@ contract DotoliFund is Token, IDotoliFund {
         external override returns (uint128 liquidity, uint256 amount0, uint256 amount1) 
     {
         require(msg.sender == manager[_params.fundId], 'NM');
-        require(_params.investor == positionOwner[_params.tokenId], 'NI');
+        require(_params.investor == tokenIdOwner[_params.tokenId], 'NI');
 
-        bool isToken0WhiteListToken = IDotoliFactory(factory).whiteListTokens(_params.token0);
-        bool isToken1WhiteListToken = IDotoliFactory(factory).whiteListTokens(_params.token1);
+        (address token0, address token1) = IRouter(router).getLiquidityToken(_params.tokenId);
+
+        bool isToken0WhiteListToken = IDotoliFactory(factory).whiteListTokens(token0);
+        bool isToken1WhiteListToken = IDotoliFactory(factory).whiteListTokens(token1);
         require(isToken0WhiteListToken, 'NWT0');
         require(isToken1WhiteListToken, 'NWT1');
-        uint256 token0Balance = getInvestorTokenAmount(_params.fundId, _params.investor, _params.token0);
-        uint256 token1Balance = getInvestorTokenAmount(_params.fundId, _params.investor, _params.token1);
+        uint256 token0Balance = getInvestorTokenAmount(_params.fundId, _params.investor, token0);
+        uint256 token1Balance = getInvestorTokenAmount(_params.fundId, _params.investor, token1);
         require(_params.amount0Desired <= token0Balance, 'NET0');
         require(_params.amount1Desired <= token1Balance, 'NET1');
 
-        IERC20Minimal(_params.token0).approve(router, _params.amount0Desired);
-        IERC20Minimal(_params.token1).approve(router, _params.amount1Desired);
-
-        address token0;
-        address token1;
+        IERC20Minimal(token0).approve(router, _params.amount0Desired);
+        IERC20Minimal(token1).approve(router, _params.amount1Desired);
         
-        (liquidity, token0, token1, 
-            amount0, amount1) = IRouter(router).increase(_params);
+        (liquidity, amount0, amount1) = IRouter(router).increase(_params);
 
         decreaseToken(fundTokens[_params.fundId], token0, amount0);
         decreaseToken(fundTokens[_params.fundId], token1, amount1);
@@ -354,14 +352,12 @@ contract DotoliFund is Token, IDotoliFund {
     function collectPositionFee(IRouter.CollectParams calldata _params) 
         external override returns (uint256 amount0, uint256 amount1) 
     {
-        require(msg.sender == positionOwner[_params.tokenId] || msg.sender == manager[_params.fundId], 'NA');
-        require(_params.investor == positionOwner[_params.tokenId], 'NI');
-
-        address token0;
-        address token1;
+        require(msg.sender == tokenIdOwner[_params.tokenId] || msg.sender == manager[_params.fundId], 'NA');
+        require(_params.investor == tokenIdOwner[_params.tokenId], 'NI');
         
-        (token0, token1, amount0, amount1) = IRouter(router).collect(_params);
+        (amount0, amount1) = IRouter(router).collect(_params);
 
+        (address token0, address token1) = IRouter(router).getLiquidityToken(_params.tokenId);
         increaseToken(fundTokens[_params.fundId], token0, amount0);
         increaseToken(fundTokens[_params.fundId], token1, amount1);
         increaseToken(investorTokens[_params.fundId][_params.investor], token0, amount0);
@@ -373,14 +369,12 @@ contract DotoliFund is Token, IDotoliFund {
     function decreaseLiquidity(IRouter.DecreaseParams calldata _params) 
         external override returns (uint256 amount0, uint256 amount1) 
     {
-        require(msg.sender == positionOwner[_params.tokenId] || msg.sender == manager[_params.fundId], 'NA');
-        require(_params.investor == positionOwner[_params.tokenId], 'NI');
+        require(msg.sender == tokenIdOwner[_params.tokenId] || msg.sender == manager[_params.fundId], 'NA');
+        require(_params.investor == tokenIdOwner[_params.tokenId], 'NI');
 
-        address token0;
-        address token1;
-        
-        (token0, token1, amount0, amount1) = IRouter(router).decrease(_params);
+        (amount0, amount1) = IRouter(router).decrease(_params);
 
+        (address token0, address token1) = IRouter(router).getLiquidityToken(_params.tokenId);
         increaseToken(fundTokens[_params.fundId], token0, amount0);
         increaseToken(fundTokens[_params.fundId], token1, amount1);
         increaseToken(investorTokens[_params.fundId][_params.investor], token0, amount0);

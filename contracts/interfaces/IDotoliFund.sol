@@ -39,5 +39,5 @@ interface IDotoliFund is IToken {
     function getFeeTokens(uint256 fundId) external view returns (Token[] memory);
     function getFundTokenAmount(uint256 fundId, address token) external view returns (uint256);
     function getInvestorTokenAmount(uint256 fundId, address investor, address token) external view returns (uint256);
-    function getPositionTokenIds(address investor) external view returns (uint256[] memory);
+    function getTokenIds(uint256 fundId, address investor) external view returns (uint256[] memory);
 }

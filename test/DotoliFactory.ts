@@ -8,6 +8,7 @@ import { DotoliFund } from '../typechain-types/contracts/DotoliFund'
 
 import { 
   NULL_ADDRESS,
+  DOTOLI,
   WETH9,
   USDC,
   UNI,
@@ -70,7 +71,7 @@ describe('DotoliFactory', () => {
 
   before("Deploy DotoliFactory Contract", async function () {
     const DotoliFactory = await ethers.getContractFactory("DotoliFactory")
-    const Factory = await DotoliFactory.connect(deployer).deploy(DAI, WETH9, routerAddress, oracleAddress) //Dotoli is error so use DAI for just test
+    const Factory = await DotoliFactory.connect(deployer).deploy(DOTOLI, WETH9, routerAddress, oracleAddress) //Dotoli is error so use DAI for just test
     await Factory.deployed()
     factoryAddress = Factory.address
     factory = await ethers.getContractAt("DotoliFactory", factoryAddress)
