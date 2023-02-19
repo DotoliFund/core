@@ -30,8 +30,6 @@ export interface SwapParams {
 }
 
 export function exactInputSingleParams(
-  fundId: number,
-	investor: string,
   tokenIn: string,
   tokenOut: string,
   amountIn: BigNumber,
@@ -41,8 +39,6 @@ export function exactInputSingleParams(
 	const params: SwapParams[] = [
 		{
       swapType: SwapType.EXACT_INPUT_SINGLE_HOP,
-      fundId: fundId,
-      investor: investor,
       tokenIn: tokenIn,
       tokenOut: tokenOut,
       fee: FeeAmount.MEDIUM,
@@ -58,8 +54,6 @@ export function exactInputSingleParams(
 }
 
 export function exactOutputSingleParams(
-  fundId: number,
-	investor: string,
   tokenIn: string,
   tokenOut: string,
   amountOut: BigNumber,
@@ -69,8 +63,6 @@ export function exactOutputSingleParams(
 	const params: SwapParams[] = [
 		{
 	    swapType: SwapType.EXACT_OUTPUT_SINGLE_HOP,
-	    fundId: fundId,
-	    investor: investor,
 	    tokenIn: tokenIn,
 	    tokenOut: tokenOut,
 	    fee: FeeAmount.MEDIUM,
@@ -86,8 +78,6 @@ export function exactOutputSingleParams(
 }
 
 export function exactInputParams(
-  fundId: number,
-	investor: string,
 	tokens: string[],
   amountIn: BigNumber,
   amountOutMinimum: BigNumber,
@@ -96,8 +86,6 @@ export function exactInputParams(
 	const params: SwapParams[] = [
 		{
 			swapType: SwapType.EXACT_INPUT_MULTI_HOP,
-			fundId: fundId,
-			investor: investor,
 			tokenIn: NULL_ADDRESS,
 			tokenOut: NULL_ADDRESS,
 			fee: 0,
@@ -113,8 +101,6 @@ export function exactInputParams(
 }
 
 export function exactOutputParams(
-  fundId: number,
-	investor: string,
 	tokens: string[],
 	amountOut: BigNumber,
 	amountInMaximum: BigNumber,
@@ -123,8 +109,6 @@ export function exactOutputParams(
 	const params: SwapParams[] = [
 		{
 			swapType: SwapType.EXACT_OUTPUT_MULTI_HOP,
-			fundId: fundId,
-			investor: investor,
 			tokenIn: NULL_ADDRESS,
 			tokenOut: NULL_ADDRESS,
 			fee: 0,

@@ -30,13 +30,13 @@ describe('DotoliFactory', () => {
   let investor2: Wallet
   let noInvestor: Wallet
 
-  let oracleAddress: string
-  let routerAddress: string
+  let swapRouterAddress: string
+  let liquidityRouterAddress: string
   let factoryAddress: string
   let fundAddress: string
 
-  let oracle: Contract
-  let router: Contract
+  let swapRouter: Contract
+  let liquidityRouter: Contract
   let factory: Contract
   let fund: Contract
 
@@ -53,25 +53,25 @@ describe('DotoliFactory', () => {
     ] = await (ethers as any).getSigners()
   })
 
-  before("Deploy UniswapV3Oracle Contract", async function () {
-    const UniswapV3Oracle = await ethers.getContractFactory("UniswapV3Oracle")
-    const Oracle = await UniswapV3Oracle.connect(deployer).deploy(UNISWAP_V3_FACTORY, NonfungiblePositionManager, WETH9)
-    await Oracle.deployed()
-    oracleAddress = Oracle.address
-    oracle = await ethers.getContractAt("UniswapV3Oracle", oracleAddress)
+  before("Deploy SwapRouter Contract", async function () {
+    const SwapRouter = await ethers.getContractFactory("SwapRouter")
+    const Router = await SwapRouter.connect(deployer).deploy()
+    await Router.deployed()
+    swapRouterAddress = Router.address
+    swapRouter = await ethers.getContractAt("SwapRouter", swapRouterAddress)
   })
 
-  before("Deploy Router Contract", async function () {
-    const Router = await ethers.getContractFactory("Router")
-    const Route_ = await Router.connect(deployer).deploy()
-    await Route_.deployed()
-    routerAddress = Route_.address
-    router = await ethers.getContractAt("Router", routerAddress)
+  before("Deploy LiquidityRouter Contract", async function () {
+    const LiquidityRouter = await ethers.getContractFactory("LiquidityRouter")
+    const Router = await LiquidityRouter.connect(deployer).deploy()
+    await Router.deployed()
+    liquidityRouterAddress = Router.address
+    liquidityRouter = await ethers.getContractAt("LiquidityRouter", liquidityRouterAddress)
   })
 
   before("Deploy DotoliFactory Contract", async function () {
     const DotoliFactory = await ethers.getContractFactory("DotoliFactory")
-    const Factory = await DotoliFactory.connect(deployer).deploy(DOTOLI, WETH9, routerAddress, oracleAddress) //Dotoli is error so use DAI for just test
+    const Factory = await DotoliFactory.connect(deployer).deploy(DOTOLI, WETH9) //Dotoli is error so use DAI for just test
     await Factory.deployed()
     factoryAddress = Factory.address
     factory = await ethers.getContractAt("DotoliFactory", factoryAddress)
@@ -79,7 +79,7 @@ describe('DotoliFactory', () => {
 
   before("Deploy DotoliFund Contract", async function () {
     const DotoliFund = await ethers.getContractFactory("DotoliFund")
-    const Fund = await DotoliFund.connect(deployer).deploy(factoryAddress, WETH9, routerAddress)
+    const Fund = await DotoliFund.connect(deployer).deploy(factoryAddress, WETH9, swapRouterAddress, liquidityRouterAddress)
     await Fund.deployed()
     fundAddress = Fund.address
     fund = await ethers.getContractAt("DotoliFund", fundAddress)

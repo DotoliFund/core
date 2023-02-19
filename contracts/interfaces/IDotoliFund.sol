@@ -4,31 +4,31 @@ pragma solidity =0.7.6;
 pragma abicoder v2;
 
 import './IToken.sol';
-import './IRouter.sol';
+import './ISwapRouter.sol';
+import './ILiquidityRouter.sol';
 
 interface IDotoliFund is IToken {
-    event FundCreated();
-    event NewFund(uint256 fundId, address indexed investor);
+    event FundCreated(uint256 fundId, address indexed manager);
     event Subscribe(uint256 fundId, address indexed investor);
-    event Deposit(address indexed investor, address token, uint256 amount);
-    event Withdraw(address indexed investor, address token, uint256 amount, uint256 feeAmount);
-    event Swap(address indexed investor, address tokenIn, address tokenOut, uint256 amountIn, uint256 amountOut);
-    event DepositFee(address indexed investor, address token, uint256 amount);
-    event WithdrawFee(address token, uint256 amount);
-    event MintNewPosition(address indexed investor, address token0, address token1, uint256 amount0, uint256 amount1);
-    event IncreaseLiquidity(address indexed investor, address token0, address token1, uint256 amount0, uint256 amount1);
-    event CollectPositionFee(address indexed investor, address token0, address token1, uint256 amount0, uint256 amount1);
-    event DecreaseLiquidity(address indexed investor, address token0, address token1, uint256 amount0, uint256 amount1);
+    event Deposit(uint256 fundId, address indexed investor, address token, uint256 amount);
+    event Withdraw(uint256 fundId, address indexed investor, address token, uint256 amount, uint256 feeAmount);
+    event Swap(uint256 fundId, address indexed investor, address tokenIn, address tokenOut, uint256 amountIn, uint256 amountOut);
+    event DepositFee(uint256 fundId, address indexed investor, address token, uint256 amount);
+    event WithdrawFee(uint256 fundId, address indexed manager, address token, uint256 amount);
+    event MintNewPosition(uint256 fundId, address indexed investor, address token0, address token1, uint256 amount0, uint256 amount1);
+    event IncreaseLiquidity(uint256 fundId, address indexed investor, address token0, address token1, uint256 amount0, uint256 amount1);
+    event CollectPositionFee(uint256 fundId, address indexed investor, address token0, address token1, uint256 amount0, uint256 amount1);
+    event DecreaseLiquidity(uint256 fundId, address indexed investor, address token0, address token1, uint256 amount0, uint256 amount1);
 
     function createFund() external returns (uint256 fundId);
-    function deposit(uint256 fundId, address _token, uint256 _amount) external payable;
+    function deposit(uint256 fundId, address _token, uint256 _amount) external;
     function withdraw(uint256 fundId, address _token, uint256 _amount) external payable;
-    function swap(IRouter.SwapParams[] calldata trades) external payable;
+    function swap(uint256 fundId, address investor, ISwapRouter.SwapParams[] calldata trades) external;
     function withdrawFee(uint256 fundId, address _token, uint256 _amount) external payable;
-    function mintNewPosition(IRouter.MintParams calldata params) external returns (uint256 tokenId, uint128 liquidity, uint256 amount0, uint256 amount1);
-    function increaseLiquidity(IRouter.IncreaseParams calldata params) external returns (uint128 liquidity, uint256 amount0, uint256 amount1);
-    function collectPositionFee(IRouter.CollectParams calldata params) external returns (uint256 amount0, uint256 amount1);
-    function decreaseLiquidity(IRouter.DecreaseParams calldata params) external returns (uint256 amount0, uint256 amount1);
+    function mintNewPosition(ILiquidityRouter.MintParams calldata params) external returns (uint256 tokenId, uint128 liquidity, uint256 amount0, uint256 amount1);
+    function increaseLiquidity(ILiquidityRouter.IncreaseParams calldata params) external returns (uint128 liquidity, uint256 amount0, uint256 amount1);
+    function collectPositionFee(ILiquidityRouter.CollectParams calldata params) external returns (uint256 amount0, uint256 amount1);
+    function decreaseLiquidity(ILiquidityRouter.DecreaseParams calldata params) external returns (uint256 amount0, uint256 amount1);
 
     function isSubscribed(address investor, uint256 fundId) external view returns (bool);
     function subscribedFunds(address investor) external view returns (uint256[] memory);

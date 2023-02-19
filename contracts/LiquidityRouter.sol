@@ -3,23 +3,22 @@
 pragma solidity =0.7.6;
 pragma abicoder v2;
 
-import '@uniswap/swap-router-contracts/contracts/interfaces/ISwapRouter02.sol';
+import '@uniswap/v3-core/contracts/interfaces/IUniswapV3Factory.sol';
+import '@uniswap/v3-core/contracts/interfaces/pool/IUniswapV3PoolState.sol';
 import '@uniswap/v3-periphery/contracts/interfaces/INonfungiblePositionManager.sol';
-import '@uniswap/v3-periphery/contracts/libraries/Path.sol';
-
 import './interfaces/IERC20Minimal.sol';
-import './interfaces/IRouter.sol';
+import './libraries/TickMath.sol';
+import './libraries/SqrtPriceMath.sol';
+import './interfaces/ILiquidityRouter.sol';
 
-//TODO : remove console
-import "hardhat/console.sol";
 
-contract Router is IRouter {
-    using Path for bytes;
+contract LiquidityRouter is ILiquidityRouter {
+    using SafeCast for uint256;
+    using SafeCast for int256;
 
     uint128 MAX_INT = 2**128 - 1;
-
-    address public uniswapV3SwapRouter = 0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45;
     address public nonfungiblePositionManager = 0xC36442b4a4522E871399CD717aBDD847Ab11FE88;
+    address public uniswapV3Factory = 0x1F98431c8aD98523631AE4a59f267346ea31F984;
 
     uint256 private unlocked = 1;
     modifier lock() {
@@ -41,7 +40,7 @@ contract Router is IRouter {
     mapping(uint256 => Deposit) public deposits;
 
     constructor() {
-
+        
     }
 
     // Implementing `onERC721Received` so this contract can receive custody of erc721 tokens
@@ -86,106 +85,57 @@ contract Router is IRouter {
         IERC20Minimal(token1).transfer(owner, amount1);
     }
 
+    function getPoolAddress(address token0, address token1, uint24 fee) private view returns (address) {
+        return IUniswapV3Factory(uniswapV3Factory).getPool(token0, token1, fee);
+    }
+
+    function getPositionTokenAmount(uint256 tokenId) external view override returns (
+        address token0,
+        address token1,
+        int256 amount0,
+        int256 amount1
+    ) {
+        (, , address _token0, address _token1, uint24 fee, 
+            int24 tickLower, int24 tickUpper, uint128 liquidity, , , , ) 
+            = INonfungiblePositionManager(nonfungiblePositionManager).positions(tokenId);
+
+        token0 = _token0;
+        token1 = _token1;
+
+        address poolAddress = getPoolAddress(token0, token1, fee);
+        (uint160 sqrtPriceX96, int24 tick, , , , ,) = IUniswapV3PoolState(poolAddress).slot0();
+
+        if (liquidity != 0) {
+            if (tick < tickLower) {
+                amount0 = SqrtPriceMath.getAmount0Delta(
+                    TickMath.getSqrtRatioAtTick(tickLower),
+                    TickMath.getSqrtRatioAtTick(tickUpper),
+                    int128(liquidity)
+                );
+            } else if (tick < tickUpper) {
+                amount0 = SqrtPriceMath.getAmount0Delta(
+                    sqrtPriceX96,
+                    TickMath.getSqrtRatioAtTick(tickUpper),
+                    int128(liquidity)
+                );
+                amount1 = SqrtPriceMath.getAmount1Delta(
+                    TickMath.getSqrtRatioAtTick(tickLower),
+                    sqrtPriceX96,
+                    int128(liquidity)
+                );
+            } else {
+                amount1 = SqrtPriceMath.getAmount1Delta(
+                    TickMath.getSqrtRatioAtTick(tickLower),
+                    TickMath.getSqrtRatioAtTick(tickUpper),
+                    int128(liquidity)
+                );
+            }
+        }
+    }
+
     function getLiquidityToken(uint256 tokenId) public view override returns (address token0, address token1) {
         token0 = deposits[tokenId].token0;
         token1 = deposits[tokenId].token1;
-    }
-
-    function getLastTokenFromPath(bytes memory path) public view override returns (address) {
-        address _tokenOut;
-
-        while (true) {
-            bool hasMultiplePools = path.hasMultiplePools();
-
-            if (hasMultiplePools) {
-                path = path.skipToken();
-            } else {
-                (address tokenIn, address tokenOut, uint24 fee) = path.decodeFirstPool();
-                _tokenOut = tokenOut;
-                break;
-            }
-        }
-        return _tokenOut;
-    }
-
-    function swapRouter(SwapParams calldata trade) external payable override lock returns (uint256) {
-        
-        if (trade.swapType == SwapType.EXACT_INPUT_SINGLE_HOP) {
-            IERC20Minimal(trade.tokenIn).transferFrom(msg.sender, address(this), trade.amountIn);
-            IERC20Minimal(trade.tokenIn).approve(uniswapV3SwapRouter, trade.amountIn);
-
-            ISwapRouter02.ExactInputSingleParams memory params =
-                IV3SwapRouter.ExactInputSingleParams({
-                    tokenIn: trade.tokenIn,
-                    tokenOut: trade.tokenOut,
-                    fee: trade.fee,
-                    recipient: msg.sender,
-                    amountIn: trade.amountIn,
-                    amountOutMinimum: trade.amountOutMinimum,
-                    sqrtPriceLimitX96: 0
-                });
-
-            uint256 amountOut = ISwapRouter02(uniswapV3SwapRouter).exactInputSingle(params);
-            return amountOut;
-
-        } else if (trade.swapType == SwapType.EXACT_INPUT_MULTI_HOP) {
-            (address tokenIn, , ) = trade.path.decodeFirstPool();
-            IERC20Minimal(tokenIn).transferFrom(msg.sender, address(this), trade.amountIn);
-            IERC20Minimal(tokenIn).approve(uniswapV3SwapRouter, trade.amountIn);
-
-            ISwapRouter02.ExactInputParams memory params =
-                IV3SwapRouter.ExactInputParams({
-                    path: trade.path,
-                    recipient: msg.sender,
-                    amountIn: trade.amountIn,
-                    amountOutMinimum: trade.amountOutMinimum
-                });
-
-            uint256 amountOut = ISwapRouter02(uniswapV3SwapRouter).exactInput(params);
-            return amountOut;
-
-        } else if (trade.swapType == SwapType.EXACT_OUTPUT_SINGLE_HOP) {
-            IERC20Minimal(trade.tokenIn).transferFrom(msg.sender, address(this), trade.amountInMaximum);
-            IERC20Minimal(trade.tokenIn).approve(uniswapV3SwapRouter, trade.amountInMaximum);
-
-            ISwapRouter02.ExactOutputSingleParams memory params =
-                IV3SwapRouter.ExactOutputSingleParams({
-                    tokenIn: trade.tokenIn,
-                    tokenOut: trade.tokenOut,
-                    fee: trade.fee,
-                    recipient: msg.sender,
-                    amountOut: trade.amountOut,
-                    amountInMaximum: trade.amountInMaximum,
-                    sqrtPriceLimitX96: 0
-                });
-
-            uint256 amountIn = ISwapRouter02(uniswapV3SwapRouter).exactOutputSingle(params);
-            if (amountIn < trade.amountInMaximum) {
-                IERC20Minimal(trade.tokenIn).approve(uniswapV3SwapRouter, 0);
-                IERC20Minimal(trade.tokenIn).transfer(msg.sender, trade.amountInMaximum - amountIn);
-            }
-            return amountIn;
-
-        } else if (trade.swapType == SwapType.EXACT_OUTPUT_MULTI_HOP) {
-            address tokenIn = getLastTokenFromPath(trade.path);
-            IERC20Minimal(tokenIn).transferFrom(msg.sender, address(this), trade.amountInMaximum);
-            IERC20Minimal(tokenIn).approve(uniswapV3SwapRouter, trade.amountInMaximum);
-
-            ISwapRouter02.ExactOutputParams memory params =
-                IV3SwapRouter.ExactOutputParams({
-                    path: trade.path,
-                    recipient: msg.sender,
-                    amountOut: trade.amountOut,
-                    amountInMaximum: trade.amountInMaximum
-                });
-
-            uint256 amountIn = ISwapRouter02(uniswapV3SwapRouter).exactOutput(params);
-            if (amountIn < trade.amountInMaximum) {
-                IERC20Minimal(tokenIn).approve(uniswapV3SwapRouter, 0);
-                IERC20Minimal(tokenIn).transferFrom(address(this), msg.sender, trade.amountInMaximum - amountIn);
-            }
-            return amountIn;
-        }
     }
 
     function mint(MintParams calldata _params) external override lock returns 

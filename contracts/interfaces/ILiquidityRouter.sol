@@ -3,29 +3,7 @@
 pragma solidity =0.7.6;
 pragma abicoder v2;
 
-interface IRouter {
-
-    enum SwapType{
-        EXACT_INPUT_SINGLE_HOP,
-        EXACT_INPUT_MULTI_HOP,
-        EXACT_OUTPUT_SINGLE_HOP,
-        EXACT_OUTPUT_MULTI_HOP
-    }
-
-    struct SwapParams {
-        SwapType swapType;
-        uint256 fundId;
-        address investor;
-        address tokenIn;
-        address tokenOut;
-        uint24 fee;
-        uint256 amountIn;
-        uint256 amountOut;
-        uint256 amountInMaximum;
-        uint256 amountOutMinimum;
-        uint160 sqrtPriceLimitX96;
-        bytes path;
-    }
+interface ILiquidityRouter {
 
     struct MintParams {
         uint256 fundId;
@@ -72,11 +50,14 @@ interface IRouter {
     }
 
     function onERC721Received(address operator, address, uint256 tokenId, bytes calldata) external returns (bytes4);
-    function getLiquidityToken(uint256 tokenId) external view returns (address token0, address token1);
-    function getLastTokenFromPath(bytes memory path) external view returns (address);
-    
-    function swapRouter(SwapParams calldata trades) external payable returns (uint256);
-    
+    function getLiquidityToken(uint256 tokenId) external view returns (address token0, address token1);    
+    function getPositionTokenAmount(uint256 tokenId) external view returns (
+        address token0,
+        address token1,
+        int256 amount0,
+        int256 amount1
+    );
+
     function mint(MintParams calldata params) external returns (uint256 tokenId, uint128 liquidity, uint256 amount0, uint256 amount1);
     function increase(IncreaseParams calldata params) external returns (uint128 liquidity, uint256 amount0, uint256 amount1);
     function collect(CollectParams calldata params) external returns (uint256 amount0, uint256 amount1);

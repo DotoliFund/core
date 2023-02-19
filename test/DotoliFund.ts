@@ -1,7 +1,6 @@
 import { Wallet, constants, BigNumber, ContractTransaction, Contract } from 'ethers'
 import { expect } from "chai"
 import { ethers, waffle } from 'hardhat'
-import { UniswapV3Oracle } from '../typechain-types/contracts/UniswapV3Oracle'
 import { DotoliFactory } from '../typechain-types/contracts/DotoliFactory'
 import { DotoliFund } from '../typechain-types/contracts/DotoliFund'
 import { encodePath } from './shared/path'
@@ -50,13 +49,13 @@ describe('DotoliFund', () => {
   let investor2: Wallet
   let notInvestor: Wallet
 
-  let oracleAddress: string
-  let routerAddress: string
+  let swapRouterAddress: string
+  let liquidityRouterAddress: string
   let factoryAddress: string
   let fundAddress: string
 
-  let oracle: Contract
-  let router: Contract
+  let swapRouter: Contract
+  let liquidityRouter: Contract
   let factory: Contract
   let fund: Contract
   let weth9: Contract
@@ -124,25 +123,25 @@ describe('DotoliFund', () => {
     }
   })
 
-  before("Deploy UniswapV3Oracle Contract", async function () {
-    const UniswapV3Oracle = await ethers.getContractFactory("UniswapV3Oracle")
-    const Oracle = await UniswapV3Oracle.connect(deployer).deploy(UNISWAP_V3_FACTORY, NonfungiblePositionManager, WETH9)
-    await Oracle.deployed()
-    oracleAddress = Oracle.address
-    oracle = await ethers.getContractAt("UniswapV3Oracle", oracleAddress)
+  before("Deploy SwapRouter Contract", async function () {
+    const SwapRouter = await ethers.getContractFactory("SwapRouter")
+    const Router = await SwapRouter.connect(deployer).deploy()
+    await Router.deployed()
+    swapRouterAddress = Router.address
+    swapRouter = await ethers.getContractAt("SwapRouter", swapRouterAddress)
   })
 
-  before("Deploy Router Contract", async function () {
-    const Router = await ethers.getContractFactory("Router")
-    const Route_ = await Router.connect(deployer).deploy()
-    await Route_.deployed()
-    routerAddress = Route_.address
-    router = await ethers.getContractAt("Router", routerAddress)
+  before("Deploy LiquidityRouter Contract", async function () {
+    const LiquidityRouter = await ethers.getContractFactory("LiquidityRouter")
+    const Router = await LiquidityRouter.connect(deployer).deploy()
+    await Router.deployed()
+    liquidityRouterAddress = Router.address
+    liquidityRouter = await ethers.getContractAt("LiquidityRouter", liquidityRouterAddress)
   })
 
   before("Deploy DotoliFactory Contract", async function () {
     const DotoliFactory = await ethers.getContractFactory("DotoliFactory")
-    const Factory = await DotoliFactory.connect(deployer).deploy(DOTOLI, WETH9, routerAddress, oracleAddress)
+    const Factory = await DotoliFactory.connect(deployer).deploy(DOTOLI, WETH9)
     await Factory.deployed()
     factoryAddress = Factory.address
     factory = await ethers.getContractAt("DotoliFactory", factoryAddress)
@@ -150,7 +149,7 @@ describe('DotoliFund', () => {
 
   before("Deploy DotoliFund Contract", async function () {
     const DotoliFund = await ethers.getContractFactory("DotoliFund")
-    const Fund = await DotoliFund.connect(deployer).deploy(factoryAddress, WETH9, routerAddress)
+    const Fund = await DotoliFund.connect(deployer).deploy(factoryAddress, WETH9, swapRouterAddress, liquidityRouterAddress)
     await Fund.deployed()
     fundAddress = Fund.address
     fund = await ethers.getContractAt("DotoliFund", fundAddress)
@@ -269,15 +268,13 @@ describe('DotoliFund', () => {
           const manager1Before = await getInvestorAccount(fundId1, manager1.address)
 
           const params = exactInputSingleParams(
-            fundId1,
-            manager1.address,
             WETH9,
             UNI,
             swapInputAmount,
             amountOutMinimum,
             BigNumber.from(0)
           )
-          await fund.connect(manager1).swap(params, { value: 0 })
+          await fund.connect(manager1).swap(fundId1, manager1.address, params, { value: 0 })
           const fund1After = await getFundAccount(fundId1)
           const manager1After = await getInvestorAccount(fundId1, manager1.address)
 
@@ -295,15 +292,13 @@ describe('DotoliFund', () => {
           const manager1Before = await getInvestorAccount(fundId1, manager1.address)
 
           const params = exactInputSingleParams(
-            fundId1,
-            manager1.address,
             UNI,
             WETH9, 
             swapInputAmount, 
             amountOutMinimum, 
             BigNumber.from(0)
           )
-          await fund.connect(manager1).swap(params, { value: 0 })
+          await fund.connect(manager1).swap(fundId1, manager1.address, params, { value: 0 })
 
           const fund1After = await getFundAccount(fundId1)
           const manager1After = await getInvestorAccount(fundId1, manager1.address)
@@ -326,15 +321,13 @@ describe('DotoliFund', () => {
           const manager1Before = await getInvestorAccount(fundId1, manager1.address)
 
           const params = exactOutputSingleParams(
-            fundId1,
-            manager1.address,
             WETH9, 
             UNI, 
             swapOutputAmount, 
             amountInMaximum, 
             BigNumber.from(0)
           )
-          await fund.connect(manager1).swap(params, { value: 0 })
+          await fund.connect(manager1).swap(fundId1, manager1.address, params, { value: 0 })
 
           const fund1After = await getFundAccount(fundId1)
           const manager1After = await getInvestorAccount(fundId1, manager1.address)
@@ -353,15 +346,13 @@ describe('DotoliFund', () => {
           const manager1Before = await getInvestorAccount(fundId1, manager1.address)
 
           const params = exactOutputSingleParams(
-            fundId1,
-            manager1.address,
             UNI,
             WETH9, 
             swapOutputAmount, 
             amountInMaximum, 
             BigNumber.from(0)
           )
-          await fund.connect(manager1).swap(params, { value: 0 })
+          await fund.connect(manager1).swap(fundId1, manager1.address, params, { value: 0 })
 
           const fund1After = await getFundAccount(fundId1)
           const manager1After = await getInvestorAccount(fundId1, manager1.address)
@@ -385,13 +376,11 @@ describe('DotoliFund', () => {
           const manager1Before = await getInvestorAccount(fundId1, manager1.address)
 
           const params = exactInputParams(
-            fundId1,
-            manager1.address,
             tokens,
             swapInputAmount,
             amountOutMinimum
           )
-          await fund.connect(manager1).swap(params, { value: 0 })
+          await fund.connect(manager1).swap(fundId1, manager1.address, params, { value: 0 })
 
           const fund1After = await getFundAccount(fundId1)
           const manager1After = await getInvestorAccount(fundId1, manager1.address)
@@ -411,13 +400,11 @@ describe('DotoliFund', () => {
           const manager1Before = await getInvestorAccount(fundId1, manager1.address)
 
           const params = exactInputParams(
-            fundId1,
-            manager1.address,
             tokens,
             swapInputAmount,
             amountOutMinimum
           )
-          await fund.connect(manager1).swap(params, { value: 0 })
+          await fund.connect(manager1).swap(fundId1, manager1.address, params, { value: 0 })
 
           const fund1After = await getFundAccount(fundId1)
           const manager1After = await getInvestorAccount(fundId1, manager1.address)
@@ -441,13 +428,11 @@ describe('DotoliFund', () => {
           const manager1Before = await getInvestorAccount(fundId1, manager1.address)
 
           const params = exactOutputParams(
-            fundId1,
-            manager1.address,
             tokens,
             swapOutputAmount,
             amountInMaximum
           )
-          await fund.connect(manager1).swap(params, { value: 0 })
+          await fund.connect(manager1).swap(fundId1, manager1.address, params, { value: 0 })
 
           const fund1After = await getFundAccount(fundId1)
           const manager1After = await getInvestorAccount(fundId1, manager1.address)
@@ -467,14 +452,12 @@ describe('DotoliFund', () => {
           const manager1Before = await getInvestorAccount(fundId1, manager1.address)
 
           const params = exactOutputParams(
-            fundId1,
-            manager1.address,
             tokens,
             swapOutputAmount,
             amountInMaximum,
             fundAddress
           )
-          await fund.connect(manager1).swap(params, { value: 0 })
+          await fund.connect(manager1).swap(fundId1, manager1.address, params, { value: 0 })
 
           const fund1After = await getFundAccount(fundId1)
           const manager1After = await getInvestorAccount(fundId1, manager1.address)
@@ -523,9 +506,9 @@ describe('DotoliFund', () => {
         await fund.connect(manager1).increaseLiquidity(params, { value: 0 })
       })
 
-      it("get position's token0, token1, amount0, amount1 by UniswapV3Oracle", async function () {
+      it("get position's token0, token1, amount0, amount1 by LiquidityRouter", async function () {
         const tokenIds = await fund.connect(manager1).getTokenIds(fundId1, manager1.address)
-        const tokenAmount = await oracle.connect(manager1).getPositionTokenAmount(tokenIds[0].toNumber())
+        const tokenAmount = await liquidityRouter.connect(manager1).getPositionTokenAmount(tokenIds[0].toNumber())
       })
 
       it("collect position fee", async function () {
@@ -577,14 +560,12 @@ describe('DotoliFund', () => {
       const swapInputAmount = BigNumber.from(10000)
       const amountOutMinimum = BigNumber.from(1)
       const params = exactInputParams(
-        fundId1,
-        manager1.address,
         tokens,
         swapInputAmount,
         amountOutMinimum
       )
 
-      await expect(fund.connect(investor1).swap(params, { value: 0 })).to.be.reverted
+      await expect(fund.connect(investor1).swap(fundId1, investor1.address, params, { value: 0 })).to.be.reverted
     })
 
     it("investor1 subscribe to fund1", async function () {
@@ -693,15 +674,13 @@ describe('DotoliFund', () => {
         const amountOutMinimum = BigNumber.from(1)
 
         const params = exactInputSingleParams(
-          fundId1,
-          investor1.address,
           WETH9,
           UNI, 
           swapInputAmount, 
           amountOutMinimum, 
           BigNumber.from(0)
         )
-        await expect(fund.connect(investor1).swap(params, { value: 0 })).to.be.reverted
+        await expect(fund.connect(investor1).swap(fundId1, investor1.address, params, { value: 0 })).to.be.reverted
       })
 
       it("#exactOutputSingle", async function () {
@@ -709,15 +688,13 @@ describe('DotoliFund', () => {
         const amountInMaximum = BigNumber.from(100000)
 
         const params = exactOutputSingleParams(
-          fundId1,
-          investor1.address,
           WETH9, 
           UNI, 
           swapOutputAmount, 
           amountInMaximum, 
           BigNumber.from(0)
         )
-        await expect(fund.connect(investor1).swap(params, { value: 0 })).to.be.reverted
+        await expect(fund.connect(investor1).swap(fundId1, investor1.address, params, { value: 0 })).to.be.reverted
       })
 
       it("#exactInput", async function () {
@@ -726,13 +703,11 @@ describe('DotoliFund', () => {
         const amountOutMinimum = BigNumber.from(1)
 
         const params = exactInputParams(
-          fundId1,
-          investor1.address,
           tokens,
           swapInputAmount,
           amountOutMinimum
         )
-        await expect(fund.connect(investor1).swap(params, { value: 0 })).to.be.reverted
+        await expect(fund.connect(investor1).swap(fundId1, investor1.address, params, { value: 0 })).to.be.reverted
       })
 
       it("#exactOutput", async function () {
@@ -741,13 +716,11 @@ describe('DotoliFund', () => {
         const amountInMaximum = BigNumber.from(100000)
 
         const params = exactOutputParams(
-          fundId1,
-          investor1.address,
           tokens,
           swapOutputAmount,
           amountInMaximum
         )
-        await expect(fund.connect(investor1).swap(params, { value: 0 })).to.be.reverted
+        await expect(fund.connect(investor1).swap(fundId1, investor1.address, params, { value: 0 })).to.be.reverted
       })
     })
 
@@ -762,15 +735,13 @@ describe('DotoliFund', () => {
 
         //swap
         const params = exactInputSingleParams(
-          fundId1,
-          investor1.address,
           WETH9,
           UNI, 
           swapInputAmount, 
           amountOutMinimum, 
           BigNumber.from(0)
         )
-        await fund.connect(manager1).swap(params, { value: 0 })
+        await fund.connect(manager1).swap(fundId1, investor1.address, params, { value: 0 })
 
         const fund1Middle = await getFundAccount(fundId1)
         const investor1Middle = await getInvestorAccount(fundId1, investor1.address)
@@ -808,15 +779,13 @@ describe('DotoliFund', () => {
         const manager1Before = await getInvestorAccount(fundId1, manager1.address)
 
         const params = exactOutputSingleParams(
-          fundId1,
-          investor1.address,
           WETH9, 
           UNI, 
           swapOutputAmount, 
           amountInMaximum, 
           BigNumber.from(0)
         )
-        await fund.connect(manager1).swap(params, { value: 0 })
+        await fund.connect(manager1).swap(fundId1, investor1.address, params, { value: 0 })
 
         const fund1Middle = await getFundAccount(fundId1)
         const investor1Middle = await getInvestorAccount(fundId1, investor1.address)
@@ -852,13 +821,11 @@ describe('DotoliFund', () => {
         const investor1Before = await getInvestorAccount(fundId1, investor1.address)
 
         const params = exactInputParams(
-          fundId1,
-          investor1.address,
           tokens,
           swapInputAmount,
           amountOutMinimum
         )
-        await fund.connect(manager1).swap(params, { value: 0 })
+        await fund.connect(manager1).swap(fundId1, investor1.address, params, { value: 0 })
 
         const fund1Middle = await getFundAccount(fundId1)
         const investor1Middle = await getInvestorAccount(fundId1, investor1.address)
@@ -897,13 +864,11 @@ describe('DotoliFund', () => {
         const manager1Before = await getInvestorAccount(fundId1, manager1.address)
 
         const params = exactOutputParams(
-          fundId1,
-          investor1.address,
           tokens,
           swapOutputAmount,
           amountInMaximum
         )
-        await fund.connect(manager1).swap(params, { value: 0 })
+        await fund.connect(manager1).swap(fundId1, investor1.address, params, { value: 0 })
 
         const fund1Middle = await getFundAccount(fundId1)
         const investor1Middle = await getInvestorAccount(fundId1, investor1.address)
@@ -967,9 +932,9 @@ describe('DotoliFund', () => {
         await fund.connect(manager1).increaseLiquidity(params, { value: 0 })
       })
 
-      it("UniswapV3Oracle get token0, token1, amount0, amount1", async function () {
+      it("LiquidityRouter get token0, token1, amount0, amount1", async function () {
         const tokenIds = await fund.connect(manager1).getTokenIds(fundId1, investor1.address)
-        const tokenAmount = await oracle.connect(manager1).getPositionTokenAmount(tokenIds[0].toNumber())
+        const tokenAmount = await liquidityRouter.connect(manager1).getPositionTokenAmount(tokenIds[0].toNumber())
       })
 
       it("collect position fee", async function () {
@@ -1020,9 +985,9 @@ describe('DotoliFund', () => {
 
       it("get manager1, investor1 position's token0, token1, amount0, amount1 in fund1", async function () {
         const manager1TokenIds = await fund.connect(manager1).getTokenIds(fundId1, manager1.address)
-        const manager1TokenAmount = await oracle.connect(manager1).getPositionTokenAmount(manager1TokenIds[0].toNumber())
+        const manager1TokenAmount = await liquidityRouter.connect(manager1).getPositionTokenAmount(manager1TokenIds[0].toNumber())
         const investor1TokenIds = await fund.connect(investor1).getTokenIds(fundId1, investor1.address)
-        const investor1TokenAmount = await oracle.connect(investor1).getPositionTokenAmount(investor1TokenIds[0].toNumber())
+        const investor1TokenAmount = await liquidityRouter.connect(investor1).getPositionTokenAmount(investor1TokenIds[0].toNumber())
         // console.log('manager1 tokenId :', manager1TokenAmount)
         // console.log('investor1 tokenId :', investor1TokenAmount)
       })
@@ -1279,13 +1244,11 @@ describe('DotoliFund', () => {
       const swapInputAmount = BigNumber.from(10000)
       const amountOutMinimum = BigNumber.from(1)
       const params = exactInputParams(
-        fundId2,
-        manager1.address,
         tokens,
         swapInputAmount,
         amountOutMinimum
       )
-      await expect(fund.connect(manager1).swap(params, { value: 0 })).to.be.reverted
+      await expect(fund.connect(manager1).swap(fundId2, manager1.address, params, { value: 0 })).to.be.reverted
     })
 
     it("manager2 fail to deposit, withdraw and swap to fund1", async function () {
@@ -1305,13 +1268,11 @@ describe('DotoliFund', () => {
       const swapInputAmount = BigNumber.from(10000)
       const amountOutMinimum = BigNumber.from(1)
       const params = exactInputParams(
-        fundId1,
-        manager2.address,
         tokens,
         swapInputAmount,
         amountOutMinimum
       )
-      await expect(fund.connect(manager2).swap(params, { value: 0 })).to.be.reverted
+      await expect(fund.connect(manager2).swap(fundId1, manager2.address, params, { value: 0 })).to.be.reverted
     })
 
     it("manager1 subscribe to manager2", async function () {
@@ -1504,15 +1465,13 @@ describe('DotoliFund', () => {
         const amountOutMinimum = BigNumber.from(1)
 
         const params = exactInputSingleParams(
-          fundId2,
-          manager1.address,
           WETH9,
           UNI, 
           swapInputAmount, 
           amountOutMinimum, 
           BigNumber.from(0)
         )
-        await expect(fund.connect(manager1).swap(params, { value: 0 })).to.be.reverted
+        await expect(fund.connect(manager1).swap(fundId2, manager1.address, params, { value: 0 })).to.be.reverted
       })
 
       it("#exactOutputSingle", async function () {
@@ -1520,15 +1479,13 @@ describe('DotoliFund', () => {
         const amountInMaximum = BigNumber.from(100000)
 
         const params = exactOutputSingleParams(
-          fundId2,
-          manager1.address,
           WETH9, 
           UNI, 
           swapOutputAmount, 
           amountInMaximum, 
           BigNumber.from(0)
         )
-        await expect(fund.connect(manager1).swap(params, { value: 0 })).to.be.reverted
+        await expect(fund.connect(manager1).swap(fundId2, manager1.address, params, { value: 0 })).to.be.reverted
       })
 
       it("#exactInput", async function () {
@@ -1537,13 +1494,11 @@ describe('DotoliFund', () => {
         const amountOutMinimum = BigNumber.from(1)
 
         const params = exactInputParams(
-          fundId2,
-          manager1.address,
           tokens,
           swapInputAmount,
           amountOutMinimum
         )
-        await expect(fund.connect(manager1).swap(params, { value: 0 })).to.be.reverted
+        await expect(fund.connect(manager1).swap(fundId2, manager1.address, params, { value: 0 })).to.be.reverted
       })
 
       it("#exactOutput", async function () {
@@ -1552,13 +1507,11 @@ describe('DotoliFund', () => {
         const amountInMaximum = BigNumber.from(100000)
 
         const params = exactOutputParams(
-          fundId2,
-          manager1.address,
           tokens,
           swapOutputAmount,
           amountInMaximum
         )
-        await expect(fund.connect(manager1).swap(params, { value: 0 })).to.be.reverted
+        await expect(fund.connect(manager1).swap(fundId2, manager1.address, params, { value: 0 })).to.be.reverted
       })
     })
 
@@ -1573,15 +1526,13 @@ describe('DotoliFund', () => {
 
         //swap
         const params = exactInputSingleParams(
-          fundId2,
-          manager1.address,
           WETH9,
           UNI, 
           swapInputAmount, 
           amountOutMinimum, 
           BigNumber.from(0)
         )
-        await fund.connect(manager2).swap(params, { value: 0 })
+        await fund.connect(manager2).swap(fundId2, manager1.address, params, { value: 0 })
 
         const fund2Middle = await getFundAccount(fundId2)
         const manager1Middle = await getInvestorAccount(fundId2, manager1.address)
@@ -1618,15 +1569,13 @@ describe('DotoliFund', () => {
         const manager2Before = await getInvestorAccount(fundId2, manager2.address)
 
         const params = exactOutputSingleParams(
-          fundId2,
-          manager1.address,
           WETH9, 
           UNI, 
           swapOutputAmount, 
           amountInMaximum, 
           BigNumber.from(0)
         )
-        await fund.connect(manager2).swap(params, { value: 0 })
+        await fund.connect(manager2).swap(fundId2, manager1.address, params, { value: 0 })
 
         const fund2Middle = await getFundAccount(fundId2)
         const manager1Middle = await getInvestorAccount(fundId2, manager1.address)
@@ -1662,13 +1611,11 @@ describe('DotoliFund', () => {
         const manager1Before = await getInvestorAccount(fundId2, manager1.address)
 
         const params = exactInputParams(
-          fundId2,
-          manager1.address,
           tokens,
           swapInputAmount,
           amountOutMinimum
         )
-        await fund.connect(manager2).swap(params, { value: 0 })
+        await fund.connect(manager2).swap(fundId2, manager1.address, params, { value: 0 })
 
         const fund2Middle = await getFundAccount(fundId2)
         const manager1Middle = await getInvestorAccount(fundId2, manager1.address)
@@ -1707,13 +1654,11 @@ describe('DotoliFund', () => {
         const manager2Before = await getInvestorAccount(fundId2, manager2.address)
 
         const params = exactOutputParams(
-          fundId2,
-          manager1.address,
           tokens,
           swapOutputAmount,
           amountInMaximum
         )
-        await fund.connect(manager2).swap(params, { value: 0 })
+        await fund.connect(manager2).swap(fundId2, manager1.address, params, { value: 0 })
 
         const fund2Middle = await getFundAccount(fundId2)
         const manager1Middle = await getInvestorAccount(fundId2, manager1.address)
@@ -1752,15 +1697,13 @@ describe('DotoliFund', () => {
 
         //swap
         const params = exactInputSingleParams(
-          fundId2,
-          manager2.address,
           WETH9,
           UNI, 
           swapInputAmount, 
           amountOutMinimum, 
           BigNumber.from(0)
         )
-        await fund.connect(manager2).swap(params, { value: 0 })
+        await fund.connect(manager2).swap(fundId2, manager2.address, params, { value: 0 })
 
         const fund2Middle = await getFundAccount(fundId2)
         const manager2Middle = await getInvestorAccount(fundId2, manager2.address)
@@ -1792,15 +1735,13 @@ describe('DotoliFund', () => {
         const manager2Before = await getInvestorAccount(fundId2, manager2.address)
 
         const params = exactOutputSingleParams(
-          fundId2,
-          manager2.address,
           WETH9, 
           UNI, 
           swapOutputAmount, 
           amountInMaximum, 
           BigNumber.from(0)
         )
-        await fund.connect(manager2).swap(params, { value: 0 })
+        await fund.connect(manager2).swap(fundId2, manager2.address, params, { value: 0 })
 
         const fund2Middle = await getFundAccount(fundId2)
         const manager2Middle = await getInvestorAccount(fundId2, manager2.address)
@@ -1831,13 +1772,11 @@ describe('DotoliFund', () => {
         const manager2Before = await getInvestorAccount(fundId2, manager2.address)
 
         const params = exactInputParams(
-          fundId2,
-          manager2.address,
           tokens,
           swapInputAmount,
           amountOutMinimum
         )
-        await fund.connect(manager2).swap(params, { value: 0 })
+        await fund.connect(manager2).swap(fundId2, manager2.address, params, { value: 0 })
 
         const fund2Middle = await getFundAccount(fundId2)
         const manager2Middle = await getInvestorAccount(fundId2, manager2.address)
@@ -1870,13 +1809,11 @@ describe('DotoliFund', () => {
         const manager2Before = await getInvestorAccount(fundId2, manager2.address)
 
         const params = exactOutputParams(
-          fundId2,
-          manager2.address,
           tokens,
           swapOutputAmount,
           amountInMaximum
         )
-        await fund.connect(manager2).swap(params, { value: 0 })
+        await fund.connect(manager2).swap(fundId2, manager2.address, params, { value: 0 })
 
         const fund2Middle = await getFundAccount(fundId2)
         const manager2Middle = await getInvestorAccount(fundId2, manager2.address)
@@ -1932,9 +1869,9 @@ describe('DotoliFund', () => {
         await fund.connect(manager2).increaseLiquidity(params, { value: 0 })
       })
 
-      it("UniswapV3Oracle get token0, token1, amount0, amount1", async function () {
+      it("LiquidityRouter get token0, token1, amount0, amount1", async function () {
         const tokenIds = await fund.connect(manager2).getTokenIds(fundId2, manager1.address)
-        const tokenAmount = await oracle.connect(manager2).getPositionTokenAmount(tokenIds[0].toNumber())
+        const tokenAmount = await liquidityRouter.connect(manager2).getPositionTokenAmount(tokenIds[0].toNumber())
       })
 
       it("collect position fee", async function () {
@@ -1997,9 +1934,9 @@ describe('DotoliFund', () => {
         await fund.connect(manager2).increaseLiquidity(params, { value: 0 })
       })
 
-      it("UniswapV3Oracle get token0, token1, amount0, amount1", async function () {
+      it("LiquidityRouter get token0, token1, amount0, amount1", async function () {
         const tokenIds = await fund.connect(manager2).getTokenIds(fundId2, manager2.address)
-        const tokenAmount = await oracle.connect(manager2).getPositionTokenAmount(tokenIds[0].toNumber())
+        const tokenAmount = await liquidityRouter.connect(manager2).getPositionTokenAmount(tokenIds[0].toNumber())
       })
 
       it("collect position fee", async function () {
@@ -2049,9 +1986,9 @@ describe('DotoliFund', () => {
 
       it("get manager1, manager2 position's token0, token1, amount0, amount1 in fund2", async function () {
         const manager1TokenIds = await fund.connect(manager2).getTokenIds(fundId2, manager1.address)
-        const manager1TokenAmount = await oracle.connect(manager2).getPositionTokenAmount(manager1TokenIds[0].toNumber())
+        const manager1TokenAmount = await liquidityRouter.connect(manager2).getPositionTokenAmount(manager1TokenIds[0].toNumber())
         const manager2TokenIds = await fund.connect(manager2).getTokenIds(fundId2, manager2.address)
-        const manager2TokenAmount = await oracle.connect(manager2).getPositionTokenAmount(manager2TokenIds[0].toNumber())
+        const manager2TokenAmount = await liquidityRouter.connect(manager2).getPositionTokenAmount(manager2TokenIds[0].toNumber())
       })
 
       it("get manager1, manager2 investor tokens in fund2", async function () {
@@ -2361,15 +2298,13 @@ describe('DotoliFund', () => {
 
         //swap
         const params = exactInputSingleParams(
-          fundId1,
-          manager2.address,
           WETH9,
           UNI, 
           swapInputAmount, 
           amountOutMinimum, 
           BigNumber.from(0)
         )
-        await fund.connect(manager1).swap(params, { value: 0 })
+        await fund.connect(manager1).swap(fundId1, manager2.address, params, { value: 0 })
 
         const fund1Middle = await getFundAccount(fundId1)
         const manager1Middle = await getInvestorAccount(fundId1, manager1.address)
@@ -2407,15 +2342,13 @@ describe('DotoliFund', () => {
         const manager1Before = await getInvestorAccount(fundId1, manager1.address)
 
         const params = exactOutputSingleParams(
-          fundId1,
-          manager2.address,
           WETH9, 
           UNI, 
           swapOutputAmount, 
           amountInMaximum, 
           BigNumber.from(0)
         )
-        await fund.connect(manager1).swap(params, { value: 0 })
+        await fund.connect(manager1).swap(fundId1, manager2.address, params, { value: 0 })
 
         const fund1Middle = await getFundAccount(fundId1)
         const manager2Middle = await getInvestorAccount(fundId1, manager2.address)
@@ -2451,13 +2384,11 @@ describe('DotoliFund', () => {
         const manager2Before = await getInvestorAccount(fundId1, manager2.address)
 
         const params = exactInputParams(
-          fundId1,
-          manager2.address,
           tokens,
           swapInputAmount,
           amountOutMinimum
         )
-        await fund.connect(manager1).swap(params, { value: 0 })
+        await fund.connect(manager1).swap(fundId1, manager2.address, params, { value: 0 })
 
         const fund1Middle = await getFundAccount(fundId1)
         const manager2Middle = await getInvestorAccount(fundId1, manager2.address)
@@ -2496,13 +2427,11 @@ describe('DotoliFund', () => {
         const manager1Before = await getInvestorAccount(fundId1, manager1.address)
 
         const params = exactOutputParams(
-          fundId1,
-          manager2.address,
           tokens,
           swapOutputAmount,
           amountInMaximum
         )
-        await fund.connect(manager1).swap(params, { value: 0 })
+        await fund.connect(manager1).swap(fundId1, manager2.address, params, { value: 0 })
 
         const fund1Middle = await getFundAccount(fundId1)
         const manager2Middle = await getInvestorAccount(fundId1, manager2.address)
@@ -2589,9 +2518,9 @@ describe('DotoliFund', () => {
         await fund.connect(manager1).increaseLiquidity(params, { value: 0 })
       })
 
-      it("UniswapV3Oracle get token0, token1, amount0, amount1", async function () {
+      it("LiquidityRouter get token0, token1, amount0, amount1", async function () {
         const tokenIds = await fund.connect(manager1).getTokenIds(fundId1, manager2.address)
-        const tokenAmount = await oracle.connect(manager2).getPositionTokenAmount(tokenIds[0].toNumber())
+        const tokenAmount = await liquidityRouter.connect(manager2).getPositionTokenAmount(tokenIds[0].toNumber())
       })
 
       it("collect position fee", async function () {
@@ -2621,9 +2550,9 @@ describe('DotoliFund', () => {
 
       it("get manager1, manager2 position's token0, token1, amount0, amount1 in fund1", async function () {
         const manager1TokenIds = await fund.connect(manager1).getTokenIds(fundId1, manager1.address)
-        const manager1TokenAmount = await oracle.connect(manager1).getPositionTokenAmount(manager1TokenIds[0].toNumber())
+        const manager1TokenAmount = await liquidityRouter.connect(manager1).getPositionTokenAmount(manager1TokenIds[0].toNumber())
         const manager2TokenIds = await fund.connect(manager1).getTokenIds(fundId1, manager2.address)
-        const manager2TokenAmount = await oracle.connect(manager1).getPositionTokenAmount(manager2TokenIds[0].toNumber())
+        const manager2TokenAmount = await liquidityRouter.connect(manager1).getPositionTokenAmount(manager2TokenIds[0].toNumber())
         // console.log('manager1 tokenId :', manager1TokenAmount)
         // console.log('manager2 tokenId :', manager2TokenAmount)
       })
@@ -2720,9 +2649,9 @@ describe('DotoliFund', () => {
 
       it("get manager1, manager2 position's token0, token1, amount0, amount1 in fund1", async function () {
         const manager1TokenIds = await fund.connect(manager1).getTokenIds(fundId1, manager1.address)
-        const manager1TokenAmount = await oracle.connect(manager1).getPositionTokenAmount(manager1TokenIds[0].toNumber())
+        const manager1TokenAmount = await liquidityRouter.connect(manager1).getPositionTokenAmount(manager1TokenIds[0].toNumber())
         const manager2TokenIds = await fund.connect(manager1).getTokenIds(fundId1, manager2.address)
-        const manager2TokenAmount = await oracle.connect(manager1).getPositionTokenAmount(manager2TokenIds[0].toNumber())
+        const manager2TokenAmount = await liquidityRouter.connect(manager1).getPositionTokenAmount(manager2TokenIds[0].toNumber())
         // console.log('manager1 tokenId :', manager1TokenAmount)
         // console.log('manager2 tokenId :', manager2TokenAmount)
       })
@@ -2955,15 +2884,13 @@ describe('DotoliFund', () => {
 
         //swap
         const params = exactInputSingleParams(
-          fundId2,
-          manager1.address,
           UNI,
           WETH9, 
           swapInputAmount, 
           amountOutMinimum, 
           BigNumber.from(0)
         )
-        await fund.connect(manager2).swap(params, { value: 0 })
+        await fund.connect(manager2).swap(fundId2, manager1.address, params, { value: 0 })
 
         const fund2After = await getFundAccount(fundId2)
         const manager1After = await getInvestorAccount(fundId2, manager1.address)
@@ -2984,15 +2911,13 @@ describe('DotoliFund', () => {
 
         //swap
         const params = exactInputSingleParams(
-          fundId2,
-          manager1.address,
           WETH9,
           UNI, 
           swapInputAmount, 
           amountOutMinimum, 
           BigNumber.from(0)
         )
-        await expect(fund.connect(manager2).swap(params, { value: 0 })).to.be.reverted
+        await expect(fund.connect(manager2).swap(fundId2, manager1.address, params, { value: 0 })).to.be.reverted
       })
 
       it("fail mint position when not white list token", async function () {
@@ -3126,8 +3051,6 @@ describe('DotoliFund', () => {
         const link = '0x514910771AF9Ca656af840dff83E8264EcF986CA'
         const bat = '0x0D8775F648430679A709E98d2b0Cb6250d2887EF'
         const ocean = '0x967da4048cD07aB37855c090aAF366e4ce1b9F48'
-        const mana = '0x0F5D2fB29fb7d3CFeE444a200298f468908cC942'
-
 
         let isWBTCWLT = await factory.connect(manager1).whiteListTokens(WBTC)
         expect(isWBTCWLT).to.be.false
@@ -3135,9 +3058,6 @@ describe('DotoliFund', () => {
         expect(isUSDCWLT).to.be.false
         let isDAIWLT = await factory.connect(manager1).whiteListTokens(DAI)
         expect(isDAIWLT).to.be.false
-
-
-
         let isGitcoinWLT = await factory.connect(manager1).whiteListTokens(gitcoin)
         expect(isGitcoinWLT).to.be.false
         let isLivepeerWLT = await factory.connect(manager1).whiteListTokens(livepeer)
@@ -3156,9 +3076,6 @@ describe('DotoliFund', () => {
         expect(isBatWLT).to.be.false
         let isOceanWLT = await factory.connect(manager1).whiteListTokens(ocean)
         expect(isOceanWLT).to.be.false
-        let isManaWLT = await factory.connect(manager1).whiteListTokens(mana)
-        expect(isManaWLT).to.be.false
-
 
         console.log('WBTC')
         await expect(factory.connect(deployer).setWhiteListToken(WBTC)).to.be.reverted
@@ -3166,8 +3083,6 @@ describe('DotoliFund', () => {
         await expect(factory.connect(deployer).setWhiteListToken(USDC)).to.be.reverted
         console.log('DAI')
         await expect(factory.connect(deployer).setWhiteListToken(DAI)).to.be.reverted
-
-
         console.log('GTC')
         await expect(factory.connect(deployer).setWhiteListToken(gitcoin)).to.be.reverted
         console.log('LPT')
@@ -3186,8 +3101,6 @@ describe('DotoliFund', () => {
         await expect(factory.connect(deployer).setWhiteListToken(bat)).to.be.reverted
         console.log('OCEAN')
         await expect(factory.connect(deployer).setWhiteListToken(ocean)).to.be.reverted
-        console.log('MANA')
-        await expect(factory.connect(deployer).setWhiteListToken(mana)).to.be.reverted
       })
     })
   })
