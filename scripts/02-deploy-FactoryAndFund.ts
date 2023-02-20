@@ -15,10 +15,10 @@ async function main() {
   //goerli
   const WETH9 = '0xB4FBF271143F4FBf7B91A5ded31805e42b2208d6'
   //const UNI = '0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984'
-  const DOTOLI = '0x26B7f5B3a888a6306Aca0D73f42B27e906fd946A'
+  const DOTOLI = '0x7ef721d1B2D9c46A271d6796CdADE5beE2ed6978'
   
-  const SWAP_ROUTER = '0xaf75db6618d2955Db5580160958FC667a4a2Aa46'
-  const LIQUIDITY_ROUTER = '0xaf75db6618d2955Db5580160958FC667a4a2Aa46'
+  const SWAP_ROUTER = '0x166F02F1a9CDf608359793413B5c607E49F4Af15'
+  const LIQUIDITY_ROUTER = '0x2a0aEfAFbc005bb64Bf4f9Ffae0B9D976C3D057A'
 
   const DotoliFactory = await ethers.getContractFactory("DotoliFactory");
   const Factory = await DotoliFactory.deploy(WETH9, DOTOLI);
@@ -38,7 +38,7 @@ async function main() {
   console.log("Account balance:", (await test_account_1.getBalance()).toString());
 
   const factoryContract = await ethers.getContractAt("DotoliFactory", Factory.address)
-  const TimeLockAddress = '0xCBE1C35272735dEaF720bB6F1687651BD1bbFdF7';
+  const TimeLockAddress = '0x472840433F094a342eC12fA72E4e16488eba62Bb';
   const transferTx = await factoryContract.setOwner(TimeLockAddress)
   await transferTx.wait(1)
   console.log("Account balance:", (await test_account_1.getBalance()).toString());

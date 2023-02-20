@@ -24,8 +24,8 @@ contract DotoliFund is Token, IDotoliFund {
 
     uint256 public fundIdCount = 0;
 
-    mapping(address => uint256) public managingFund;
-    mapping(address => mapping(uint256 => uint256)) public investingFunds;
+    mapping(address => uint256) public managingFund;                        // managingFund[manager]
+    mapping(address => mapping(uint256 => uint256)) public investingFunds;  // investingFunds[investor]
     mapping(address => uint256) public investingFundCount;
 
     mapping(uint256 => address) public manager;                             // manager[fundId]
