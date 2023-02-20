@@ -3,13 +3,7 @@
 pragma solidity =0.7.6;
 pragma abicoder v2;
 
-import './IToken.sol';
-import './ISwapRouter.sol';
-import './ILiquidityRouter.sol';
-
 interface IDotoliFund is IToken {
-    event FundCreated(uint256 fundId, address indexed manager);
-    event Subscribe(uint256 fundId, address indexed investor);
     event Deposit(uint256 fundId, address indexed investor, address token, uint256 amount);
     event Withdraw(uint256 fundId, address indexed investor, address token, uint256 amount, uint256 feeAmount);
     event Swap(uint256 fundId, address indexed investor, address tokenIn, address tokenOut, uint256 amountIn, uint256 amountOut);
@@ -20,24 +14,76 @@ interface IDotoliFund is IToken {
     event CollectPositionFee(uint256 fundId, address indexed investor, address token0, address token1, uint256 amount0, uint256 amount1);
     event DecreaseLiquidity(uint256 fundId, address indexed investor, address token0, address token1, uint256 amount0, uint256 amount1);
 
-    function createFund() external returns (uint256 fundId);
+    enum SwapType{
+        EXACT_INPUT_SINGLE_HOP,
+        EXACT_INPUT_MULTI_HOP,
+        EXACT_OUTPUT_SINGLE_HOP,
+        EXACT_OUTPUT_MULTI_HOP
+    }
+
+    struct SwapParams {
+        SwapType swapType;
+        address tokenIn;
+        address tokenOut;
+        uint24 fee;
+        uint256 amountIn;
+        uint256 amountOut;
+        uint256 amountInMaximum;
+        uint256 amountOutMinimum;
+        uint160 sqrtPriceLimitX96;
+        bytes path;
+    }
+
+    struct MintParams {
+        uint256 fundId;
+        address investor;
+        address token0;
+        address token1;
+        uint24 fee;
+        int24 tickLower;
+        int24 tickUpper;
+        uint256 amount0Desired;
+        uint256 amount1Desired;
+        uint256 amount0Min;
+        uint256 amount1Min;
+        uint256 deadline;
+    }
+        
+    struct IncreaseLiquidityParams {
+        uint256 fundId;
+        address investor;
+        uint256 tokenId;
+        uint256 amount0Desired;
+        uint256 amount1Desired;
+        uint256 amount0Min;
+        uint256 amount1Min;
+        uint256 deadline;
+    }
+
+    struct CollectFeeParams {
+        uint256 fundId;
+        address investor;
+        uint256 tokenId;
+        uint128 amount0Max;
+        uint128 amount1Max;
+    }
+
+    struct DecreaseLiquidityParams {
+        uint256 fundId;
+        address investor;
+        uint256 tokenId;
+        uint128 liquidity;
+        uint256 amount0Min;
+        uint256 amount1Min;
+        uint256 deadline;
+    }
+
     function deposit(uint256 fundId, address _token, uint256 _amount) external;
     function withdraw(uint256 fundId, address _token, uint256 _amount) external payable;
     function swap(uint256 fundId, address investor, ISwapRouter.SwapParams[] calldata trades) external;
     function withdrawFee(uint256 fundId, address _token, uint256 _amount) external payable;
-    function mintNewPosition(ILiquidityRouter.MintParams calldata params) external returns (uint256 tokenId, uint128 liquidity, uint256 amount0, uint256 amount1);
-    function increaseLiquidity(ILiquidityRouter.IncreaseParams calldata params) external returns (uint128 liquidity, uint256 amount0, uint256 amount1);
-    function collectPositionFee(ILiquidityRouter.CollectParams calldata params) external returns (uint256 amount0, uint256 amount1);
-    function decreaseLiquidity(ILiquidityRouter.DecreaseParams calldata params) external returns (uint256 amount0, uint256 amount1);
-
-    function isSubscribed(address investor, uint256 fundId) external view returns (bool);
-    function subscribedFunds(address investor) external view returns (uint256[] memory);
-    function subscribe(uint256 fundId) external;
-
-    function getFundTokens(uint256 fundId) external view returns (Token[] memory);
-    function getInvestorTokens(uint256 fundId, address investor) external view returns (Token[] memory);
-    function getFeeTokens(uint256 fundId) external view returns (Token[] memory);
-    function getFundTokenAmount(uint256 fundId, address token) external view returns (uint256);
-    function getInvestorTokenAmount(uint256 fundId, address investor, address token) external view returns (uint256);
-    function getTokenIds(uint256 fundId, address investor) external view returns (uint256[] memory);
+    function mintNewPosition(MintParams calldata params) external returns (uint256 tokenId, uint128 liquidity, uint256 amount0, uint256 amount1);
+    function increaseLiquidity(IncreaseParams calldata params) external returns (uint128 liquidity, uint256 amount0, uint256 amount1);
+    function collectPositionFee(CollectParams calldata params) external returns (uint256 amount0, uint256 amount1);
+    function decreaseLiquidity(DecreaseParams calldata params) external returns (uint256 amount0, uint256 amount1);
 }

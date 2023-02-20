@@ -5,74 +5,30 @@ pragma abicoder v2;
 
 import '@uniswap/v3-periphery/contracts/libraries/Path.sol';
 import '@uniswap/v3-periphery/contracts/interfaces/external/IWETH9.sol';
-import './base/Token.sol';
+import '@uniswap/swap-router-contracts/contracts/interfaces/ISwapRouter02.sol';
+import '@uniswap/v3-periphery/contracts/interfaces/INonfungiblePositionManager.sol';
 import './interfaces/IERC20Minimal.sol';
-import './interfaces/ISwapRouter.sol';
-import './interfaces/ILiquidityRouter.sol';
 import './interfaces/IDotoliFactory.sol';
 import './interfaces/IDotoliFund.sol';
+import './interfaces/IDotoliInfo.sol';
 
 
-contract DotoliFund is Token, IDotoliFund {
+contract DotoliFund is IDotoliFund {
     
     using Path for bytes;
 
+    uint128 MAX_INT = 2**128 - 1;
+    address public constant swapRouter = 0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45;
+    address public constant nonfungiblePositionManager = 0xC36442b4a4522E871399CD717aBDD847Ab11FE88;
+
     address public factory;
     address public weth9;
-    address public swapRouter;
-    address public liquidityRouter;
+    address public dotoliInfo;
 
-    uint256 public fundIdCount = 0;
-
-    mapping(address => uint256) public managingFund;                        // managingFund[manager]
-    mapping(address => mapping(uint256 => uint256)) public investingFunds;  // investingFunds[investor]
-    mapping(address => uint256) public investingFundCount;
-
-    mapping(uint256 => address) public manager;                             // manager[fundId]
-    mapping(uint256 => Token[]) public fundTokens;                          // fundTokens[fundId]
-    mapping(uint256 => Token[]) public feeTokens;                           // feeTokens[fundId]
-    mapping(uint256 => mapping(address => Token[])) public investorTokens;  // investorTokens[fundId][investor]
-    mapping(uint256 => mapping(address => uint256[])) public tokenIds;      // tokenIds[fundId][investor]
-    mapping(uint256 => address) public tokenIdOwner;                        // tokenIdOwner[tokenId] => owner of uniswap v3 liquidity position
-    mapping(uint256 => uint256) public investorCount;                       // investorCount[fundId]
-
-    uint256 private unlocked = 1;
-    modifier lock() {
-        require(unlocked == 1, 'LOCKED');
-        unlocked = 0;
-        _;
-        unlocked = 1;
-    }
-
-    constructor(address _factory, address _weth9, address _swapRouter, address _liquidityRouter) {
+    constructor(address _factory, address _weth9) {
         factory = _factory;
         weth9 = _weth9;
-        swapRouter = _swapRouter;
-        liquidityRouter = _liquidityRouter;
-    }
-
-    function getFundTokens(uint256 fundId) external override view returns (Token[] memory) {
-        return fundTokens[fundId];
-    }
-
-    function getInvestorTokens(uint256 fundId, address investor) external override view returns (Token[] memory) {
-        return investorTokens[fundId][investor];
-    }
-
-    function getFeeTokens(uint256 fundId) external override view returns (Token[] memory) {
-        return feeTokens[fundId];
-    }
-
-    function getFundTokenAmount(uint256 fundId, address token) public override view returns (uint256) {
-        return getTokenAmount(fundTokens[fundId], token);
-    }
-
-    function getInvestorTokenAmount(uint256 fundId, address investor, address token) public override view returns (uint256) {
-        return getTokenAmount(investorTokens[fundId][investor], token);
-    }
-
-    function getTokenIds(uint256 fundId, address investor) external override view returns (uint256[] memory _tokenIds) {
-        _tokenIds = tokenIds[fundId][investor];
+        dotoliInfo = address(new DotoliInfo{salt: keccak256(abi.encode(address(this), msg.sender))}());
     }
 
     function decode(bytes memory data) private pure returns (bytes32 result) {
@@ -95,10 +51,11 @@ contract DotoliFund is Token, IDotoliFund {
         }
         uint256 fundId = converted;
 
-        require(isSubscribed(msg.sender, fundId), 'US');
+        bool isSubscribed = IDotoliInfo(dotoliInfo).isSubscribed(msg.sender, fundId);
+        require(isSubscribed, 'US');
         IWETH9(weth9).deposit{value: amount}();
-        increaseToken(fundTokens[fundId], weth9, amount);
-        increaseToken(investorTokens[fundId][msg.sender], weth9, amount);
+        IDotoliInfo(dotoliInfo).increaseFundToken(fundId, weth9, amount);
+        IDotoliInfo(dotoliInfo).increaseInvestorToken(fundId, msg.sender, weth9, amount);
         emit Deposit(fundId, msg.sender, weth9, amount);
     }
 
@@ -110,60 +67,22 @@ contract DotoliFund is Token, IDotoliFund {
         }
     }
 
-    function createFund() external override lock returns (uint256 fundId) {
-        require(managingFund[msg.sender] == 0, 'EXISTS');
-        fundId = ++fundIdCount;
-        managingFund[msg.sender] = fundId;
-        uint256 fundCount = investingFundCount[msg.sender];
-        investingFunds[msg.sender][fundCount] = fundId;
-        investingFundCount[msg.sender] += 1;
-        manager[fundId] = msg.sender;
-        emit FundCreated(fundId, msg.sender);
-    }
-
-    function isSubscribed(address investor, uint256 fundId) public override view returns (bool) {
-        uint256 fundCount = investingFundCount[investor];
-        for (uint256 i=0; i<fundCount; i++) {
-            if (fundId == investingFunds[investor][i]) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    function subscribedFunds(address investor) external override view returns (uint256[] memory){
-        uint256 fundCount = investingFundCount[investor];
-        uint256[] memory fundIds;
-        fundIds = new uint256[](fundCount);
-        for (uint256 i=0; i<fundCount; i++) {
-            fundIds[i] = investingFunds[investor][i];
-        }
-        return fundIds;
-    }
-
-    function subscribe(uint256 fundId) external override lock {
-        require(!isSubscribed(msg.sender, fundId), 'AR');
-        uint256 fundCount = investingFundCount[msg.sender];
-        investingFunds[msg.sender][fundCount] = fundId;
-        investingFundCount[msg.sender] += 1;
-        investorCount[fundId] += 1;
-        emit Subscribe(fundId, msg.sender);
-    }
-
     function deposit(uint256 fundId, address _token, uint256 _amount) external override lock {
+        bool isSubscribed = IDotoliInfo(dotoliInfo).isSubscribed(msg.sender, fundId);
         bool isWhiteListToken = IDotoliFactory(factory).whiteListTokens(_token);
-        require(isSubscribed(msg.sender, fundId), 'US');
+        require(isSubscribed, 'US');
         require(isWhiteListToken, 'NWT');
 
         IERC20Minimal(_token).transferFrom(msg.sender, address(this), _amount);
-        increaseToken(fundTokens[fundId], _token, _amount);
-        increaseToken(investorTokens[fundId][msg.sender], _token, _amount);
+        IDotoliInfo(dotoliInfo).increaseFundToken(fundId, _token, _amount);
+        IDotoliInfo(dotoliInfo).increaseInvestorToken(fundId, msg.sender, _token, _amount);
         emit Deposit(fundId, msg.sender, _token, _amount);
     }
 
     function withdraw(uint256 fundId, address _token, uint256 _amount) external payable override lock {
+        bool isSubscribed = IDotoliInfo(dotoliInfo).isSubscribed(msg.sender, fundId);
         uint256 tokenAmount = getTokenAmount(investorTokens[fundId][msg.sender], _token);
-        require(isSubscribed(msg.sender, fundId), 'US');
+        require(isSubscribed, 'US');
         require(tokenAmount >= _amount, 'NET');
 
         // msg.sender is manager
@@ -175,8 +94,8 @@ contract DotoliFund is Token, IDotoliFund {
             } else {
                 IERC20Minimal(_token).transfer(msg.sender, _amount);
             }
-            decreaseToken(fundTokens[fundId], _token, _amount);
-            decreaseToken(investorTokens[fundId][msg.sender], _token, _amount);
+            IDotoliInfo(dotoliInfo).decreaseFundToken(fundId, _token, _amount);
+            IDotoliInfo(dotoliInfo).decreaseInvestorToken(fundId, msg.sender, _token, _amount);
             emit Withdraw(fundId, msg.sender, _token, _amount, 0);
 
         // msg.sender is investor
@@ -185,7 +104,7 @@ contract DotoliFund is Token, IDotoliFund {
             uint256 managerFee = IDotoliFactory(factory).managerFee();
             uint256 feeAmount = _amount * managerFee / 10000 / 100;
             uint256 withdrawAmount = _amount - feeAmount;
-            decreaseToken(fundTokens[fundId], _token, withdrawAmount);
+            IDotoliInfo(dotoliInfo).decreaseFundToken(fundId, _token, withdrawAmount);
 
             if (_token == weth9) {
                 IWETH9(weth9).withdraw(withdrawAmount);
@@ -194,9 +113,9 @@ contract DotoliFund is Token, IDotoliFund {
             } else {
                 IERC20Minimal(_token).transfer(msg.sender, withdrawAmount);
             }
-            decreaseToken(investorTokens[fundId][msg.sender], _token, _amount);
+            IDotoliInfo(dotoliInfo).decreaseInvestorToken(fundId, msg.sender, _token, _amount);
             emit Withdraw(fundId, msg.sender, _token, withdrawAmount, feeAmount);
-            increaseToken(feeTokens[fundId], _token, feeAmount);
+            IDotoliInfo(dotoliInfo).increaseFeeToken(fundId, _token, feeAmount);
             emit DepositFee(fundId, msg.sender, _token, feeAmount);
         }
     }
@@ -209,76 +128,125 @@ contract DotoliFund is Token, IDotoliFund {
         uint256 swapFromAmount, 
         uint256 swapToAmount
     ) private {
-        decreaseToken(fundTokens[fundId], swapFrom, swapFromAmount);
-        decreaseToken(investorTokens[fundId][investor], swapFrom, swapFromAmount);
-        increaseToken(fundTokens[fundId], swapTo, swapToAmount);
-        increaseToken(investorTokens[fundId][investor], swapTo, swapToAmount);
+        IDotoliInfo(dotoliInfo).decreaseToken(fundId, swapFrom, swapFromAmount);
+        IDotoliInfo(dotoliInfo).decreaseToken(fundId, investor, swapFrom, swapFromAmount);
+        IDotoliInfo(dotoliInfo).increaseFundToken(fundId, swapTo, swapToAmount);
+        IDotoliInfo(dotoliInfo).increaseInvestorToken(fundId, investor, swapTo, swapToAmount);
         emit Swap(fundId, investor, swapFrom, swapTo, swapFromAmount, swapToAmount);
     }
 
-    function swap(uint256 fundId, address investor, ISwapRouter.SwapParams[] calldata trades) external override lock {
+    function swap(uint256 fundId, address investor, SwapParams[] calldata trades) external payable override lock {
+        require(fundId == IDotoliInfo(dotoliInfo).managingFund(msg.sender), 'NM');
+
         for(uint256 i=0; i<trades.length; i++) {
-            ISwapRouter.SwapParams memory param = trades[i];
-            require(msg.sender == manager[fundId], 'NM');
 
-            //exact input single
-            if (param.swapType == ISwapRouter.SwapType.EXACT_INPUT_SINGLE_HOP) {
-                require(IDotoliFactory(factory).whiteListTokens(param.tokenOut), 'NWT');
-                uint256 tokenBalance = getInvestorTokenAmount(fundId, investor, param.tokenIn);
-                require(param.amountIn <= tokenBalance, 'NET');
+            if (trades[i].swapType == SwapType.EXACT_INPUT_SINGLE_HOP) 
+            {
+                require(IDotoliFactory(factory).whiteListTokens(trades[i].tokenOut), 'NWT');
+                uint256 tokenBalance = IDotoliInfo(dotoliInfo).getInvestorTokenAmount(trades[i].investor, trades[i].tokenIn);
+                require(trades[i].amountIn <= tokenBalance, 'NET');
 
                 // approve
-                IERC20Minimal(param.tokenIn).approve(swapRouter, param.amountIn);
+                IERC20Minimal(trades[i].tokenIn).approve(swapRouter, trades[i].amountIn);
 
-                uint256 amountOut = ISwapRouter(swapRouter).swapRouter(param);
-                handleSwap(fundId, investor, param.tokenIn, param.tokenOut, param.amountIn, amountOut);
-
-            //exact input 
-            } else if (param.swapType == ISwapRouter.SwapType.EXACT_INPUT_MULTI_HOP) {
-                address tokenOut = ISwapRouter(swapRouter).getLastTokenFromPath(param.path);
-                (address tokenIn, , ) = param.path.decodeFirstPool();
+                ISwapRouter02.ExactInputSingleParams memory params =
+                    IV3SwapRouter.ExactInputSingleParams({
+                        tokenIn: trades[i].tokenIn,
+                        tokenOut: trades[i].tokenOut,
+                        fee: trades[i].fee,
+                        recipient: address(this),
+                        amountIn: trades[i].amountIn,
+                        amountOutMinimum: trades[i].amountOutMinimum,
+                        sqrtPriceLimitX96: 0
+                    });
+                uint256 amountOut = ISwapRouter02(swapRouter).exactInputSingle(params);
+                
+                handleSwap(fundId, trades[i].investor, trades[i].tokenIn, trades[i].tokenOut, trades[i].amountIn, amountOut);
+            } 
+            else if (trades[i].swapType == SwapType.EXACT_INPUT_MULTI_HOP) 
+            {
+                address tokenOut = getLastTokenFromPath(trades[i].path);
+                (address tokenIn, , ) = trades[i].path.decodeFirstPool();
                 require(IDotoliFactory(factory).whiteListTokens(tokenOut), 'NWT');
-                uint256 tokenBalance = getInvestorTokenAmount(fundId, investor, tokenIn);
-                require(param.amountIn <= tokenBalance, 'NET');
+                uint256 tokenBalance = IDotoliInfo(dotoliInfo).getInvestorTokenAmount(trades[i].investor, tokenIn);
+                require(trades[i].amountIn <= tokenBalance, 'NET');
 
                 // approve
-                IERC20Minimal(tokenIn).approve(swapRouter, param.amountIn);
+                IERC20Minimal(tokenIn).approve(swapRouter, trades[i].amountIn);
 
-                uint256 amountOut = ISwapRouter(swapRouter).swapRouter(param);
-                handleSwap(fundId, investor, tokenIn, tokenOut, param.amountIn, amountOut);
+                ISwapRouter02.ExactInputParams memory params =
+                    IV3SwapRouter.ExactInputParams({
+                        path: trades[i].path,
+                        recipient: address(this),
+                        amountIn: trades[i].amountIn,
+                        amountOutMinimum: trades[i].amountOutMinimum
+                    });
+                uint256 amountOut = ISwapRouter02(swapRouter).exactInput(params);
 
-            //exact output single
-            } else if (param.swapType == ISwapRouter.SwapType.EXACT_OUTPUT_SINGLE_HOP) {
-                require(IDotoliFactory(factory).whiteListTokens(param.tokenOut), 'NWT');
-                uint256 tokenBalance = getInvestorTokenAmount(fundId, investor, param.tokenIn);
-                require(param.amountIn <= tokenBalance, 'NET');
+                handleSwap(fundId, trades[i].investor, tokenIn, tokenOut, trades[i].amountIn, amountOut);
+            } 
+            else if (trades[i].swapType == SwapType.EXACT_OUTPUT_SINGLE_HOP) 
+            {
+                require(IDotoliFactory(factory).whiteListTokens(trades[i].tokenOut), 'NWT');
+                uint256 tokenBalance = IDotoliInfo(dotoliInfo).getInvestorTokenAmount(trades[i].investor, trades[i].tokenIn);
+                require(trades[i].amountIn <= tokenBalance, 'NET');
 
                 // approve
-                IERC20Minimal(param.tokenIn).approve(swapRouter, param.amountInMaximum);
+                IERC20Minimal(trades[i].tokenIn).approve(swapRouter, trades[i].amountInMaximum);
 
-                uint256 amountIn = ISwapRouter(swapRouter).swapRouter(param);
-                handleSwap(fundId, investor, param.tokenIn, param.tokenOut, amountIn, param.amountOut);
-            
-            //exact output
-            } else if (param.swapType == ISwapRouter.SwapType.EXACT_OUTPUT_MULTI_HOP) {
-                address tokenIn = ISwapRouter(swapRouter).getLastTokenFromPath(param.path);
-                (address tokenOut, , ) = param.path.decodeFirstPool();
+                ISwapRouter02.ExactOutputSingleParams memory params =
+                    IV3SwapRouter.ExactOutputSingleParams({
+                        tokenIn: trades[i].tokenIn,
+                        tokenOut: trades[i].tokenOut,
+                        fee: trades[i].fee,
+                        recipient: address(this),
+                        amountOut: trades[i].amountOut,
+                        amountInMaximum: trades[i].amountInMaximum,
+                        sqrtPriceLimitX96: 0
+                    });
+                uint256 amountIn = ISwapRouter02(swapRouter).exactOutputSingle(params);
+
+                // For exact output swaps, the amountInMaximum may not have all been spent.
+                if (amountIn < trades[i].amountInMaximum) {
+                    IERC20Minimal(trades[i].tokenIn).approve(swapRouter, 0);
+                }
+
+                handleSwap(fundId, trades[i].investor, trades[i].tokenIn, trades[i].tokenOut, amountIn, trades[i].amountOut);
+            } 
+            else if (trades[i].swapType == SwapType.EXACT_OUTPUT_MULTI_HOP) 
+            {
+                address tokenIn = getLastTokenFromPath(trades[i].path);
+                (address tokenOut, , ) = trades[i].path.decodeFirstPool();
                 require(IDotoliFactory(factory).whiteListTokens(tokenOut), 'NWT');
-                uint256 tokenBalance = getInvestorTokenAmount(fundId, investor, tokenIn);
-                require(param.amountInMaximum <= tokenBalance, 'NET');
+                uint256 tokenBalance = IDotoliInfo(dotoliInfo).getInvestorTokenAmount(trades[i].investor, tokenIn);
+                require(trades[i].amountInMaximum <= tokenBalance, 'NET');
 
                 // approve
-                IERC20Minimal(tokenIn).approve(swapRouter, param.amountInMaximum);
+                IERC20Minimal(tokenIn).approve(swapRouter, trades[i].amountInMaximum);
 
-                uint256 amountIn = ISwapRouter(swapRouter).swapRouter(param);
-                handleSwap(fundId, investor, tokenIn, tokenOut, amountIn, param.amountOut);
+                ISwapRouter02.ExactOutputParams memory params =
+                    IV3SwapRouter.ExactOutputParams({
+                        path: trades[i].path,
+                        recipient: address(this),
+                        amountOut: trades[i].amountOut,
+                        amountInMaximum: trades[i].amountInMaximum
+                    });
+                uint256 amountIn = ISwapRouter02(swapRouter).exactOutput(params);
+
+                // If the swap did not require the full amountInMaximum to achieve the exact amountOut then we approve the router to spend 0.
+                if (amountIn < trades[i].amountInMaximum) {
+                    IERC20Minimal(tokenIn).approve(swapRouter, 0);
+                }
+
+                handleSwap(fundId, trades[i].investor, tokenIn, tokenOut, amountIn, trades[i].amountOut);
             }
         }
     }
 
-    function withdrawFee(uint256 fundId, address token, uint256 amount) external payable override lock {
-        require(msg.sender == manager[fundId], 'NM');
-        bool isSuccess = decreaseToken(feeTokens[fundId], token, amount);
+    function withdrawFee(uint256 fundId, address token, uint256 amount) external payable override {
+        require(msg.sender == manager, 'NM');
+
+        bool isSuccess = IDotoliInfo(dotoliInfo).decreaseFeeToken(fundId, token, amount);
         if (isSuccess) {
             if (token == weth9) {
                 IWETH9(weth9).withdraw(amount);
@@ -287,102 +255,157 @@ contract DotoliFund is Token, IDotoliFund {
             } else {
                 IERC20Minimal(token).transfer(msg.sender, amount);
             }
-            decreaseToken(fundTokens[fundId], token, amount);
+            decreaseFundToken(fundId, token, amount);
         }
         emit WithdrawFee(fundId, msg.sender, token, amount);
     }
 
-    function mintNewPosition(ILiquidityRouter.MintParams calldata _params) external override lock returns (
-        uint256 tokenId, uint128 liquidity, uint256 amount0, uint256 amount1)
+    function mintNewPosition(MintParams calldata _params)
+        external
+        override
+        returns (
+            uint256 tokenId,
+            uint128 liquidity,
+            uint256 amount0,
+            uint256 amount1
+        )
     {
-        require(msg.sender == manager[_params.fundId], 'NM');
+        require(msg.sender == IDotoliInfo(dotoliInfo).manager(_params.fundId), 'NM');
 
         bool isToken0WhiteListToken = IDotoliFactory(factory).whiteListTokens(_params.token0);
         bool isToken1WhiteListToken = IDotoliFactory(factory).whiteListTokens(_params.token1);
         require(isToken0WhiteListToken, 'NWT0');
         require(isToken1WhiteListToken, 'NWT1');
-        uint256 token0Balance = getInvestorTokenAmount(_params.fundId, _params.investor, _params.token0);
-        uint256 token1Balance = getInvestorTokenAmount(_params.fundId, _params.investor, _params.token1);
+        uint256 token0Balance = IDotoliInfo(dotoliInfo).getInvestorTokenAmount(_params.fundId, _params.investor, _params.token0);
+        uint256 token1Balance = IDotoliInfo(dotoliInfo).getInvestorTokenAmount(_params.fundId, _params.investor, _params.token1);
         require(_params.amount0Desired <= token0Balance, 'NET0');
         require(_params.amount1Desired <= token1Balance, 'NET1');
 
-        IERC20Minimal(_params.token0).approve(liquidityRouter, _params.amount0Desired);
-        IERC20Minimal(_params.token1).approve(liquidityRouter, _params.amount1Desired);
+        IERC20Minimal(_params.token0).approve(NonfungiblePositionManager, _params.amount0Desired);
+        IERC20Minimal(_params.token1).approve(NonfungiblePositionManager, _params.amount1Desired);
 
-        (tokenId, liquidity, amount0, amount1) = ILiquidityRouter(liquidityRouter).mint(_params);
+        INonfungiblePositionManager.MintParams memory params =
+            INonfungiblePositionManager.MintParams({
+                token0: _params.token0,
+                token1: _params.token1,
+                fee: _params.fee,
+                tickLower: _params.tickLower,
+                tickUpper: _params.tickUpper,
+                amount0Desired: _params.amount0Desired,
+                amount1Desired: _params.amount1Desired,
+                amount0Min: _params.amount0Min,
+                amount1Min: _params.amount1Min,
+                recipient: address(this),
+                deadline: _params.deadline
+            });
 
-        (address token0, address token1) = ILiquidityRouter(liquidityRouter).getLiquidityToken(tokenId);
-        decreaseToken(fundTokens[_params.fundId], token0, amount0);
-        decreaseToken(fundTokens[_params.fundId], token1, amount1);
-        decreaseToken(investorTokens[_params.fundId][_params.investor], token0, amount0);
-        decreaseToken(investorTokens[_params.fundId][_params.investor], token1, amount1);
+        (tokenId, liquidity, amount0, amount1) = INonfungiblePositionManager(NonfungiblePositionManager).mint(params);
 
-        tokenIdOwner[tokenId] = _params.investor;
-        tokenIds[_params.fundId][_params.investor].push(tokenId);
+        IDotoliInfo(dotoliInfo).decreaseInvestorToken(_params.fundId, _params.investor, token0, amount0);
+        IDotoliInfo(dotoliInfo).decreaseInvestorToken(_params.fundId, _params.investor, token1, amount1);
+
+        (, , address token0, address token1, , , , , , , , ) 
+            = INonfungiblePositionManager(NonfungiblePositionManager).positions(tokenId);
+
+        positionOwner[tokenId] = _params.investor;
+        tokenIds[_params.investor].push(tokenId);
 
         emit MintNewPosition(_params.fundId, _params.investor, token0, token1, amount0, amount1);
     }
 
-    function increaseLiquidity(ILiquidityRouter.IncreaseParams calldata _params) 
-        external override lock returns (uint128 liquidity, uint256 amount0, uint256 amount1) 
+    function increaseLiquidity(IncreaseLiquidityParams calldata _params) 
+        external override returns (uint128 liquidity, uint256 amount0, uint256 amount1) 
     {
-        require(msg.sender == manager[_params.fundId], 'NM');
-        require(_params.investor == tokenIdOwner[_params.tokenId], 'NI');
+        require(msg.sender == IDotoliInfo(dotoliInfo).manager(_params.fundId), 'NM');
+        require(_params.investor == IDotoliInfo(dotoliInfo).positionOwner(_params.tokenId), 'NI');
 
-        (address token0, address token1) = ILiquidityRouter(liquidityRouter).getLiquidityToken(_params.tokenId);
+        (, , address token0, address token1, , , , , , , , ) 
+            = INonfungiblePositionManager(NonfungiblePositionManager).positions(_params.tokenId);
 
         bool isToken0WhiteListToken = IDotoliFactory(factory).whiteListTokens(token0);
         bool isToken1WhiteListToken = IDotoliFactory(factory).whiteListTokens(token1);
         require(isToken0WhiteListToken, 'NWT0');
         require(isToken1WhiteListToken, 'NWT1');
-        uint256 token0Balance = getInvestorTokenAmount(_params.fundId, _params.investor, token0);
-        uint256 token1Balance = getInvestorTokenAmount(_params.fundId, _params.investor, token1);
+        uint256 token0Balance = IDotoliInfo(dotoliInfo).getInvestorTokenAmount(_params.fundId, _params.investor, token0);
+        uint256 token1Balance = IDotoliInfo(dotoliInfo).getInvestorTokenAmount(_params.fundId, _params.investor, token1);
         require(_params.amount0Desired <= token0Balance, 'NET0');
         require(_params.amount1Desired <= token1Balance, 'NET1');
 
-        IERC20Minimal(token0).approve(liquidityRouter, _params.amount0Desired);
-        IERC20Minimal(token1).approve(liquidityRouter, _params.amount1Desired);
-        
-        (liquidity, amount0, amount1) = ILiquidityRouter(liquidityRouter).increase(_params);
+        IERC20Minimal(token0).approve(NonfungiblePositionManager, _params.amount0Desired);
+        IERC20Minimal(token1).approve(NonfungiblePositionManager, _params.amount1Desired);
 
-        decreaseToken(fundTokens[_params.fundId], token0, amount0);
-        decreaseToken(fundTokens[_params.fundId], token1, amount1);
-        decreaseToken(investorTokens[_params.fundId][_params.investor], token0, amount0);
-        decreaseToken(investorTokens[_params.fundId][_params.investor], token1, amount1);
+        INonfungiblePositionManager.IncreaseLiquidityParams memory params =
+            INonfungiblePositionManager.IncreaseLiquidityParams({
+                tokenId: _params.tokenId,
+                amount0Desired: _params.amount0Desired,
+                amount1Desired: _params.amount1Desired,
+                amount0Min: _params.amount0Min,
+                amount1Min: _params.amount1Min,
+                deadline: _params.deadline
+            });
+
+        (liquidity, amount0, amount1) = INonfungiblePositionManager(NonfungiblePositionManager).increaseLiquidity(params);
+
+        IDotoliInfo(dotoliInfo).decreaseInvestorToken(_params.fundId, _params.investor, token0, amount0);
+        IDotoliInfo(dotoliInfo).decreaseInvestorToken(_params.fundId, _params.investor, token1, amount1);
 
         emit IncreaseLiquidity(_params.fundId, _params.investor, token0, token1, amount0, amount1);
     }
 
-    function collectPositionFee(ILiquidityRouter.CollectParams calldata _params) 
-        external override lock returns (uint256 amount0, uint256 amount1) 
+    function collectPositionFee(CollectFeeParams calldata _params) 
+        external override returns (uint256 amount0, uint256 amount1) 
     {
-        require(msg.sender == tokenIdOwner[_params.tokenId] || msg.sender == manager[_params.fundId], 'NA');
-        require(_params.investor == tokenIdOwner[_params.tokenId], 'NI');
-        
-        (amount0, amount1) = ILiquidityRouter(liquidityRouter).collect(_params);
+        require(msg.sender == positionOwner[_params.tokenId] || msg.sender == manager, 'NA');
+        require(_params.investor == positionOwner[_params.tokenId], 'NI');
 
-        (address token0, address token1) = ILiquidityRouter(liquidityRouter).getLiquidityToken(_params.tokenId);
-        increaseToken(fundTokens[_params.fundId], token0, amount0);
-        increaseToken(fundTokens[_params.fundId], token1, amount1);
-        increaseToken(investorTokens[_params.fundId][_params.investor], token0, amount0);
-        increaseToken(investorTokens[_params.fundId][_params.investor], token1, amount1);
+        INonfungiblePositionManager.CollectParams memory params =
+            INonfungiblePositionManager.CollectParams({
+                tokenId: _params.tokenId,
+                recipient: address(this),
+                amount0Max: _params.amount0Max,
+                amount1Max: _params.amount1Max
+            });
+        (amount0, amount1) = INonfungiblePositionManager(NonfungiblePositionManager).collect(params);
+
+        (, , address token0, address token1, , , , , , , , ) 
+            = INonfungiblePositionManager(NonfungiblePositionManager).positions(_params.tokenId);
+
+        IDotoliInfo(dotoliInfo).increaseInvestorToken(_params.fundId, _params.investor, token0, amount0);
+        IDotoliInfo(dotoliInfo).increaseInvestorToken(_params.fundId, _params.investor, token1, amount1);
 
         emit CollectPositionFee(_params.fundId, _params.investor, token0, token1, amount0, amount1);
     }
 
-    function decreaseLiquidity(ILiquidityRouter.DecreaseParams calldata _params) 
-        external override lock returns (uint256 amount0, uint256 amount1) 
+    function decreaseLiquidity(DecreaseLiquidityParams calldata _params) 
+        external override returns (uint256 amount0, uint256 amount1) 
     {
-        require(msg.sender == tokenIdOwner[_params.tokenId] || msg.sender == manager[_params.fundId], 'NA');
-        require(_params.investor == tokenIdOwner[_params.tokenId], 'NI');
+        require(msg.sender == positionOwner[_params.tokenId] || msg.sender == manager, 'NA');
+        require(_params.investor == positionOwner[_params.tokenId], 'NI');
 
-        (amount0, amount1) = ILiquidityRouter(liquidityRouter).decrease(_params);
+        INonfungiblePositionManager.DecreaseLiquidityParams memory params =
+            INonfungiblePositionManager.DecreaseLiquidityParams({
+                tokenId: _params.tokenId,
+                liquidity: _params.liquidity,
+                amount0Min: _params.amount0Min,
+                amount1Min: _params.amount1Min,
+                deadline: _params.deadline
+            });
+        INonfungiblePositionManager(NonfungiblePositionManager).decreaseLiquidity(params);
 
-        (address token0, address token1) = ILiquidityRouter(liquidityRouter).getLiquidityToken(_params.tokenId);
-        increaseToken(fundTokens[_params.fundId], token0, amount0);
-        increaseToken(fundTokens[_params.fundId], token1, amount1);
-        increaseToken(investorTokens[_params.fundId][_params.investor], token0, amount0);
-        increaseToken(investorTokens[_params.fundId][_params.investor], token1, amount1);
+        INonfungiblePositionManager.CollectParams memory collectParams =
+            INonfungiblePositionManager.CollectParams({
+                tokenId: _params.tokenId,
+                recipient: address(this),
+                amount0Max: MAX_INT,
+                amount1Max: MAX_INT
+            });
+        (amount0, amount1) = INonfungiblePositionManager(NonfungiblePositionManager).collect(collectParams);
+
+        (, , address token0, address token1, , , , , , , , ) 
+            = INonfungiblePositionManager(NonfungiblePositionManager).positions(_params.tokenId);
+
+        IDotoliInfo(dotoliInfo).increaseInvestorToken(_params.fundId, _params.investor, token0, amount0);
+        IDotoliInfo(dotoliInfo).increaseInvestorToken(_params.fundId, _params.investor, token1, amount1);
 
         emit DecreaseLiquidity(_params.fundId, _params.investor, token0, token1, amount0, amount1);
     }
