@@ -1,23 +1,45 @@
-import { Wallet, constants, BigNumber, Contract } from 'ethers'
+import { Wallet, constants, BigNumber, ContractTransaction, Contract } from 'ethers'
 import { expect } from "chai"
 import { ethers, waffle } from 'hardhat'
+import { LiquidityOracle } from '../typechain-types/contracts/LiquidityOracle'
 import { DotoliSetting } from '../typechain-types/contracts/DotoliSetting'
 import { DotoliInfo } from '../typechain-types/contracts/DotoliInfo'
 import { DotoliFund } from '../typechain-types/contracts/DotoliFund'
-
+import { encodePath } from './shared/path'
 import { 
-  NULL_ADDRESS,
+  exactInputSingleParams,
+  exactOutputSingleParams,
+  exactInputParams,
+  exactOutputParams
+} from './shared/swap'
+import { 
+  mintParams,
+  increaseParams,
+  collectParams,
+  decreaseParams
+} from './shared/liquidity'
+import { 
   DOTOLI,
   WETH9,
+  WBTC,
   USDC,
   UNI,
   DAI,
+  DOTOLI,
+  NULL_ADDRESS,
   V3_SWAP_ROUTER_ADDRESS,
-  UNISWAP_V3_FACTORY,
-  NonfungiblePositionManager,
+  WETH_CHARGE_AMOUNT,
+  DEPOSIT_AMOUNT,
+  WITHDRAW_AMOUNT,
   MANAGER_FEE,
   WHITE_LIST_TOKENS,
+  FeeAmount,
+  MaxUint128,
+  TICK_SPACINGS,
+  UNISWAP_V3_FACTORY,
+  NonfungiblePositionManager
 } from "./shared/constants"
+import { getMaxTick, getMinTick } from './shared/ticks'
 
 
 describe('WhiteListToken', () => {
@@ -25,29 +47,93 @@ describe('WhiteListToken', () => {
   let deployer: Wallet 
   let manager1: Wallet
   let manager2: Wallet
-  let investor: Wallet
+  let investor1: Wallet
   let investor2: Wallet
-  let noInvestor: Wallet
+  let notInvestor: Wallet
 
+  let oracleAddress: string
   let settingAddress: string
   let infoAddress: string
   let fundAddress: string
 
+  let oracle: Contract
   let setting: Contract
   let info: Contract
   let fund: Contract
+  let weth9: Contract
+  let uni: Contract
 
-  let fundId1: string
-  let fundId2: string
-  
+  let fundId1: BigNumber
+  let fundId2: BigNumber
+
+  let getFundAccount: (
+    fundId: BigNumber
+  ) => Promise<{
+    WETH: BigNumber,
+    UNI: BigNumber,
+  }>
+
+  let getInvestorAccount: (
+    fundId: BigNumber,
+    who: string
+  ) => Promise<{
+    weth9: BigNumber,
+    uni: BigNumber,
+    fundWETH: BigNumber,
+    fundUNI: BigNumber,
+    feeTokens : string[],
+  }>
+
   before('get signer', async () => {
-    [ deployer, 
-      manager1, 
-      manager2, 
-      investor, 
+    [ deployer,
+      manager1,
+      manager2,
+      investor1,
       investor2,
-      noInvestor
+      notInvestor
     ] = await (ethers as any).getSigners()
+
+    weth9 = await ethers.getContractAt("@uniswap/v3-periphery/contracts/interfaces/external/IWETH9.sol:IWETH9", WETH9)
+    uni = await ethers.getContractAt("@openzeppelin/contracts/token/ERC20/IERC20.sol:IERC20", UNI)
+
+    getInvestorAccount = async (fundId: BigNumber, who: string) => {
+      const balances = await Promise.all([
+        weth9.balanceOf(who),
+        uni.balanceOf(who),
+        info.connect(who).getInvestorTokenAmount(fundId, who, WETH9),
+        info.connect(who).getInvestorTokenAmount(fundId, who, UNI),
+      ])
+      return {
+        WETH9: balances[0],
+        UNI: balances[1],
+        fundWETH: balances[2],
+        fundUNI: balances[3],
+      }
+    }
+
+    getFundAccount = async (fundId: BigNumber) => {
+      const balances = await Promise.all([
+        info.connect(notInvestor).getFundTokenAmount(fundId, WETH9),
+        info.connect(notInvestor).getFundTokenAmount(fundId, UNI),
+        info.connect(notInvestor).getFeeTokens(fundId),
+      ])
+      return {
+        WETH9: balances[0],
+        UNI: balances[1],
+        feeTokens: balances[2],
+      }
+    }
+  })
+
+  before("Deploy LiquidityOracle Contract", async function () {
+    const LiquidityOracle = await ethers.getContractFactory("LiquidityOracle")
+    const Oracle = await LiquidityOracle.connect(deployer).deploy(
+      UNISWAP_V3_FACTORY,
+      NonfungiblePositionManager
+    )
+    await Oracle.deployed()
+    oracleAddress = Oracle.address
+    oracle = await ethers.getContractAt("LiquidityOracle", oracleAddress)
   })
 
   before("Deploy DotoliSetting Contract", async function () {
@@ -103,6 +189,117 @@ describe('WhiteListToken', () => {
     expect(fundIdCount).to.equal(BigNumber.from(2))
   })
 
+
+  describe('Deposit / Withdraw', () => {
+
+    it("investor1 subscribe to fund1", async function () {
+      await info.connect(investor1).subscribe(fundId1)
+    })
+
+    it("check investor1 is subscribed", async function () {
+      const isSubscribed = await info.connect(investor1).isSubscribed(investor1.address, fundId1)
+      expect(isSubscribed).to.be.true
+    })
+
+    it("convert ETH -> WETH", async function () {
+        const investor1Before = await getInvestorAccount(fundId1, investor1.address)
+
+        await weth9.connect(investor1).deposit({
+          from: investor1.address,
+          value: WETH_CHARGE_AMOUNT
+        })
+
+        const investor1After = await getInvestorAccount(fundId1, investor1.address)
+        expect(investor1After.WETH9).to.equal(investor1Before.WETH9.add(WETH_CHARGE_AMOUNT))
+    })
+
+    it("deposit ETH to fund1", async function () {
+      const fund1Before = await getFundAccount(fundId1)
+      const investor1Before = await getInvestorAccount(fundId1, investor1.address)
+
+      await investor1.sendTransaction({
+        to: fundAddress,
+        value: DEPOSIT_AMOUNT, // Sends exactly 1.0 ether
+        data: BigNumber.from(fundId1)
+      })
+
+      const fund1After = await getFundAccount(fundId1)
+      const investor1After = await getInvestorAccount(fundId1, investor1.address)
+
+      expect(fund1After.feeTokens).to.be.empty
+      expect(investor1After.fundWETH).to.equal(investor1Before.fundWETH.add(DEPOSIT_AMOUNT))
+      expect(fund1After.WETH9).to.equal(fund1Before.WETH9.add(DEPOSIT_AMOUNT))
+    })
+
+    it("withdraw ETH from fund1", async function () {
+      const fund1Before = await getFundAccount(fundId1)
+      const investor1Before = await getInvestorAccount(fundId1, investor1.address)
+
+      await fund.connect(investor1).withdraw(fundId1, WETH9, WITHDRAW_AMOUNT)
+      const fee = WITHDRAW_AMOUNT.mul(MANAGER_FEE).div(10000).div(100)
+      const investorWithdrawAmount = WITHDRAW_AMOUNT.sub(fee)
+
+      const fund1After = await getFundAccount(fundId1)
+      const investor1After = await getInvestorAccount(fundId1, investor1.address)
+      const manager1After = await getInvestorAccount(fundId1, manager1.address)
+
+      expect(investor1After.fundWETH).to.equal(investor1Before.fundWETH.sub(WITHDRAW_AMOUNT))
+      expect(fund1After.feeTokens[0][0]).to.equal(WETH9) // tokenAddress
+      expect(fund1After.feeTokens[0][1]).to.equal(fee) // amount
+      expect(fund1After.WETH9).to.equal(fund1Before.WETH9.sub(investorWithdrawAmount))
+    })
+  })
+
+  describe("investor1 swap WETH -> UNI, withdraw UNI", async function () {
+
+    it("swap + withdraw", async function () {
+      await setting.connect(deployer).setWhiteListToken(UNI)
+
+      const swapInputAmount = BigNumber.from(1000000)
+      const amountOutMinimum = BigNumber.from(1)
+
+      const fund1Before = await getFundAccount(fundId1)
+      const investor1Before = await getInvestorAccount(fundId1, investor1.address)
+
+      //swap
+      const params = exactInputSingleParams(
+        WETH9,
+        UNI, 
+        swapInputAmount, 
+        amountOutMinimum, 
+        BigNumber.from(0)
+      )
+      await fund.connect(manager1).swap(fundId1, investor1.address, params, { value: 0 })
+
+      const fund1Middle = await getFundAccount(fundId1)
+      const investor1Middle = await getInvestorAccount(fundId1, investor1.address)
+      const manager1Middle = await getInvestorAccount(fundId1, manager1.address)
+      const withdrawAmountUNI = BigNumber.from(investor1Middle.fundUNI).div(2)
+
+      expect(fund1Middle.WETH9).to.equal(fund1Before.WETH9.sub(swapInputAmount))
+      expect(investor1Middle.fundWETH).to.equal(investor1Before.fundWETH.sub(swapInputAmount))
+
+      //withdraw uni
+      await fund.connect(investor1).withdraw(fundId1, UNI, withdrawAmountUNI)
+
+      const fee = withdrawAmountUNI.mul(MANAGER_FEE).div(10000).div(100)
+      const investorWithdrawAmount = withdrawAmountUNI.sub(fee)
+
+      const fund1After = await getFundAccount(fundId1)
+      const investor1After = await getInvestorAccount(fundId1, investor1.address)
+      const manager1After = await getInvestorAccount(fundId1, manager1.address)
+
+      expect(investor1After.fundUNI).to.equal(investor1Middle.fundUNI.sub(withdrawAmountUNI))
+      expect(fund1After.feeTokens[0][0]).to.equal(WETH9) // weth9
+      expect(fund1After.feeTokens[0][1]).to.equal(fund1Middle.feeTokens[0][1])
+      expect(fund1After.feeTokens[1][0]).to.equal(UNI) // uni
+      expect(fund1After.feeTokens[1][1]).to.equal(fee)
+      expect(fund1After.UNI).to.equal(fund1Middle.UNI.sub(investorWithdrawAmount))
+
+      await setting.connect(deployer).resetWhiteListToken(UNI)
+    })
+  })
+
   describe("white list token test", async function () {
 
     it("can't reset weth9 or dotoli from WhiteListToken", async function () {
@@ -110,8 +307,8 @@ describe('WhiteListToken', () => {
       await expect(setting.connect(deployer).resetWhiteListToken(DOTOLI)).to.be.reverted
     })
 
-    it("can't set already white list token", async function () {
-      await expect(setting.connect(deployer).setWhiteListToken(UNI)).to.be.reverted
+    it("set UNI white list token", async function () {
+      await expect(setting.connect(deployer).setWhiteListToken(UNI))
     })
 
     it("can't reset not white list token ", async function () {
@@ -165,46 +362,38 @@ describe('WhiteListToken', () => {
       isUNIWhiteListToken = await setting.connect(manager1).whiteListTokens(UNI)
       expect(isUNIWhiteListToken).to.be.false
 
-      const fund2Before = await getFundAccount(fundId2)
-      const manager2Before = await getInvestorAccount(fundId2, manager2.address)
-
-      await uni.connect(manager2).approve(fundAddress, constants.MaxUint256)
-      await expect(fund.connect(manager2).deposit(fundId1, UNI, 100000)).to.be.reverted
+      await uni.connect(investor1).approve(fundAddress, constants.MaxUint256)
+      await expect(fund.connect(investor1).deposit(fundId1, UNI, 100000)).to.be.reverted
     })
 
     it("success withdraw when not white list token", async function () {
       let isUNIWhiteListToken = await setting.connect(manager1).whiteListTokens(UNI)
       expect(isUNIWhiteListToken).to.be.false
 
-      const fund2Before = await getFundAccount(fundId2)
-      const manager1Before = await getInvestorAccount(fundId2, manager1.address)
-      const manager2Before = await getInvestorAccount(fundId2, manager2.address)
+      const fund1Before = await getFundAccount(fundId1)
+      const investor1Before = await getInvestorAccount(fundId1, investor1.address)
 
       const withdraw_amount = ethers.utils.parseEther("0.000000000000001")
-      await fund.connect(manager1).withdraw(fundId2, UNI, withdraw_amount)
+      await fund.connect(investor1).withdraw(fundId1, UNI, withdraw_amount)
       const fee = withdraw_amount.mul(MANAGER_FEE).div(10000).div(100)
       const investorWithdrawAmount = withdraw_amount.sub(fee)
 
-      const fund2After = await getFundAccount(fundId2)
-      const manager1After = await getInvestorAccount(fundId2, manager1.address)
-      const manager2After = await getInvestorAccount(fundId2, manager2.address)
-
-      expect(manager1After.fundUNI).to.equal(manager1Before.fundUNI.sub(withdraw_amount))
-      expect(manager2After.feeTokens[1][0]).to.equal(UNI) // tokenAddress
-      expect(manager2After.feeTokens[1][1]).to.equal(manager2Before.feeTokens[1][1].add(fee)) // amount
-      expect(fund2After.UNI).to.equal(fund2Before.UNI.sub(investorWithdrawAmount))
+      const fund1After = await getFundAccount(fundId1)
+      const investor1After = await getInvestorAccount(fundId1, investor1.address)
+      expect(fund1After.feeTokens[1][0]).to.equal(UNI) // tokenAddress
+      expect(fund1After.feeTokens[1][1]).to.equal(fund1Before.feeTokens[1][1].add(fee)) // amount
+      expect(investor1After.UNI).to.equal(investor1Before.UNI.add(investorWithdrawAmount))
     })
 
     it("success fee out when not white list token", async function () {
       let isUNIWhiteListToken = await setting.connect(manager1).whiteListTokens(UNI)
       expect(isUNIWhiteListToken).to.be.false
 
-      const manager2Before = await getInvestorAccount(fundId2, manager2.address)
-      const feeTokens = await info.connect(manager2).getFeeTokens(fundId2)
-      await fund.connect(manager2).withdrawFee(fundId2, UNI, 100000)
-      const manager2After = await getInvestorAccount(fundId2, manager2.address)
+      const manager1Before = await getInvestorAccount(fundId1, manager1.address)
+      await fund.connect(manager1).withdrawFee(fundId1, UNI, 10000)
+      const manager1After = await getInvestorAccount(fundId1, manager1.address)
 
-      expect(manager2After.UNI).to.equal(manager2Before.UNI.add(100000))
+      expect(manager1After.UNI).to.equal(manager1Before.UNI.add(10000))
     })
 
     it("success swap in when not white list token", async function () {
@@ -214,8 +403,8 @@ describe('WhiteListToken', () => {
       const swapInputAmount = BigNumber.from(10000)
       const amountOutMinimum = BigNumber.from(1)
 
-      const fund2Before = await getFundAccount(fundId2)
-      const manager1Before = await getInvestorAccount(fundId2, manager1.address)
+      const fund1Before = await getFundAccount(fundId1)
+      const investor1Before = await getInvestorAccount(fundId1, investor1.address)
 
       //swap
       const params = exactInputSingleParams(
@@ -225,13 +414,13 @@ describe('WhiteListToken', () => {
         amountOutMinimum, 
         BigNumber.from(0)
       )
-      await fund.connect(manager2).swap(fundId2, manager1.address, params, { value: 0 })
+      await fund.connect(manager1).swap(fundId1, investor1.address, params, { value: 0 })
 
-      const fund2After = await getFundAccount(fundId2)
-      const manager1After = await getInvestorAccount(fundId2, manager1.address)
+      const fund1After = await getFundAccount(fundId1)
+      const investor1After = await getInvestorAccount(fundId1, investor1.address)
 
-      expect(fund2After.UNI).to.equal(fund2Before.UNI.sub(swapInputAmount))
-      expect(manager1After.fundUNI).to.equal(manager1Before.fundUNI.sub(swapInputAmount))
+      expect(fund1After.UNI).to.equal(fund1Before.UNI.sub(swapInputAmount))
+      expect(investor1After.fundUNI).to.equal(investor1Before.fundUNI.sub(swapInputAmount))
     })
 
     it("fail swap out when not white list token", async function () {
@@ -241,9 +430,6 @@ describe('WhiteListToken', () => {
       const swapInputAmount = BigNumber.from(10000)
       const amountOutMinimum = BigNumber.from(1)
 
-      const fund2Before = await getFundAccount(fundId2)
-      const manager1Before = await getInvestorAccount(fundId2, manager1.address)
-
       //swap
       const params = exactInputSingleParams(
         WETH9,
@@ -252,7 +438,7 @@ describe('WhiteListToken', () => {
         amountOutMinimum, 
         BigNumber.from(0)
       )
-      await expect(fund.connect(manager2).swap(fundId2, manager1.address, params, { value: 0 })).to.be.reverted
+      await expect(fund.connect(manager1).swap(fundId1, investor1.address, params, { value: 0 })).to.be.reverted
     })
 
     it("fail mint position when not white list token", async function () {
@@ -260,8 +446,8 @@ describe('WhiteListToken', () => {
       expect(isUNIWhiteListToken).to.be.false
 
       const params = mintParams(
-        WETH9,
         UNI,
+        WETH9,
         FeeAmount.MEDIUM,
         getMinTick(TICK_SPACINGS[FeeAmount.MEDIUM]),
         getMaxTick(TICK_SPACINGS[FeeAmount.MEDIUM]),
@@ -270,21 +456,48 @@ describe('WhiteListToken', () => {
         BigNumber.from(2000),
         BigNumber.from(10),
       )
-      await expect(fund.connect(manager2).mintNewPosition(
-        fundId2,
-        manager1.address,
+      await expect(fund.connect(manager1).mintNewPosition(
+        fundId1,
+        investor1.address,
         params, 
         { value: 0 }
       )).to.be.reverted
     })
 
+    it("success mint position when white list token", async function () {
+      let isUNIWhiteListToken = await setting.connect(manager1).whiteListTokens(UNI)
+      expect(isUNIWhiteListToken).to.be.false
+      await setting.connect(deployer).setWhiteListToken(UNI)
+
+      const params = mintParams(
+        UNI,
+        WETH9,
+        FeeAmount.MEDIUM,
+        getMinTick(TICK_SPACINGS[FeeAmount.MEDIUM]),
+        getMaxTick(TICK_SPACINGS[FeeAmount.MEDIUM]),
+        BigNumber.from(20000),
+        BigNumber.from(100),
+        BigNumber.from(2000),
+        BigNumber.from(10),
+      )
+
+      await fund.connect(manager1).mintNewPosition(
+        fundId1,
+        investor1.address,
+        params, 
+        { value: 0 }
+      )
+
+      await setting.connect(deployer).resetWhiteListToken(UNI)
+    })
+
+
     it("fail increase liquidity when not white list token", async function () {
       let isUNIWhiteListToken = await setting.connect(manager1).whiteListTokens(UNI)
       expect(isUNIWhiteListToken).to.be.false
 
-      const tokenIds = await info.connect(manager2).getTokenIds(fundId2, manager1.address)
-      const nonfungiblePositionManager = await ethers.getContractAt("INonfungiblePositionManager", NonfungiblePositionManager)
-      const tokenIdInfo = await nonfungiblePositionManager.positions(tokenIds[0])
+      const tokenIds = await info.connect(manager1).getTokenIds(fundId1, investor1.address)
+      console.log(tokenIds)
       const params = increaseParams(
         tokenIds[0],
         BigNumber.from(20000),
@@ -292,9 +505,10 @@ describe('WhiteListToken', () => {
         BigNumber.from(2000),
         BigNumber.from(10),
       )
-      await expect(fund.connect(manager2).increaseLiquidity(
-        fundId2,
-        manager1.address,
+
+      await expect(fund.connect(manager1).increaseLiquidity(
+        fundId1,
+        investor1.address,
         params, 
         { value: 0 }
       )).to.be.reverted
@@ -304,15 +518,15 @@ describe('WhiteListToken', () => {
       let isUNIWhiteListToken = await setting.connect(manager1).whiteListTokens(UNI)
       expect(isUNIWhiteListToken).to.be.false
 
-      const tokenIds = await info.connect(manager2).getTokenIds(fundId2, manager1.address)
+      const tokenIds = await info.connect(manager1).getTokenIds(fundId1, investor1.address)
       const params = collectParams(
         tokenIds[0],
         MaxUint128,
         MaxUint128
       )
-      await fund.connect(manager2).collectPositionFee(
-        fundId2,
-        manager1.address,
+      await fund.connect(manager1).collectPositionFee(
+        fundId1,
+        investor1.address,
         params, 
         { value: 0 }
       )
@@ -322,16 +536,16 @@ describe('WhiteListToken', () => {
       let isUNIWhiteListToken = await setting.connect(manager1).whiteListTokens(UNI)
       expect(isUNIWhiteListToken).to.be.false
 
-      const tokenIds = await info.connect(manager2).getTokenIds(fundId2, manager1.address)
+      const tokenIds = await info.connect(manager1).getTokenIds(fundId1, investor1.address)
       const params = decreaseParams(
         tokenIds[0],
         1000,
         BigNumber.from(2000),
         BigNumber.from(10),
       )
-      await fund.connect(manager2).decreaseLiquidity(
-        fundId2,
-        manager1.address,
+      await fund.connect(manager1).decreaseLiquidity(
+        fundId1,
+        investor1.address,
         params, 
         { value: 0 }
       )

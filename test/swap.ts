@@ -102,14 +102,12 @@ describe('Swap', () => {
         uni.balanceOf(who),
         info.connect(who).getInvestorTokenAmount(fundId, who, WETH9),
         info.connect(who).getInvestorTokenAmount(fundId, who, UNI),
-        info.connect(who).getFeeTokens(fundId),
       ])
       return {
         WETH9: balances[0],
         UNI: balances[1],
         fundWETH: balances[2],
         fundUNI: balances[3],
-        feeTokens: balances[4],
       }
     }
 
@@ -117,10 +115,12 @@ describe('Swap', () => {
       const balances = await Promise.all([
         info.connect(notInvestor).getFundTokenAmount(fundId, WETH9),
         info.connect(notInvestor).getFundTokenAmount(fundId, UNI),
+        info.connect(notInvestor).getFeeTokens(fundId),
       ])
       return {
         WETH9: balances[0],
         UNI: balances[1],
+        feeTokens: balances[2],
       }
     }
   })

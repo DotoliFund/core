@@ -1,53 +1,139 @@
-import { Wallet, constants, BigNumber, Contract } from 'ethers'
+import { Wallet, constants, BigNumber, ContractTransaction, Contract } from 'ethers'
 import { expect } from "chai"
 import { ethers, waffle } from 'hardhat'
+import { LiquidityOracle } from '../typechain-types/contracts/LiquidityOracle'
 import { DotoliSetting } from '../typechain-types/contracts/DotoliSetting'
 import { DotoliInfo } from '../typechain-types/contracts/DotoliInfo'
 import { DotoliFund } from '../typechain-types/contracts/DotoliFund'
-
+import { encodePath } from './shared/path'
 import { 
-  NULL_ADDRESS,
+  exactInputSingleParams,
+  exactOutputSingleParams,
+  exactInputParams,
+  exactOutputParams
+} from './shared/swap'
+import { 
+  mintParams,
+  increaseParams,
+  collectParams,
+  decreaseParams
+} from './shared/liquidity'
+import { 
   DOTOLI,
   WETH9,
+  WBTC,
   USDC,
   UNI,
   DAI,
+  DOTOLI,
+  NULL_ADDRESS,
   V3_SWAP_ROUTER_ADDRESS,
-  UNISWAP_V3_FACTORY,
-  NonfungiblePositionManager,
+  WETH_CHARGE_AMOUNT,
+  DEPOSIT_AMOUNT,
+  WITHDRAW_AMOUNT,
   MANAGER_FEE,
   WHITE_LIST_TOKENS,
+  FeeAmount,
+  MaxUint128,
+  TICK_SPACINGS,
+  UNISWAP_V3_FACTORY,
+  NonfungiblePositionManager
 } from "./shared/constants"
+import { getMaxTick, getMinTick } from './shared/ticks'
 
 
-describe('Info', () => {
+describe('Fund', () => {
 
   let deployer: Wallet 
   let manager1: Wallet
   let manager2: Wallet
-  let investor: Wallet
+  let investor1: Wallet
   let investor2: Wallet
-  let noInvestor: Wallet
+  let notInvestor: Wallet
 
+  let oracleAddress: string
   let settingAddress: string
   let infoAddress: string
   let fundAddress: string
 
+  let oracle: Contract
   let setting: Contract
   let info: Contract
   let fund: Contract
+  let weth9: Contract
+  let uni: Contract
 
-  let fundId1: string
-  let fundId2: string
-  
+  let fundId1: BigNumber
+  let fundId2: BigNumber
+
+  let getFundAccount: (
+    fundId: BigNumber
+  ) => Promise<{
+    WETH: BigNumber,
+    UNI: BigNumber,
+  }>
+
+  let getInvestorAccount: (
+    fundId: BigNumber,
+    who: string
+  ) => Promise<{
+    weth9: BigNumber,
+    uni: BigNumber,
+    fundWETH: BigNumber,
+    fundUNI: BigNumber,
+    feeTokens : string[],
+  }>
+
   before('get signer', async () => {
-    [ deployer, 
-      manager1, 
-      manager2, 
-      investor, 
+    [ deployer,
+      manager1,
+      manager2,
+      investor1,
       investor2,
-      noInvestor
+      notInvestor
     ] = await (ethers as any).getSigners()
+
+    weth9 = await ethers.getContractAt("@uniswap/v3-periphery/contracts/interfaces/external/IWETH9.sol:IWETH9", WETH9)
+    uni = await ethers.getContractAt("@openzeppelin/contracts/token/ERC20/IERC20.sol:IERC20", UNI)
+
+    getInvestorAccount = async (fundId: BigNumber, who: string) => {
+      const balances = await Promise.all([
+        weth9.balanceOf(who),
+        uni.balanceOf(who),
+        info.connect(who).getInvestorTokenAmount(fundId, who, WETH9),
+        info.connect(who).getInvestorTokenAmount(fundId, who, UNI),
+      ])
+      return {
+        WETH9: balances[0],
+        UNI: balances[1],
+        fundWETH: balances[2],
+        fundUNI: balances[3],
+      }
+    }
+
+    getFundAccount = async (fundId: BigNumber) => {
+      const balances = await Promise.all([
+        info.connect(notInvestor).getFundTokenAmount(fundId, WETH9),
+        info.connect(notInvestor).getFundTokenAmount(fundId, UNI),
+        info.connect(notInvestor).getFeeTokens(fundId),
+      ])
+      return {
+        WETH9: balances[0],
+        UNI: balances[1],
+        feeTokens: balances[2],
+      }
+    }
+  })
+
+  before("Deploy LiquidityOracle Contract", async function () {
+    const LiquidityOracle = await ethers.getContractFactory("LiquidityOracle")
+    const Oracle = await LiquidityOracle.connect(deployer).deploy(
+      UNISWAP_V3_FACTORY,
+      NonfungiblePositionManager
+    )
+    await Oracle.deployed()
+    oracleAddress = Oracle.address
+    oracle = await ethers.getContractAt("LiquidityOracle", oracleAddress)
   })
 
   before("Deploy DotoliSetting Contract", async function () {
@@ -180,9 +266,9 @@ describe('Info', () => {
     })
   })
 
-  describe('Swap', () => {
+  describe('Swap -> exactInputSingle', () => {
 
-    it("#exactInputSingle WETH -> UNI", async function () {
+    it(" WETH -> UNI", async function () {
       const swapInputAmount = BigNumber.from(1000000)
       const amountOutMinimum = BigNumber.from(1)
 
@@ -232,7 +318,7 @@ describe('Info', () => {
     })
   })
 
-  describe("#exactOutputSingle", async function () {
+  describe("Swap -> exactOutputSingle", async function () {
 
     it("WETH -> UNI", async function () {
       const swapOutputAmount = BigNumber.from(10000000)
@@ -257,26 +343,6 @@ describe('Info', () => {
       expect(fund1After.UNI).to.equal(fund1Before.UNI.add(swapOutputAmount))
       expect(manager1After.fundWETH).to.be.below(manager1Before.fundWETH)
       expect(manager1After.fundUNI).to.equal(manager1Before.fundUNI.add(swapOutputAmount))
-
-      //revert if fundId / investor is invalid
-      await expect(fund.connect(manager1).swap(
-        fundId2,
-        manager1.address,
-        params, 
-        { value: 0 }
-      )).to.be.reverted
-      await expect(fund.connect(manager2).swap(
-        fundId1,
-        manager1.address,
-        params, 
-        { value: 0 }
-      )).to.be.reverted
-      await expect(fund.connect(notInvestor).swap(
-        fundId1,
-        notInvestor.address,
-        params, 
-        { value: 0 }
-      )).to.be.reverted
     })
 
     it("UNI -> WETH", async function () {
@@ -302,30 +368,10 @@ describe('Info', () => {
       expect(fund1After.UNI).to.be.below(fund1Before.UNI)
       expect(manager1After.fundWETH).to.equal(manager1Before.fundWETH.add(swapOutputAmount))
       expect(manager1After.fundUNI).to.be.below(manager1Before.fundUNI)
-
-      //revert if fundId / investor is invalid
-      await expect(fund.connect(manager1).swap(
-        fundId2,
-        manager1.address,
-        params, 
-        { value: 0 }
-      )).to.be.reverted
-      await expect(fund.connect(manager2).swap(
-        fundId1,
-        manager1.address,
-        params, 
-        { value: 0 }
-      )).to.be.reverted
-      await expect(fund.connect(notInvestor).swap(
-        fundId1,
-        notInvestor.address,
-        params, 
-        { value: 0 }
-      )).to.be.reverted
     })
   })
 
-  describe("#exactInput", async function () {
+  describe("Swap -> exactInput", async function () {
 
     it("WETH -> DAI -> UNI", async function () {
       const tokens = [WETH9, DAI, UNI]
@@ -349,26 +395,6 @@ describe('Info', () => {
       expect(fund1After.UNI).to.be.above(fund1Before.UNI)
       expect(manager1After.fundWETH).to.equal(manager1Before.fundWETH.sub(swapInputAmount))
       expect(manager1After.fundUNI).to.be.above(manager1Before.fundUNI)
-
-      //revert if fundId / investor is invalid
-      await expect(fund.connect(manager1).swap(
-        fundId2,
-        manager1.address,
-        params, 
-        { value: 0 }
-      )).to.be.reverted
-      await expect(fund.connect(manager2).swap(
-        fundId1,
-        manager1.address,
-        params, 
-        { value: 0 }
-      )).to.be.reverted
-      await expect(fund.connect(notInvestor).swap(
-        fundId1,
-        notInvestor.address,
-        params, 
-        { value: 0 }
-      )).to.be.reverted
     })
 
     it("UNI -> DAI -> WETH", async function () {
@@ -393,31 +419,11 @@ describe('Info', () => {
       expect(fund1After.UNI).to.equal(fund1Before.UNI.sub(swapInputAmount))
       expect(manager1After.fundWETH).to.be.above(manager1Before.fundWETH)
       expect(manager1After.fundUNI).to.equal(manager1Before.fundUNI.sub(swapInputAmount))
-
-      //revert if fundId / investor is invalid
-      await expect(fund.connect(manager1).swap(
-        fundId2,
-        manager1.address,
-        params, 
-        { value: 0 }
-      )).to.be.reverted
-      await expect(fund.connect(manager2).swap(
-        fundId1,
-        manager1.address,
-        params, 
-        { value: 0 }
-      )).to.be.reverted
-      await expect(fund.connect(notInvestor).swap(
-        fundId1,
-        notInvestor.address,
-        params, 
-        { value: 0 }
-      )).to.be.reverted
     })
 
   })
 
-  describe("#exactOutput", async function () {
+  describe("Swap -> exactOutput", async function () {
 
     it("WETH -> DAI -> UNI", async function () {
       const tokens = [WETH9, DAI, UNI]
@@ -441,26 +447,6 @@ describe('Info', () => {
       expect(fund1After.UNI).to.equal(fund1Before.UNI.add(swapOutputAmount))
       expect(manager1After.fundWETH).to.be.below(manager1Before.fundWETH)
       expect(manager1After.fundUNI).to.equal(manager1Before.fundUNI.add(swapOutputAmount))
-
-      //revert if fundId / investor is invalid
-      await expect(fund.connect(manager1).swap(
-        fundId2,
-        manager1.address,
-        params, 
-        { value: 0 }
-      )).to.be.reverted
-      await expect(fund.connect(manager2).swap(
-        fundId1,
-        manager1.address,
-        params, 
-        { value: 0 }
-      )).to.be.reverted
-      await expect(fund.connect(notInvestor).swap(
-        fundId1,
-        notInvestor.address,
-        params, 
-        { value: 0 }
-      )).to.be.reverted
     })
 
     it("UNI -> DAI -> WETH", async function () {
@@ -486,30 +472,79 @@ describe('Info', () => {
       expect(fund1After.UNI).to.be.below(fund1Before.UNI)
       expect(manager1After.fundWETH).to.equal(manager1Before.fundWETH.add(swapOutputAmount))
       expect(manager1After.fundUNI).to.be.below(manager1Before.fundUNI)
-      
-      //revert if fundId / investor is invalid
-      await expect(fund.connect(manager1).swap(
-        fundId2,
-        manager1.address,
-        params, 
-        { value: 0 }
-      )).to.be.reverted
-      await expect(fund.connect(manager2).swap(
-        fundId1,
-        manager1.address,
-        params, 
-        { value: 0 }
-      )).to.be.reverted
-      await expect(fund.connect(notInvestor).swap(
-        fundId1,
-        notInvestor.address,
-        params, 
-        { value: 0 }
-      )).to.be.reverted
     })
   })
 
   describe('Mint / Add Liquidity / Collect Fee / Remove Liquidity', () => {
+    // if error msg is 'Price slippage check',
+    // check amount0 vs amount1 ratio. 
+    // (2022/10/31) UNI vs ETH => 200 : 1 (OK)
+    it("mint new position", async function () {
+      const params = mintParams(
+        UNI,
+        WETH9,
+        FeeAmount.MEDIUM,
+        getMinTick(TICK_SPACINGS[FeeAmount.MEDIUM]),
+        getMaxTick(TICK_SPACINGS[FeeAmount.MEDIUM]),
+        BigNumber.from(20000),
+        BigNumber.from(100),
+        BigNumber.from(2000),
+        BigNumber.from(10),
+      )
+      await fund.connect(manager1).mintNewPosition(
+        fundId1,
+        manager1.address,
+        params, 
+        { value: 0 }
+      )
+    })
 
+    it("increase liquidity", async function () {
+      const tokenIds = await info.connect(manager1).getTokenIds(fundId1, manager1.address)
+      const params = increaseParams(
+        tokenIds[0],
+        BigNumber.from(20000),
+        BigNumber.from(100),
+        BigNumber.from(2000),
+        BigNumber.from(10),
+      )
+      await fund.connect(manager1).increaseLiquidity(
+        fundId1,
+        manager1.address,
+        params, 
+        { value: 0 }
+      )
+    })
+
+    it("collect position fee", async function () {
+      const tokenIds = await info.connect(manager1).getTokenIds(fundId1, manager1.address)
+      const params = collectParams(
+        tokenIds[0],
+        MaxUint128,
+        MaxUint128
+      )
+      await fund.connect(manager1).collectPositionFee(
+        fundId1,
+        manager1.address,
+        params, 
+        { value: 0 }
+      )
+    })
+
+    it("decrease liquidity", async function () {
+      const tokenIds = await info.connect(manager1).getTokenIds(fundId1, manager1.address)
+      const params = decreaseParams(
+        tokenIds[0],
+        1000,
+        BigNumber.from(2000),
+        BigNumber.from(10),
+      )
+      await fund.connect(manager1).decreaseLiquidity(
+        fundId1,
+        manager1.address,
+        params, 
+        { value: 0 }
+      )
+    })
   })
 })
