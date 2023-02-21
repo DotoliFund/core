@@ -4,6 +4,7 @@ pragma solidity =0.7.6;
 pragma abicoder v2;
 
 interface IDotoliFund {
+    
     event Deposit(uint256 fundId, address indexed investor, address token, uint256 amount);
     event Withdraw(uint256 fundId, address indexed investor, address token, uint256 amount, uint256 feeAmount);
     event Swap(uint256 fundId, address indexed investor, address tokenIn, address tokenOut, uint256 amountIn, uint256 amountOut);

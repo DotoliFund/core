@@ -6,13 +6,17 @@ pragma abicoder v2;
 import './IToken.sol';
 
 interface IDotoliInfo is IToken {
+    event OwnerChanged(address owner, address newOwner);
     event FundCreated(uint256 fundId, address indexed manager);
     event Subscribe(uint256 fundId, address indexed investor);
     
+    function owner() external view returns (address owner);
     function manager(uint256 fundId) external view returns (address manager);
     function managingFund(address manager) external view returns (uint256 fundId);
     function tokenIdOwner(uint256 tokenId) external view returns (address owner);
+    function fundIdCount() external view returns (uint256 fundCount);
 
+    function setOwner(address newOwner) external;
     function createFund() external returns (uint256 fundId);
     function isSubscribed(address investor, uint256 fundId) external view returns (bool);
     function subscribedFunds(address investor) external view returns (uint256[] memory);

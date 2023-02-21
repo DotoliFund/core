@@ -21,7 +21,6 @@ contract DotoliFund is IDotoliFund {
     address public constant swapRouter = 0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45;
     address public constant nonfungiblePositionManager = 0xC36442b4a4522E871399CD717aBDD847Ab11FE88;
 
-    address public factory;
     address public weth9;
     address public setting;
     address public info;
@@ -37,8 +36,7 @@ contract DotoliFund is IDotoliFund {
         _;
     }
 
-    constructor(address _factory, address _weth9, address _setting, address _info) {
-        factory = _factory;
+    constructor(address _weth9, address _setting, address _info) {
         weth9 = _weth9;
         setting = _setting;
         info = _info;
@@ -82,7 +80,7 @@ contract DotoliFund is IDotoliFund {
 
     function deposit(uint256 fundId, address _token, uint256 _amount) external override {
         bool isSubscribed = IDotoliInfo(info).isSubscribed(msg.sender, fundId);
-        bool isWhiteListToken = IDotoliSetting(factory).whiteListTokens(_token);
+        bool isWhiteListToken = IDotoliSetting(setting).whiteListTokens(_token);
         require(isSubscribed, 'US');
         require(isWhiteListToken, 'NWT');
 
@@ -108,13 +106,13 @@ contract DotoliFund is IDotoliFund {
                 IERC20Minimal(_token).transfer(msg.sender, _amount);
             }
             IDotoliInfo(info).decreaseFundToken(fundId, _token, _amount);
-            //IDotoliInfo(info).decreaseInvestorToken(fundId, msg.sender, _token, _amount);
+            IDotoliInfo(info).decreaseInvestorToken(fundId, msg.sender, _token, _amount);
             emit Withdraw(fundId, msg.sender, _token, _amount, 0);
 
         // msg.sender is investor
         } else {
             // deposit manager fee.
-            uint256 managerFee = IDotoliSetting(factory).managerFee();
+            uint256 managerFee = IDotoliSetting(setting).managerFee();
             uint256 feeAmount = _amount * managerFee / 10000 / 100;
             uint256 withdrawAmount = _amount - feeAmount;
             IDotoliInfo(info).decreaseFundToken(fundId, _token, withdrawAmount);
@@ -126,7 +124,7 @@ contract DotoliFund is IDotoliFund {
             } else {
                 IERC20Minimal(_token).transfer(msg.sender, withdrawAmount);
             }
-            //IDotoliInfo(info).decreaseInvestorToken(fundId, msg.sender, _token, _amount);
+            IDotoliInfo(info).decreaseInvestorToken(fundId, msg.sender, _token, _amount);
             emit Withdraw(fundId, msg.sender, _token, withdrawAmount, feeAmount);
             IDotoliInfo(info).increaseFeeToken(fundId, _token, feeAmount);
             emit DepositFee(fundId, msg.sender, _token, feeAmount);
@@ -142,7 +140,7 @@ contract DotoliFund is IDotoliFund {
         uint256 swapToAmount
     ) private {
         IDotoliInfo(info).decreaseFundToken(fundId, swapFrom, swapFromAmount);
-        //IDotoliInfo(info).decreaseInvestorToken(fundId, investor, swapFrom, swapFromAmount);
+        IDotoliInfo(info).decreaseInvestorToken(fundId, investor, swapFrom, swapFromAmount);
         IDotoliInfo(info).increaseFundToken(fundId, swapTo, swapToAmount);
         IDotoliInfo(info).increaseInvestorToken(fundId, investor, swapTo, swapToAmount);
         emit Swap(fundId, investor, swapFrom, swapTo, swapFromAmount, swapToAmount);

@@ -6,12 +6,16 @@ pragma abicoder v2;
 import './base/Token.sol';
 import './interfaces/IDotoliInfo.sol';
 
+//TODO : remove console log
+import "hardhat/console.sol";
+
 contract DotoliInfo is Token, IDotoliInfo {
     
-    address public dotoliFund;
+    address public override owner;
 
     mapping(uint256 => address) public override manager;                    // manager[fundId]
     mapping(uint256 => uint256) public investorCount;                       // investorCount[fundId]
+    uint256 public override fundIdCount = 0;
 
     // fundId
     mapping(address => uint256) public override managingFund;               // managingFund[manager]
@@ -27,15 +31,18 @@ contract DotoliInfo is Token, IDotoliInfo {
     mapping(uint256 => mapping(address => uint256[])) public tokenIds;      // tokenIds[fundId][investor]
     mapping(uint256 => address) public override tokenIdOwner;               // tokenIdOwner[tokenId] => owner of uniswap v3 liquidity position
 
-    uint256 public fundIdCount = 0;
-
     modifier onlyOwner() {
-        require(msg.sender == dotoliFund, 'NA');
+        require(msg.sender == owner, 'NO');
         _;
     }
 
     constructor() {
-        dotoliFund = msg.sender;
+        owner = msg.sender;
+    }
+
+    function setOwner(address newOwner) external override onlyOwner {
+        owner = newOwner;
+        emit OwnerChanged(owner, newOwner);
     }
 
     function getFundTokens(uint256 fundId) external override view returns (Token[] memory) {

@@ -16,8 +16,6 @@ export enum SwapType {
 
 export interface SwapParams {
   swapType: number
-  fundId: number
-  investor: string
   tokenIn: string
   tokenOut: string
   fee: number
