@@ -10,17 +10,22 @@ contract DotoliInfo is Token, IDotoliInfo {
     
     address public dotoliFund;
 
-    mapping(address => uint256) public managingFund;                        // managingFund[manager]
+    mapping(uint256 => address) public override manager;                    // manager[fundId]
+    mapping(uint256 => uint256) public investorCount;                       // investorCount[fundId]
+
+    // fundId
+    mapping(address => uint256) public override managingFund;               // managingFund[manager]
     mapping(address => mapping(uint256 => uint256)) public investingFunds;  // investingFunds[investor]
     mapping(address => uint256) public investingFundCount;
 
-    mapping(uint256 => address) public manager;                             // manager[fundId]
+    // Token
     mapping(uint256 => Token[]) public fundTokens;                          // fundTokens[fundId]
     mapping(uint256 => Token[]) public feeTokens;                           // feeTokens[fundId]
     mapping(uint256 => mapping(address => Token[])) public investorTokens;  // investorTokens[fundId][investor]
+
+    // tokenId
     mapping(uint256 => mapping(address => uint256[])) public tokenIds;      // tokenIds[fundId][investor]
-    mapping(uint256 => address) public tokenIdOwner;                        // tokenIdOwner[tokenId] => owner of uniswap v3 liquidity position
-    mapping(uint256 => uint256) public investorCount;                       // investorCount[fundId]
+    mapping(uint256 => address) public override tokenIdOwner;               // tokenIdOwner[tokenId] => owner of uniswap v3 liquidity position
 
     uint256 public fundIdCount = 0;
 
@@ -29,7 +34,7 @@ contract DotoliInfo is Token, IDotoliInfo {
         _;
     }
 
-    constructor(address _factory, address _weth9, address _swapRouter, address _liquidityRouter) {
+    constructor() {
         dotoliFund = msg.sender;
     }
 
@@ -45,21 +50,24 @@ contract DotoliInfo is Token, IDotoliInfo {
         return feeTokens[fundId];
     }
 
-    function getTokenAmount(Token[] memory tokens, address token) private view returns (uint256) {
+    function getFundTokenAmount(uint256 fundId, address token) public override view returns (uint256) {
+        Token[] memory tokens = fundTokens[fundId];
         for (uint256 i=0; i<tokens.length; i++) {
-            if (tokens[i].tokenAddress == token) {
+            if (tokens[i].token == token) {
                 return tokens[i].amount;
             }
         }
         return 0;
     }
 
-    function getFundTokenAmount(uint256 fundId, address token) public override view returns (uint256) {
-        return getTokenAmount(fundTokens[fundId], token);
-    }
-
     function getInvestorTokenAmount(uint256 fundId, address investor, address token) public override view returns (uint256) {
-        return getTokenAmount(investorTokens[fundId][investor], token);
+        Token[] memory tokens = investorTokens[fundId][investor];
+        for (uint256 i=0; i<tokens.length; i++) {
+            if (tokens[i].token == token) {
+                return tokens[i].amount;
+            }
+        }
+        return 0;
     }
 
     function getTokenIds(uint256 fundId, address investor) external override view returns (uint256[] memory _tokenIds) {
@@ -106,28 +114,33 @@ contract DotoliInfo is Token, IDotoliInfo {
         emit Subscribe(fundId, msg.sender);
     }
 
-    function increaseFundToken(uint256 fundId, address token, uint256 amount) onlyOwner external override {
+    function addTokenId(uint256 fundId, address investor, uint256 tokenId) external override onlyOwner {
+        tokenIds[fundId][investor].push(tokenId);
+        tokenIdOwner[tokenId] = investor;
+    }
+
+    function increaseFundToken(uint256 fundId, address token, uint256 amount) external override onlyOwner {
         increaseToken(fundTokens[fundId], token, amount);
     }
 
-    function decreaseFundToken(uint256 fundId, address token, uint256 amount) onlyOwner external override returns (bool) {
-        decreaseToken(fundTokens[fundId], token, amount);
+    function decreaseFundToken(uint256 fundId, address token, uint256 amount) external override onlyOwner returns (bool) {
+        return decreaseToken(fundTokens[fundId], token, amount);
     }
 
-    function increaseInvestorToken(uint256 fundId, address investor, address token, uint256 amount) onlyOwner external override {
+    function increaseInvestorToken(uint256 fundId, address investor, address token, uint256 amount) external override onlyOwner {
         increaseToken(investorTokens[fundId][investor], token, amount);
     }
 
-    function decreaseInvestorToken(uint256 fundId, address investor, address token, uint256 amount) onlyOwner external override returns (bool) {
-        decreaseToken(investorTokens[fundId][investor], token, amount);
+    function decreaseInvestorToken(uint256 fundId, address investor, address token, uint256 amount) external override onlyOwner returns (bool) {
+        return decreaseToken(investorTokens[fundId][investor], token, amount);
     }
 
-    function increaseFeeToken(uint256 fundId, address token, uint256 amount) onlyOwner external override {
+    function increaseFeeToken(uint256 fundId, address token, uint256 amount) external override onlyOwner {
         increaseToken(feeTokens[fundId], token, amount);
     }
 
-    function decreaseFeeToken(uint256 fundId, address token, uint256 amount) onlyOwner external override returns (bool) {
-        decreaseToken(feeTokens[fundId], token, amount);
+    function decreaseFeeToken(uint256 fundId, address token, uint256 amount) external override onlyOwner returns (bool) {
+        return decreaseToken(feeTokens[fundId], token, amount);
     }
 
 }

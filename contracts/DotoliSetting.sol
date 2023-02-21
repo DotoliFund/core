@@ -7,10 +7,10 @@ import '@uniswap/v3-core/contracts/interfaces/IUniswapV3Factory.sol';
 import '@uniswap/v3-core/contracts/interfaces/IUniswapV3Pool.sol';
 import './libraries/FullMath.sol';
 import './interfaces/IERC20Minimal.sol';
-import './interfaces/IDotoliFactory.sol';
+import './interfaces/IDotoliSetting.sol';
 
 
-contract DotoliFactory is IDotoliFactory {
+contract DotoliSetting is IDotoliSetting {
 
     address public uniswapV3Factory = 0x1F98431c8aD98523631AE4a59f267346ea31F984;
     address public override owner;

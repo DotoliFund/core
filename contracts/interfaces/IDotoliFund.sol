@@ -3,7 +3,7 @@
 pragma solidity =0.7.6;
 pragma abicoder v2;
 
-interface IDotoliFund is IToken {
+interface IDotoliFund {
     event Deposit(uint256 fundId, address indexed investor, address token, uint256 amount);
     event Withdraw(uint256 fundId, address indexed investor, address token, uint256 amount, uint256 feeAmount);
     event Swap(uint256 fundId, address indexed investor, address tokenIn, address tokenOut, uint256 amountIn, uint256 amountOut);
@@ -35,8 +35,6 @@ interface IDotoliFund is IToken {
     }
 
     struct MintParams {
-        uint256 fundId;
-        address investor;
         address token0;
         address token1;
         uint24 fee;
@@ -50,8 +48,6 @@ interface IDotoliFund is IToken {
     }
         
     struct IncreaseLiquidityParams {
-        uint256 fundId;
-        address investor;
         uint256 tokenId;
         uint256 amount0Desired;
         uint256 amount1Desired;
@@ -60,17 +56,13 @@ interface IDotoliFund is IToken {
         uint256 deadline;
     }
 
-    struct CollectFeeParams {
-        uint256 fundId;
-        address investor;
+    struct CollectParams {
         uint256 tokenId;
         uint128 amount0Max;
         uint128 amount1Max;
     }
 
     struct DecreaseLiquidityParams {
-        uint256 fundId;
-        address investor;
         uint256 tokenId;
         uint128 liquidity;
         uint256 amount0Min;
@@ -80,10 +72,13 @@ interface IDotoliFund is IToken {
 
     function deposit(uint256 fundId, address _token, uint256 _amount) external;
     function withdraw(uint256 fundId, address _token, uint256 _amount) external payable;
-    function swap(uint256 fundId, address investor, ISwapRouter.SwapParams[] calldata trades) external;
+    function swap(uint256 fundId, address investor, SwapParams[] calldata trades) external;
     function withdrawFee(uint256 fundId, address _token, uint256 _amount) external payable;
-    function mintNewPosition(MintParams calldata params) external returns (uint256 tokenId, uint128 liquidity, uint256 amount0, uint256 amount1);
-    function increaseLiquidity(IncreaseParams calldata params) external returns (uint128 liquidity, uint256 amount0, uint256 amount1);
-    function collectPositionFee(CollectParams calldata params) external returns (uint256 amount0, uint256 amount1);
-    function decreaseLiquidity(DecreaseParams calldata params) external returns (uint256 amount0, uint256 amount1);
+    function mintNewPosition(uint256 fundId, address investor, MintParams calldata params)
+        external returns (uint256 tokenId, uint128 liquidity, uint256 amount0, uint256 amount1);
+    function increaseLiquidity(uint256 fundId, address investor, IncreaseLiquidityParams calldata params)
+        external returns (uint128 liquidity, uint256 amount0, uint256 amount1);
+    function collectPositionFee(uint256 fundId, address investor, CollectParams calldata params)
+        external returns (uint256 amount0, uint256 amount1);
+    function decreaseLiquidity(uint256 fundId, address investor, DecreaseLiquidityParams calldata params)external returns (uint256 amount0, uint256 amount1);
 }

@@ -8,7 +8,7 @@ abstract contract Token is IToken {
 
     function getTokenAmount(Token[] memory tokens, address token) internal view returns (uint256) {
         for (uint256 i=0; i<tokens.length; i++) {
-            if (tokens[i].tokenAddress == token) {
+            if (tokens[i].token == token) {
                 return tokens[i].amount;
             }
         }
@@ -18,7 +18,7 @@ abstract contract Token is IToken {
     function increaseToken(Token[] storage tokens, address token, uint256 amount) internal {
         bool isNewToken = true;
         for (uint256 i=0; i<tokens.length; i++) {
-            if (tokens[i].tokenAddress == token) {
+            if (tokens[i].token == token) {
                 isNewToken = false;
                 tokens[i].amount += amount;
                 break;
@@ -31,14 +31,14 @@ abstract contract Token is IToken {
 
     function decreaseToken(Token[] storage tokens, address token, uint256 amount) internal returns (bool) {
         for (uint256 i=0; i<tokens.length; i++) {
-            if (tokens[i].tokenAddress == token) {
+            if (tokens[i].token == token) {
                 require(tokens[i].amount >= amount, 'NET');
                 tokens[i].amount -= amount;
                 if (tokens[i].amount == 0) {
                     uint256 lastIndex = tokens.length-1;
-                    address lastTokenAddress = tokens[lastIndex].tokenAddress;
+                    address lastToken = tokens[lastIndex].token;
                     uint256 lastTokenAmount = tokens[lastIndex].amount;
-                    tokens[i].tokenAddress = lastTokenAddress;
+                    tokens[i].token = lastToken;
                     tokens[i].amount = lastTokenAmount;
                     tokens.pop();
                 }
