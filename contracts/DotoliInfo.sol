@@ -82,7 +82,7 @@ contract DotoliInfo is Token, IDotoliInfo {
     }
 
     function createFund() external override returns (uint256 fundId) {
-        require(managingFund[msg.sender] == 0, 'EXISTS');
+        require(managingFund[msg.sender] == 0, 'EXIST');
         fundId = ++fundIdCount;
         managingFund[msg.sender] = fundId;
         uint256 fundCount = investingFundCount[msg.sender];

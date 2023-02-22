@@ -359,6 +359,8 @@ contract DotoliFund is IDotoliFund {
         (, , address token0, address token1, , , , , , , , ) 
             = INonfungiblePositionManager(nonfungiblePositionManager).positions(tokenId);
 
+        IDotoliInfo(info).decreaseFundToken(fundId, token0, amount0);
+        IDotoliInfo(info).decreaseFundToken(fundId, token1, amount1);
         IDotoliInfo(info).decreaseInvestorToken(fundId, investor, token0, amount0);
         IDotoliInfo(info).decreaseInvestorToken(fundId, investor, token1, amount1);
 
@@ -399,6 +401,8 @@ contract DotoliFund is IDotoliFund {
 
         (liquidity, amount0, amount1) = INonfungiblePositionManager(nonfungiblePositionManager).increaseLiquidity(params);
 
+        IDotoliInfo(info).decreaseFundToken(fundId, token0, amount0);
+        IDotoliInfo(info).decreaseFundToken(fundId, token1, amount1);
         IDotoliInfo(info).decreaseInvestorToken(fundId, investor, token0, amount0);
         IDotoliInfo(info).decreaseInvestorToken(fundId, investor, token1, amount1);
 
@@ -428,6 +432,8 @@ contract DotoliFund is IDotoliFund {
         (, , address token0, address token1, , , , , , , , ) 
             = INonfungiblePositionManager(nonfungiblePositionManager).positions(_params.tokenId);
 
+        IDotoliInfo(info).increaseFundToken(fundId, token0, amount0);
+        IDotoliInfo(info).increaseFundToken(fundId, token1, amount1);
         IDotoliInfo(info).increaseInvestorToken(fundId, investor, token0, amount0);
         IDotoliInfo(info).increaseInvestorToken(fundId, investor, token1, amount1);
 
@@ -467,6 +473,8 @@ contract DotoliFund is IDotoliFund {
         (, , address token0, address token1, , , , , , , , ) 
             = INonfungiblePositionManager(nonfungiblePositionManager).positions(_params.tokenId);
 
+        IDotoliInfo(info).increaseFundToken(fundId, token0, amount0);
+        IDotoliInfo(info).increaseFundToken(fundId, token1, amount1);
         IDotoliInfo(info).increaseInvestorToken(fundId, investor, token0, amount0);
         IDotoliInfo(info).increaseInvestorToken(fundId, investor, token1, amount1);
 

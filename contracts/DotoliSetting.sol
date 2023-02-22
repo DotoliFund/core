@@ -22,12 +22,9 @@ contract DotoliSetting is IDotoliSetting {
     
     mapping(address => bool) public override whiteListTokens;
 
-    uint256 private unlocked = 1;
-    modifier lock() {
-        require(unlocked == 1, 'LOCKED');
-        unlocked = 0;
+    modifier onlyOwner() {
+        require(msg.sender == owner, 'NO');
         _;
-        unlocked = 1;
     }
 
     constructor(address _dotoli, address _weth9) {
@@ -39,21 +36,18 @@ contract DotoliSetting is IDotoliSetting {
         emit FactoryCreated();
     }
 
-    function setOwner(address newOwner) external override lock {
-        require(msg.sender == owner);
-        emit OwnerChanged(owner, newOwner);
+    function setOwner(address newOwner) external override onlyOwner {
         owner = newOwner;
+        emit OwnerChanged(owner, newOwner);
     }
 
     // minimum pool amount in eth to be white list token
-    function setMinPoolAmount(uint256 amount) external override lock {
-        require(msg.sender == owner);
+    function setMinPoolAmount(uint256 amount) external override onlyOwner {
         minPoolAmount = amount;
         emit MinPoolAmountChanged(amount);
     }
 
-    function setManagerFee(uint256 _managerFee) external override lock {
-        require(msg.sender == owner);
+    function setManagerFee(uint256 _managerFee) external override onlyOwner {
         managerFee = _managerFee;
         emit ManagerFeeChanged(_managerFee);
     }
@@ -95,16 +89,14 @@ contract DotoliSetting is IDotoliSetting {
         }
     }
 
-    function setWhiteListToken(address _token) external override lock {
-        require(msg.sender == owner);
+    function setWhiteListToken(address _token) external override onlyOwner {
         require(whiteListTokens[_token] == false, 'WLT');
         require(checkWhiteListToken(_token, minPoolAmount), 'CWLT');
         whiteListTokens[_token] = true;
         emit WhiteListTokenAdded(_token);
     }
 
-    function resetWhiteListToken(address _token) external override lock {
-        require(msg.sender == owner);
+    function resetWhiteListToken(address _token) external override onlyOwner {
         require(whiteListTokens[_token] == true, 'WLT');
         require(_token != weth9 && _token != dotoli);
         whiteListTokens[_token] = false;
