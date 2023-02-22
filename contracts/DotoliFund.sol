@@ -369,7 +369,7 @@ contract DotoliFund is IDotoliFund {
         emit MintNewPosition(fundId, investor, token0, token1, amount0, amount1);
     }
 
-    function increaseLiquidity(uint256 fundId, address investor, IncreaseLiquidityParams calldata _params) 
+    function increaseLiquidity(uint256 fundId, IncreaseLiquidityParams calldata _params) 
         external
         override
         onlyManager(msg.sender, fundId)
@@ -379,7 +379,8 @@ contract DotoliFund is IDotoliFund {
             uint256 amount1
         ) 
     {
-        require(investor == IDotoliInfo(info).tokenIdOwner(_params.tokenId), 'INVALID');
+        //require(investor == IDotoliInfo(info).tokenIdOwner(_params.tokenId), 'INVALID');
+        address investor = IDotoliInfo(info).tokenIdOwner(_params.tokenId);
 
         (, , address token0, address token1, , , , , , , , ) 
             = INonfungiblePositionManager(nonfungiblePositionManager).positions(_params.tokenId);
@@ -409,7 +410,7 @@ contract DotoliFund is IDotoliFund {
         emit IncreaseLiquidity(fundId, investor, token0, token1, amount0, amount1);
     }
 
-    function collectPositionFee(uint256 fundId, address investor, CollectParams calldata _params) 
+    function collectPositionFee(uint256 fundId, CollectParams calldata _params) 
         external
         override
         onlyManagerOrInvestor(msg.sender, fundId, _params.tokenId)
@@ -418,7 +419,8 @@ contract DotoliFund is IDotoliFund {
             uint256 amount1
         ) 
     {
-        require(investor == IDotoliInfo(info).tokenIdOwner(_params.tokenId), 'INVALID');
+        //require(investor == IDotoliInfo(info).tokenIdOwner(_params.tokenId), 'INVALID');
+        address investor = IDotoliInfo(info).tokenIdOwner(_params.tokenId);
 
         INonfungiblePositionManager.CollectParams memory params =
             INonfungiblePositionManager.CollectParams({
@@ -440,7 +442,7 @@ contract DotoliFund is IDotoliFund {
         emit CollectPositionFee(fundId, investor, token0, token1, amount0, amount1);
     }
 
-    function decreaseLiquidity(uint256 fundId, address investor, DecreaseLiquidityParams calldata _params) 
+    function decreaseLiquidity(uint256 fundId, DecreaseLiquidityParams calldata _params) 
         external
         override
         onlyManagerOrInvestor(msg.sender, fundId, _params.tokenId)
@@ -449,7 +451,8 @@ contract DotoliFund is IDotoliFund {
             uint256 amount1
         ) 
     {
-        require(investor == IDotoliInfo(info).tokenIdOwner(_params.tokenId), 'INVALID');
+        //require(investor == IDotoliInfo(info).tokenIdOwner(_params.tokenId), 'INVALID');
+        address investor = IDotoliInfo(info).tokenIdOwner(_params.tokenId);
 
         INonfungiblePositionManager.DecreaseLiquidityParams memory params =
             INonfungiblePositionManager.DecreaseLiquidityParams({

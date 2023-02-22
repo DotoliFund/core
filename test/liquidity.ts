@@ -190,10 +190,118 @@ describe('Liquidity', () => {
   })
 
 
-  describe('charge wallet ETH, UNI', () => {
 
-
+  describe('subscribe to fund1', () => {
+    it("investor1 subscribe -> fund1", async function () {
+      await info.connect(investor1).subscribe(fundId1)
+    })
+    it("manager2 subscribe -> fund1", async function () {
+      await info.connect(manager2).subscribe(fundId1)
+    })
   })
+
+  describe('charge fund account WETH, UNI', () => {
+
+    it("setWhiteListToken -> UNI", async function () {
+      await setting.connect(deployer).setWhiteListToken(UNI)
+    })
+
+    it("charge wallet -> manager1", async function () {
+      await weth9.connect(manager1).approve(fundAddress, constants.MaxUint256)
+      await uni.connect(manager1).approve(fundAddress, constants.MaxUint256)
+      
+      //deposit
+      await manager1.sendTransaction({
+        to: fundAddress,
+        value: DEPOSIT_AMOUNT, // Sends exactly 1.0 ether
+        data: BigNumber.from(fundId1)
+      })
+
+      //swap WETH -> UNI
+      const tokens = [WETH9, DAI, UNI]
+      const swapInputAmount = ethers.utils.parseEther("0.5")
+      const amountOutMinimum = BigNumber.from(1)
+      const params = exactInputParams(
+        tokens,
+        swapInputAmount,
+        amountOutMinimum
+      )
+      await fund.connect(manager1).swap(fundId1, manager1.address, params, { value: 0 })
+
+      //withdraw
+      await fund.connect(manager1).withdraw(fundId1, UNI, ethers.utils.parseEther("0.1"))
+
+      await weth9.connect(manager1).deposit({
+        from: manager1.address,
+        value: WETH_CHARGE_AMOUNT
+      })
+    })
+    it("charge wallet -> investor1", async function () {
+      await weth9.connect(investor1).approve(fundAddress, constants.MaxUint256)
+      await uni.connect(investor1).approve(fundAddress, constants.MaxUint256)
+      
+      //deposit
+      await investor1.sendTransaction({
+        to: fundAddress,
+        value: DEPOSIT_AMOUNT, // Sends exactly 1.0 ether
+        data: BigNumber.from(fundId1)
+      })     
+
+      //swap WETH -> UNI
+      const tokens = [WETH9, DAI, UNI]
+      const swapInputAmount = ethers.utils.parseEther("0.5")
+      const amountOutMinimum = BigNumber.from(1)
+      const params = exactInputParams(
+        tokens,
+        swapInputAmount,
+        amountOutMinimum
+      )
+      await fund.connect(manager1).swap(fundId1, investor1.address, params, { value: 0 })
+
+      //withdraw
+      await fund.connect(investor1).withdraw(fundId1, UNI, ethers.utils.parseEther("0.1"))
+
+      await weth9.connect(investor1).deposit({
+        from: investor1.address,
+        value: WETH_CHARGE_AMOUNT
+      })
+    })
+    it("charge wallet -> manager2", async function () {
+      await weth9.connect(manager2).approve(fundAddress, constants.MaxUint256)
+      await uni.connect(manager2).approve(fundAddress, constants.MaxUint256)
+      
+      //deposit
+      await manager2.sendTransaction({
+        to: fundAddress,
+        value: DEPOSIT_AMOUNT, // Sends exactly 1.0 ether
+        data: BigNumber.from(fundId1)
+      })
+
+      //swap WETH -> UNI
+      const tokens = [WETH9, DAI, UNI]
+      const swapInputAmount = ethers.utils.parseEther("0.5")
+      const amountOutMinimum = BigNumber.from(1)
+      const params = exactInputParams(
+        tokens,
+        swapInputAmount,
+        amountOutMinimum
+      )
+      await fund.connect(manager1).swap(fundId1, manager2.address, params, { value: 0 })
+
+      //withdraw
+      await fund.connect(manager2).withdraw(fundId1, UNI, ethers.utils.parseEther("0.1"))
+
+      await weth9.connect(manager2).deposit({
+        from: manager2.address,
+        value: WETH_CHARGE_AMOUNT
+      })
+    })
+    it("charge wallet -> notInvestor", async function () {
+      // do nothing
+    })
+  })
+
+
   
   describe('mintNewPosition', () => {
 

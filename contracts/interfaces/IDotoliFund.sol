@@ -75,11 +75,12 @@ interface IDotoliFund {
     function withdraw(uint256 fundId, address _token, uint256 _amount) external payable;
     function swap(uint256 fundId, address investor, SwapParams[] calldata trades) external;
     function withdrawFee(uint256 fundId, address _token, uint256 _amount) external payable;
-    function mintNewPosition(uint256 fundId, address investor, MintParams calldata params)
-        external returns (uint256 tokenId, uint128 liquidity, uint256 amount0, uint256 amount1);
-    function increaseLiquidity(uint256 fundId, address investor, IncreaseLiquidityParams calldata params)
-        external returns (uint128 liquidity, uint256 amount0, uint256 amount1);
-    function collectPositionFee(uint256 fundId, address investor, CollectParams calldata params)
-        external returns (uint256 amount0, uint256 amount1);
-    function decreaseLiquidity(uint256 fundId, address investor, DecreaseLiquidityParams calldata params)external returns (uint256 amount0, uint256 amount1);
+    function mintNewPosition(uint256 fundId, address investor, MintParams calldata params) external 
+        returns (uint256 tokenId, uint128 liquidity, uint256 amount0, uint256 amount1);
+    function increaseLiquidity(uint256 fundId, IncreaseLiquidityParams calldata params) external 
+        returns (uint128 liquidity, uint256 amount0, uint256 amount1);
+    function collectPositionFee(uint256 fundId, CollectParams calldata params) external 
+        returns (uint256 amount0, uint256 amount1);
+    function decreaseLiquidity(uint256 fundId, DecreaseLiquidityParams calldata params)external 
+        returns (uint256 amount0, uint256 amount1);
 }

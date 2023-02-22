@@ -302,7 +302,7 @@ describe('DotoliFund', () => {
 
   describe('fallback', () => {
 
-    it("deposit ETH -> only subscribed user", async function () {
+    it("deposit ETH", async function () {
       await manager1.sendTransaction({
         to: fundAddress,
         value: DEPOSIT_AMOUNT, // Sends exactly 1.0 ether
@@ -336,7 +336,7 @@ describe('DotoliFund', () => {
 
   describe('deposit', () => {
 
-    it("deposit WETH-> only subscribed user", async function () {
+    it("deposit WETH", async function () {
       await fund.connect(manager1).deposit(fundId1, WETH9, DEPOSIT_AMOUNT)
       await fund.connect(investor1).deposit(fundId1, WETH9, DEPOSIT_AMOUNT)
       await fund.connect(manager2).deposit(fundId1, WETH9, DEPOSIT_AMOUNT)
@@ -350,7 +350,7 @@ describe('DotoliFund', () => {
         .to.be.revertedWith('US')
     })
 
-    it("deposit UNI-> only subscribed user", async function () {
+    it("deposit UNI", async function () {
       await fund.connect(manager1).deposit(fundId1, UNI, ethers.utils.parseEther("0.00001"))
       await fund.connect(investor1).deposit(fundId1, UNI, ethers.utils.parseEther("0.00001"))
       await fund.connect(manager2).deposit(fundId1, UNI, ethers.utils.parseEther("0.00001"))
@@ -366,16 +366,16 @@ describe('DotoliFund', () => {
 
   describe('withdraw', () => {
 
-    it("withdraw WETH-> fund1", async function () {
-      await fund.connect(manager1).withdraw(fundId1, WETH9, 10000)
-      await fund.connect(investor1).withdraw(fundId1, WETH9, 10000)
-      await fund.connect(manager2).withdraw(fundId1, WETH9, 10000)
+    it("withdraw WETH", async function () {
+      await fund.connect(manager1).withdraw(fundId1, WETH9, ethers.utils.parseEther("0.00001"))
+      await fund.connect(investor1).withdraw(fundId1, WETH9, ethers.utils.parseEther("0.00001"))
+      await fund.connect(manager2).withdraw(fundId1, WETH9, ethers.utils.parseEther("0.00001"))
     })
 
-    it("withdraw UNI-> fund1", async function () {
-      await fund.connect(manager1).withdraw(fundId1, UNI, 10000)
-      await fund.connect(investor1).withdraw(fundId1, UNI, 10000)
-      await fund.connect(manager2).withdraw(fundId1, UNI, 10000)
+    it("withdraw UNI", async function () {
+      await fund.connect(manager1).withdraw(fundId1, UNI, ethers.utils.parseEther("0.00001"))
+      await fund.connect(investor1).withdraw(fundId1, UNI, ethers.utils.parseEther("0.00001"))
+      await fund.connect(manager2).withdraw(fundId1, UNI, ethers.utils.parseEther("0.00001"))
     })
 
     it("invalid case", async function () {
@@ -386,20 +386,34 @@ describe('DotoliFund', () => {
 
   describe('swap', () => {
 
-    it("manager1 swap -> fund1", async function () {
+    it("swap WETH -> UNI", async function () {
+      const tokens = [WETH9, DAI, UNI]
+      const swapInputAmount = ethers.utils.parseEther("0.00001")
+      const amountOutMinimum = BigNumber.from(1)
+      const params = exactInputParams(
+        tokens,
+        swapInputAmount,
+        amountOutMinimum
+      )
 
+      await fund.connect(manager1).swap(fundId1, manager1.address, params, { value: 0 })
+      await fund.connect(manager1).swap(fundId1, investor1.address, params, { value: 0 })
+      await fund.connect(manager1).swap(fundId1, manager2.address, params, { value: 0 })
     })
 
-    it("investor1 swap -> fund1", async function () {
+    it("swap UNI -> WETH", async function () {
+      const tokens = [UNI, DAI, WETH9]
+      const swapInputAmount = ethers.utils.parseEther("0.00001")
+      const amountOutMinimum = BigNumber.from(1)
+      const params = exactInputParams(
+        tokens,
+        swapInputAmount,
+        amountOutMinimum
+      )
 
-    })
-
-    it("manager2 swap -> fund1", async function () {
-
-    })
-
-    it("notInvestor swap -> fund1", async function () {
-
+      await fund.connect(manager1).swap(fundId1, manager1.address, params, { value: 0 })
+      await fund.connect(manager1).swap(fundId1, investor1.address, params, { value: 0 })
+      await fund.connect(manager1).swap(fundId1, manager2.address, params, { value: 0 })
     })
 
     it("invalid case", async function () {
@@ -410,670 +424,188 @@ describe('DotoliFund', () => {
 
   describe('withdrawFee', () => {
 
-    it("manager1 withdrawFee -> fund1", async function () {
-
+    it("withdrawFee WETH", async function () {
+      await fund.connect(manager1).withdrawFee(fundId1, WETH9, 10000)
+      await expect(fund.connect(investor1).withdrawFee(fundId1, WETH9, 10000)).to.be.revertedWith('NM')
+      await expect(fund.connect(manager2).withdrawFee(fundId1, WETH9, 10000)).to.be.revertedWith('NM')
     })
 
-    it("investor1 withdrawFee -> fund1", async function () {
-
-    })
-
-    it("manager2 withdrawFee -> fund1", async function () {
-
-    })
-
-    it("notInvestor withdrawFee -> fund1", async function () {
-
-    })
-
-    it("invalid case", async function () {
-
+    it("withdrawFee UNI", async function () {
+      await fund.connect(manager1).withdrawFee(fundId1, UNI, 10000)
+      await expect(fund.connect(investor1).withdrawFee(fundId1, UNI, 10000)).to.be.revertedWith('NM')
+      await expect(fund.connect(manager2).withdrawFee(fundId1, UNI, 10000)).to.be.revertedWith('NM')
     })
 
   })
 
   describe('mintNewPosition', () => {
 
-    it("manager1 mintNewPosition -> fund1", async function () {
+    it("mint WETH + UNI", async function () {
+      const params = mintParams(
+        UNI,
+        WETH9,
+        FeeAmount.MEDIUM,
+        getMinTick(TICK_SPACINGS[FeeAmount.MEDIUM]),
+        getMaxTick(TICK_SPACINGS[FeeAmount.MEDIUM]),
+        BigNumber.from(20000),
+        BigNumber.from(100),
+        BigNumber.from(2000),
+        BigNumber.from(10),
+      )
 
-    })
+      await fund.connect(manager1).mintNewPosition(
+        fundId1,
+        manager1.address,
+        params, 
+        { value: 0 }
+      )
+      await fund.connect(manager1).mintNewPosition(
+        fundId1,
+        investor1.address,
+        params, 
+        { value: 0 }
+      )
+      await fund.connect(manager1).mintNewPosition(
+        fundId1,
+        manager2.address,
+        params, 
+        { value: 0 }
+      )
 
-    it("investor1 mintNewPosition -> fund1", async function () {
+      await expect(fund.connect(investor1).mintNewPosition(
+        fundId1,
+        manager1.address,
+        params, 
+        { value: 0 }
+      )).to.be.revertedWith('NM')
+      await expect(fund.connect(investor1).mintNewPosition(
+        fundId1,
+        investor1.address,
+        params, 
+        { value: 0 }
+      )).to.be.revertedWith('NM')
+      await expect(fund.connect(investor1).mintNewPosition(
+        fundId1,
+        manager2.address,
+        params, 
+        { value: 0 }
+      )).to.be.revertedWith('NM')
 
-    })
-
-    it("manager2 mintNewPosition -> fund1", async function () {
-
-    })
-
-    it("notInvestor mintNewPosition -> fund1", async function () {
-
-    })
-
-    it("invalid case", async function () {
+      await expect(fund.connect(manager2).mintNewPosition(
+        fundId1,
+        manager1.address,
+        params, 
+        { value: 0 }
+      )).to.be.revertedWith('NM')
+      await expect(fund.connect(manager2).mintNewPosition(
+        fundId1,
+        investor1.address,
+        params, 
+        { value: 0 }
+      )).to.be.revertedWith('NM')
+      await expect(fund.connect(manager2).mintNewPosition(
+        fundId1,
+        manager2.address,
+        params, 
+        { value: 0 }
+      )).to.be.revertedWith('NM')
 
     })
 
   })
 
+
   describe('increaseLiquidity', () => {
 
-    it("manager1 increaseLiquidity -> fund1", async function () {
+    it("increase liquidity WETH + UNI1", async function () {
+      const tokenIds = await info.connect(manager1).getTokenIds(fundId1, investor1.address)
+      const params = increaseParams(
+        tokenIds[0],
+        BigNumber.from(20000),
+        BigNumber.from(100),
+        BigNumber.from(2000),
+        BigNumber.from(10),
+      )
 
-    })
 
-    it("investor1 increaseLiquidity -> fund1", async function () {
-
-    })
-
-    it("manager2 increaseLiquidity -> fund1", async function () {
-
-    })
-
-    it("notInvestor increaseLiquidity -> fund1", async function () {
-
-    })
-
-    it("invalid case", async function () {
-
+      await fund.connect(manager1).increaseLiquidity(
+        fundId1,
+        params, 
+        { value: 0 }
+      )
+      await expect(fund.connect(investor1).increaseLiquidity(
+        fundId1,
+        params, 
+        { value: 0 }
+      )).to.be.revertedWith('NM')
+      await expect(fund.connect(manager2).increaseLiquidity(
+        fundId1,
+        params, 
+        { value: 0 }
+      )).to.be.revertedWith('NM')
     })
 
   })
 
   describe('collectPositionFee', () => {
 
-    it("manager1 collectPositionFee -> fund1", async function () {
+    it("collect fee WETH + UNI", async function () {
+      const tokenIds = await info.connect(manager1).getTokenIds(fundId1, investor1.address)
+      const params = collectParams(
+        tokenIds[0],
+        MaxUint128,
+        MaxUint128
+      )
 
-    })
-
-    it("investor1 collectPositionFee -> fund1", async function () {
-
-    })
-
-    it("manager2 collectPositionFee -> fund1", async function () {
-
-    })
-
-    it("notInvestor collectPositionFee -> fund1", async function () {
-
-    })
-
-    it("invalid case", async function () {
-
+      await fund.connect(manager1).collectPositionFee(
+        fundId1,
+        params, 
+        { value: 0 }
+      )
+      await fund.connect(investor1).collectPositionFee(
+        fundId1,
+        params, 
+        { value: 0 }
+      )
+      await expect(fund.connect(manager2).collectPositionFee(
+        fundId1,
+        params, 
+        { value: 0 }
+      )).to.be.revertedWith('NA')
+      
     })
 
   })
 
   describe('decreaseLiquidity', () => {
 
-    it("manager1 decreaseLiquidity -> fund1", async function () {
+    it("decrease liquidity WETH + UNI1", async function () {
+      const tokenIds = await info.connect(manager1).getTokenIds(fundId1, investor1.address)
+      const params = decreaseParams(
+        tokenIds[0],
+        1000,
+        BigNumber.from(2000),
+        BigNumber.from(10),
+      )
 
-    })
-
-    it("investor1 decreaseLiquidity -> fund1", async function () {
-
-    })
-
-    it("manager2 decreaseLiquidity -> fund1", async function () {
-
-    })
-
-    it("notInvestor decreaseLiquidity -> fund1", async function () {
-
-    })
-
-    it("invalid case", async function () {
-
-    })
-
-  })
-
-
-
-
-
-
-
-  //   it("set UNI to white list token", async function () {
-  //     await expect(setting.connect(deployer).setWhiteListToken(UNI))
-  //   })
-
-  //   it("check manager is subscribed to fund1", async function () {
-  //     expect(await info.connect(manager1).isSubscribed(manager1.address, fundId1)).to.be.true
-  //   })
-
-  //   it("convert ETH to WETH", async function () {
-  //     const manager1Before = await getInvestorAccount(fundId1, manager1.address)
-  //     await weth9.connect(manager1).deposit({
-  //       from: manager1.address,
-  //       value: WETH_CHARGE_AMOUNT
-  //     })
-  //     const manager1After = await getInvestorAccount(fundId1, manager1.address)
-  //     expect(manager1After.WETH9).to.equal(manager1Before.WETH9.add(WETH_CHARGE_AMOUNT))
-  //   })
-
-  //   it("deposit ETH to fund1", async function () {
-  //     const fund1Before = await getFundAccount(fundId1, notInvestor)
-
-  //     await manager1.sendTransaction({
-  //       to: fundAddress,
-  //       value: DEPOSIT_AMOUNT, // Sends exactly 1.0 ether
-  //       data: BigNumber.from(fundId1)
-  //     })
-
-  //     const manager1After = await getInvestorAccount(fundId1, manager1.address)
-  //     const fund1After = await getFundAccount(fundId1, notInvestor)
-  //     expect(manager1After.fundWETH).to.equal(DEPOSIT_AMOUNT)
-  //     expect(manager1After.feeTokens).to.be.empty
-  //     expect(fund1After.WETH9).to.equal(fund1Before.WETH9.add(DEPOSIT_AMOUNT))
-  //   })
-
-  //   it("withdraw ETH", async function () {
-  //     const fund1Before = await getFundAccount(fundId1)
-  //     const manager1Before = await getInvestorAccount(fundId1, manager1.address)
-  //     await fund.connect(manager1).withdraw(fundId1, WETH9, WITHDRAW_AMOUNT)
-  //     const fund1After = await getFundAccount(fundId1)
-  //     const manager1After = await getInvestorAccount(fundId1, manager1.address)
-  //     expect(manager1After.fundWETH).to.equal(manager1Before.fundWETH.sub(WITHDRAW_AMOUNT))
-  //     expect(manager1After.feeTokens).to.be.empty
-  //     expect(fund1After.WETH9).to.equal(fund1Before.WETH9.sub(WITHDRAW_AMOUNT))
-  //   })
-
-  //   it("deposit WETH", async function () {
-  //     const fund1Before = await getFundAccount(fundId1)
-  //     const manager1Before = await getInvestorAccount(fundId1, manager1.address)
-
-  //     await weth9.connect(manager1).approve(fundAddress, constants.MaxUint256)
-  //     await fund.connect(manager1).deposit(fundId1, WETH9, DEPOSIT_AMOUNT)
-
-  //     const fund1After = await getFundAccount(fundId1)
-  //     const manager1After = await getInvestorAccount(fundId1, manager1.address)
-
-  //     expect(manager1After.fundWETH).to.equal(manager1Before.fundWETH.add(DEPOSIT_AMOUNT))
-  //     expect(manager1After.feeTokens).to.be.empty
-  //     expect(fund1After.WETH9).to.equal(fund1Before.WETH9.add(DEPOSIT_AMOUNT))
-  //   })
-
-  //   it("withdraw WETH", async function () {
-  //     const fund1Before = await getFundAccount(fundId1)
-  //     const manager1Before = await getInvestorAccount(fundId1, manager1.address)
-
-  //     await fund.connect(manager1).withdraw(fundId1, WETH9, WITHDRAW_AMOUNT)
-
-  //     const fund1After = await getFundAccount(fundId1)
-  //     const manager1After = await getInvestorAccount(fundId1, manager1.address)
-
-  //     expect(manager1After.fundWETH).to.equal(manager1Before.fundWETH.sub(WITHDRAW_AMOUNT))
-  //     expect(manager1After.feeTokens).to.be.empty
-  //     expect(fund1After.WETH9).to.equal(fund1Before.WETH9.sub(WITHDRAW_AMOUNT))
-  //   })
-  // })
-
-
-
-
-
-  describe('Deposit', () => {
-
-    it("deposit fund1 -> manager1", async function () {
-
-    })
-
-    it("deposit fund1 -> investor1", async function () {
-
-    })
-
-    it("deposit fund1 -> manager2", async function () {
-
-    })
-
-    it("deposit fund1 -> notInvestor", async function () {
-
-    })
-
-    it("invalid case", async function () {
-
+      await fund.connect(manager1).decreaseLiquidity(
+        fundId1,
+        params, 
+        { value: 0 }
+      )
+      await expect(fund.connect(investor1).decreaseLiquidity(
+        fundId1,
+        params, 
+        { value: 0 }
+      ))
+      await expect(fund.connect(manager2).decreaseLiquidity(
+        fundId1,
+        params, 
+        { value: 0 }
+      )).to.be.revertedWith('NA')
+      
     })
 
   })
 
-
-
-  describe('Withdraw', () => {
-
-    it("withdraw fund1 -> manager1", async function () {
-
-    })
-
-    it("withdraw fund1 -> investor1", async function () {
-
-    })
-
-    it("withdraw fund1 -> manager2", async function () {
-
-    })
-
-    it("withdraw fund1 -> notInvestor", async function () {
-
-    })
-
-    it("invalid case", async function () {
-
-    })
-
-  })
-
-  describe('Swap', () => {
-
-    it("swap fund1 -> manager1", async function () {
-
-    })
-
-    it("swap fund1 -> investor1", async function () {
-
-    })
-
-    it("swap fund1 -> manager2", async function () {
-
-    })
-
-    it("swap fund1 -> notInvestor", async function () {
-
-    })
-
-    it("invalid case", async function () {
-
-    })
-
-  })
-
-  describe('WithdrawFee', () => {
-
-    it("withdrawFee fund1 -> manager1", async function () {
-
-    })
-
-    it("withdrawFee fund1 -> investor1", async function () {
-
-    })
-
-    it("withdrawFee fund1 -> manager2", async function () {
-
-    })
-
-    it("withdrawFee fund1 -> notInvestor", async function () {
-
-    })
-
-    it("invalid case", async function () {
-
-    })
-
-  })
-
-
-  describe('Mint liquidity', () => {
-
-    it("mint fund1 -> manager1", async function () {
-
-    })
-
-    it("mint fund1 -> investor1", async function () {
-
-    })
-
-    it("mint fund1 -> manager2", async function () {
-
-    })
-
-    it("mint fund1 -> notInvestor", async function () {
-
-    })
-
-  })
-
-
-  describe('Increase liquidity', () => {
-
-    it("increase liquidity fund1 -> manager1", async function () {
-
-    })
-
-    it("increase liquidity fund1 -> investor1", async function () {
-
-    })
-
-    it("increase liquidity fund1 -> manager2", async function () {
-
-    })
-
-    it("increase liquidity fund1 -> notInvestor", async function () {
-
-    })
-
-  })
-
-  describe('Collect fee liquidity', () => {
-
-    it("collect fee fund1 -> manager1", async function () {
-
-    })
-
-    it("collect fee fund1 -> investor1", async function () {
-
-    })
-
-    it("collect fee fund1 -> manager2", async function () {
-
-    })
-
-    it("collect fee fund1 -> notInvestor", async function () {
-
-    })
-
-  })
-
-  describe('Decrease liquidity', () => {
-
-    it("decrease liquidity fund1 -> manager1", async function () {
-
-    })
-
-    it("decrease liquidity fund1 -> investor1", async function () {
-
-    })
-
-    it("decrease liquidity fund1 -> manager2", async function () {
-
-    })
-
-    it("decrease liquidity fund1 -> notInvestor", async function () {
-
-    })
-
-  })
-
-
-
-
-  // describe('Swap -> exactInputSingle', () => {
-
-  //   it(" WETH -> UNI", async function () {
-  //     const swapInputAmount = BigNumber.from(1000000)
-  //     const amountOutMinimum = BigNumber.from(1)
-
-  //     const fund1Before = await getFundAccount(fundId1)
-  //     const manager1Before = await getInvestorAccount(fundId1, manager1.address)
-
-  //     const params = exactInputSingleParams(
-  //       WETH9,
-  //       UNI,
-  //       swapInputAmount,
-  //       amountOutMinimum,
-  //       BigNumber.from(0)
-  //     )
-  //     await fund.connect(manager1).swap(fundId1, manager1.address, params, { value: 0 })
-  //     const fund1After = await getFundAccount(fundId1)
-  //     const manager1After = await getInvestorAccount(fundId1, manager1.address)
-
-  //     expect(fund1After.WETH9).to.equal(fund1Before.WETH9.sub(swapInputAmount))
-  //     expect(fund1After.UNI).to.be.above(fund1Before.UNI)
-  //     expect(manager1After.fundWETH).to.equal(manager1Before.fundWETH.sub(swapInputAmount))
-  //     expect(manager1After.fundUNI).to.be.above(manager1Before.fundUNI)
-  //   })
-
-  //   it("#exactInputSingle UNI -> WETH", async function () {
-  //     const swapInputAmount = BigNumber.from(10000000)
-  //     const amountOutMinimum = BigNumber.from(1)
-
-  //     const fund1Before = await getFundAccount(fundId1)
-  //     const manager1Before = await getInvestorAccount(fundId1, manager1.address)
-
-  //     const params = exactInputSingleParams(
-  //       UNI,
-  //       WETH9, 
-  //       swapInputAmount, 
-  //       amountOutMinimum, 
-  //       BigNumber.from(0)
-  //     )
-  //     await fund.connect(manager1).swap(fundId1, manager1.address, params, { value: 0 })
-
-  //     const fund1After = await getFundAccount(fundId1)
-  //     const manager1After = await getInvestorAccount(fundId1, manager1.address)
-
-  //     expect(fund1After.WETH9).to.be.above(fund1Before.WETH9)
-  //     expect(fund1After.UNI).to.equal(fund1Before.UNI.sub(swapInputAmount))
-  //     expect(manager1After.fundWETH).to.be.above(manager1Before.fundWETH)
-  //     expect(manager1After.fundUNI).to.equal(manager1Before.fundUNI.sub(swapInputAmount))
-  //   })
-  // })
-
-  // describe("Swap -> exactOutputSingle", async function () {
-
-  //   it("WETH -> UNI", async function () {
-  //     const swapOutputAmount = BigNumber.from(10000000)
-  //     const amountInMaximum = BigNumber.from(10000000)
-
-  //     const fund1Before = await getFundAccount(fundId1)
-  //     const manager1Before = await getInvestorAccount(fundId1, manager1.address)
-
-  //     const params = exactOutputSingleParams(
-  //       WETH9, 
-  //       UNI, 
-  //       swapOutputAmount, 
-  //       amountInMaximum, 
-  //       BigNumber.from(0)
-  //     )
-  //     await fund.connect(manager1).swap(fundId1, manager1.address, params, { value: 0 })
-
-  //     const fund1After = await getFundAccount(fundId1)
-  //     const manager1After = await getInvestorAccount(fundId1, manager1.address)
-
-  //     expect(fund1After.WETH9).to.be.below(fund1Before.WETH9)
-  //     expect(fund1After.UNI).to.equal(fund1Before.UNI.add(swapOutputAmount))
-  //     expect(manager1After.fundWETH).to.be.below(manager1Before.fundWETH)
-  //     expect(manager1After.fundUNI).to.equal(manager1Before.fundUNI.add(swapOutputAmount))
-  //   })
-
-  //   it("UNI -> WETH", async function () {
-  //     const swapOutputAmount = BigNumber.from(1000)
-  //     const amountInMaximum = BigNumber.from(300000)
-
-  //     const fund1Before = await getFundAccount(fundId1)
-  //     const manager1Before = await getInvestorAccount(fundId1, manager1.address)
-
-  //     const params = exactOutputSingleParams(
-  //       UNI,
-  //       WETH9, 
-  //       swapOutputAmount, 
-  //       amountInMaximum, 
-  //       BigNumber.from(0)
-  //     )
-  //     await fund.connect(manager1).swap(fundId1, manager1.address, params, { value: 0 })
-
-  //     const fund1After = await getFundAccount(fundId1)
-  //     const manager1After = await getInvestorAccount(fundId1, manager1.address)
-
-  //     expect(fund1After.WETH9).to.equal(fund1Before.WETH9.add(swapOutputAmount))
-  //     expect(fund1After.UNI).to.be.below(fund1Before.UNI)
-  //     expect(manager1After.fundWETH).to.equal(manager1Before.fundWETH.add(swapOutputAmount))
-  //     expect(manager1After.fundUNI).to.be.below(manager1Before.fundUNI)
-  //   })
-  // })
-
-  // describe("Swap -> exactInput", async function () {
-
-  //   it("WETH -> DAI -> UNI", async function () {
-  //     const tokens = [WETH9, DAI, UNI]
-  //     const swapInputAmount = BigNumber.from(1000000)
-  //     const amountOutMinimum = BigNumber.from(1)
-
-  //     const fund1Before = await getFundAccount(fundId1)
-  //     const manager1Before = await getInvestorAccount(fundId1, manager1.address)
-
-  //     const params = exactInputParams(
-  //       tokens,
-  //       swapInputAmount,
-  //       amountOutMinimum
-  //     )
-  //     await fund.connect(manager1).swap(fundId1, manager1.address, params, { value: 0 })
-
-  //     const fund1After = await getFundAccount(fundId1)
-  //     const manager1After = await getInvestorAccount(fundId1, manager1.address)
-
-  //     expect(fund1After.WETH9).to.equal(fund1Before.WETH9.sub(swapInputAmount))
-  //     expect(fund1After.UNI).to.be.above(fund1Before.UNI)
-  //     expect(manager1After.fundWETH).to.equal(manager1Before.fundWETH.sub(swapInputAmount))
-  //     expect(manager1After.fundUNI).to.be.above(manager1Before.fundUNI)
-  //   })
-
-  //   it("UNI -> DAI -> WETH", async function () {
-  //     const tokens = [UNI, DAI, WETH9]
-  //     const swapInputAmount = BigNumber.from(300000)
-  //     const amountOutMinimum = BigNumber.from(1)
-
-  //     const fund1Before = await getFundAccount(fundId1)
-  //     const manager1Before = await getInvestorAccount(fundId1, manager1.address)
-
-  //     const params = exactInputParams(
-  //       tokens,
-  //       swapInputAmount,
-  //       amountOutMinimum
-  //     )
-  //     await fund.connect(manager1).swap(fundId1, manager1.address, params, { value: 0 })
-
-  //     const fund1After = await getFundAccount(fundId1)
-  //     const manager1After = await getInvestorAccount(fundId1, manager1.address)
-
-  //     expect(fund1After.WETH9).to.be.above(fund1Before.WETH9)
-  //     expect(fund1After.UNI).to.equal(fund1Before.UNI.sub(swapInputAmount))
-  //     expect(manager1After.fundWETH).to.be.above(manager1Before.fundWETH)
-  //     expect(manager1After.fundUNI).to.equal(manager1Before.fundUNI.sub(swapInputAmount))
-  //   })
-  // })
-
-  // describe("Swap -> exactOutput", async function () {
-
-  //   it("WETH -> DAI -> UNI", async function () {
-  //     const tokens = [WETH9, DAI, UNI]
-  //     const swapOutputAmount = BigNumber.from(3000000)
-  //     const amountInMaximum = BigNumber.from(1000000)
-
-  //     const fund1Before = await getFundAccount(fundId1)
-  //     const manager1Before = await getInvestorAccount(fundId1, manager1.address)
-
-  //     const params = exactOutputParams(
-  //       tokens,
-  //       swapOutputAmount,
-  //       amountInMaximum
-  //     )
-  //     await fund.connect(manager1).swap(fundId1, manager1.address, params, { value: 0 })
-
-  //     const fund1After = await getFundAccount(fundId1)
-  //     const manager1After = await getInvestorAccount(fundId1, manager1.address)
-
-  //     expect(fund1After.WETH9).to.be.below(fund1Before.WETH9)
-  //     expect(fund1After.UNI).to.equal(fund1Before.UNI.add(swapOutputAmount))
-  //     expect(manager1After.fundWETH).to.be.below(manager1Before.fundWETH)
-  //     expect(manager1After.fundUNI).to.equal(manager1Before.fundUNI.add(swapOutputAmount))
-  //   })
-
-  //   it("UNI -> DAI -> WETH", async function () {
-  //     const tokens = [UNI, DAI, WETH9]
-  //     const swapOutputAmount = BigNumber.from(1000)
-  //     const amountInMaximum = BigNumber.from(300000)
-
-  //     const fund1Before = await getFundAccount(fundId1)
-  //     const manager1Before = await getInvestorAccount(fundId1, manager1.address)
-
-  //     const params = exactOutputParams(
-  //       tokens,
-  //       swapOutputAmount,
-  //       amountInMaximum,
-  //       fundAddress
-  //     )
-  //     await fund.connect(manager1).swap(fundId1, manager1.address, params, { value: 0 })
-
-  //     const fund1After = await getFundAccount(fundId1)
-  //     const manager1After = await getInvestorAccount(fundId1, manager1.address)
-
-  //     expect(fund1After.WETH9).to.equal(fund1Before.WETH9.add(swapOutputAmount))
-  //     expect(fund1After.UNI).to.be.below(fund1Before.UNI)
-  //     expect(manager1After.fundWETH).to.equal(manager1Before.fundWETH.add(swapOutputAmount))
-  //     expect(manager1After.fundUNI).to.be.below(manager1Before.fundUNI)
-  //   })
-  // })
-
-  // describe('Mint / Add Liquidity / Collect Fee / Remove Liquidity', () => {
-  //   // if error msg is 'Price slippage check',
-  //   // check amount0 vs amount1 ratio. 
-  //   // (2022/10/31) UNI vs ETH => 200 : 1 (OK)
-  //   it("mint new position", async function () {
-  //     const params = mintParams(
-  //       UNI,
-  //       WETH9,
-  //       FeeAmount.MEDIUM,
-  //       getMinTick(TICK_SPACINGS[FeeAmount.MEDIUM]),
-  //       getMaxTick(TICK_SPACINGS[FeeAmount.MEDIUM]),
-  //       BigNumber.from(20000),
-  //       BigNumber.from(100),
-  //       BigNumber.from(2000),
-  //       BigNumber.from(10),
-  //     )
-  //     await fund.connect(manager1).mintNewPosition(
-  //       fundId1,
-  //       manager1.address,
-  //       params, 
-  //       { value: 0 }
-  //     )
-  //   })
-
-  //   it("increase liquidity", async function () {
-  //     const tokenIds = await info.connect(manager1).getTokenIds(fundId1, manager1.address)
-  //     const params = increaseParams(
-  //       tokenIds[0],
-  //       BigNumber.from(20000),
-  //       BigNumber.from(100),
-  //       BigNumber.from(2000),
-  //       BigNumber.from(10),
-  //     )
-  //     await fund.connect(manager1).increaseLiquidity(
-  //       fundId1,
-  //       manager1.address,
-  //       params, 
-  //       { value: 0 }
-  //     )
-  //   })
-
-  //   it("collect position fee", async function () {
-  //     const tokenIds = await info.connect(manager1).getTokenIds(fundId1, manager1.address)
-  //     const params = collectParams(
-  //       tokenIds[0],
-  //       MaxUint128,
-  //       MaxUint128
-  //     )
-  //     await fund.connect(manager1).collectPositionFee(
-  //       fundId1,
-  //       manager1.address,
-  //       params, 
-  //       { value: 0 }
-  //     )
-  //   })
-
-  //   it("decrease liquidity", async function () {
-  //     const tokenIds = await info.connect(manager1).getTokenIds(fundId1, manager1.address)
-  //     const params = decreaseParams(
-  //       tokenIds[0],
-  //       1000,
-  //       BigNumber.from(2000),
-  //       BigNumber.from(10),
-  //     )
-  //     await fund.connect(manager1).decreaseLiquidity(
-  //       fundId1,
-  //       manager1.address,
-  //       params, 
-  //       { value: 0 }
-  //     )
-  //   })
-  // })
 })

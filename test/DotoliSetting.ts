@@ -535,7 +535,6 @@ describe('DotoliSetting', () => {
       )
       await fund.connect(manager1).increaseLiquidity(
         fundId1,
-        investor1.address,
         params, 
         { value: 0 }
       )
@@ -550,7 +549,6 @@ describe('DotoliSetting', () => {
       )
       await fund.connect(manager1).collectPositionFee(
         fundId1,
-        investor1.address,
         params, 
         { value: 0 }
       )
@@ -566,7 +564,6 @@ describe('DotoliSetting', () => {
       )
       await fund.connect(manager1).decreaseLiquidity(
         fundId1,
-        investor1.address,
         params, 
         { value: 0 }
       )
@@ -653,7 +650,6 @@ describe('DotoliSetting', () => {
       )
       await expect(fund.connect(manager1).increaseLiquidity(
         fundId1,
-        investor1.address,
         params, 
         { value: 0 }
       )).to.be.revertedWith('NWT0')
@@ -668,7 +664,6 @@ describe('DotoliSetting', () => {
       )
       await fund.connect(manager1).collectPositionFee(
         fundId1,
-        investor1.address,
         params, 
         { value: 0 }
       )
@@ -684,7 +679,6 @@ describe('DotoliSetting', () => {
       )
       await fund.connect(manager1).decreaseLiquidity(
         fundId1,
-        investor1.address,
         params, 
         { value: 0 }
       )
