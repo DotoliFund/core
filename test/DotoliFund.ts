@@ -228,6 +228,7 @@ describe('DotoliFund', () => {
       await fund.connect(manager1).swap(fundId1, manager1.address, params, { value: 0 })
 
       //withdraw
+      await fund.connect(manager1).withdraw(fundId1, WETH9, ethers.utils.parseEther("0.1"))
       await fund.connect(manager1).withdraw(fundId1, UNI, ethers.utils.parseEther("0.1"))
 
       await weth9.connect(manager1).deposit({
@@ -258,6 +259,7 @@ describe('DotoliFund', () => {
       await fund.connect(manager1).swap(fundId1, investor1.address, params, { value: 0 })
 
       //withdraw
+      await fund.connect(investor1).withdraw(fundId1, WETH9, ethers.utils.parseEther("0.1"))
       await fund.connect(investor1).withdraw(fundId1, UNI, ethers.utils.parseEther("0.1"))
 
       await weth9.connect(investor1).deposit({
@@ -288,6 +290,7 @@ describe('DotoliFund', () => {
       await fund.connect(manager1).swap(fundId1, manager2.address, params, { value: 0 })
 
       //withdraw
+      await fund.connect(manager2).withdraw(fundId1, WETH9, ethers.utils.parseEther("0.1"))
       await fund.connect(manager2).withdraw(fundId1, UNI, ethers.utils.parseEther("0.1"))
 
       await weth9.connect(manager2).deposit({
@@ -300,14 +303,28 @@ describe('DotoliFund', () => {
     })
   })
 
-  describe('fallback', () => {
+  describe('fallback -> Deposit ETH', () => {
 
-    it("deposit ETH", async function () {
+    it("manager1 deposit ETH", async function () {
+      const fundBefore = await getFundAccount(fundId1)
+      const manager1Before = await getInvestorAccount(fundId1, manager1.address)
+
       await manager1.sendTransaction({
         to: fundAddress,
         value: DEPOSIT_AMOUNT, // Sends exactly 1.0 ether
         data: BigNumber.from(fundId1)
       })
+
+      const fundAfter = await getFundAccount(fundId1)
+      const manager1After = await getInvestorAccount(fundId1, manager1.address)
+
+      expect(fundAfter.WETH9).to.equal(fundBefore.WETH9.add(DEPOSIT_AMOUNT))
+      expect(manager1After.fundWETH).to.equal(manager1Before.fundWETH.add(DEPOSIT_AMOUNT))
+    })
+
+    it("investor1 deposit ETH", async function () {
+      const fundBefore = await getFundAccount(fundId1)
+      const investor1Before = await getInvestorAccount(fundId1, investor1.address)
 
       await investor1.sendTransaction({
         to: fundAddress,
@@ -315,17 +332,45 @@ describe('DotoliFund', () => {
         data: BigNumber.from(fundId1)
       })
 
+      const fundAfter = await getFundAccount(fundId1)
+      const investor1After = await getInvestorAccount(fundId1, investor1.address)
+
+      expect(fundAfter.WETH9).to.equal(fundBefore.WETH9.add(DEPOSIT_AMOUNT))
+      expect(investor1After.fundWETH).to.equal(investor1Before.fundWETH.add(DEPOSIT_AMOUNT))
+    })
+
+    it("manager2 deposit ETH", async function () {
+      const fundBefore = await getFundAccount(fundId1)
+      const manager2Before = await getInvestorAccount(fundId1, manager2.address)
+
       await manager2.sendTransaction({
         to: fundAddress,
         value: DEPOSIT_AMOUNT, // Sends exactly 1.0 ether
         data: BigNumber.from(fundId1)
       })
 
+      const fundAfter = await getFundAccount(fundId1)
+      const manager2After = await getInvestorAccount(fundId1, manager2.address)
+
+      expect(fundAfter.WETH9).to.equal(fundBefore.WETH9.add(DEPOSIT_AMOUNT))
+      expect(manager2After.fundWETH).to.equal(manager2Before.fundWETH.add(DEPOSIT_AMOUNT))
+    })
+
+    it("notInvestor deposit ETH", async function () {
+      const fundBefore = await getFundAccount(fundId1)
+      const notInvestorBefore = await getInvestorAccount(fundId1, notInvestor.address)
+
       await expect(notInvestor.sendTransaction({
         to: fundAddress,
         value: DEPOSIT_AMOUNT, // Sends exactly 1.0 ether
         data: BigNumber.from(fundId1)
       })).to.be.revertedWith('US')
+
+      const fundAfter = await getFundAccount(fundId1)
+      const notInvestorAfter = await getInvestorAccount(fundId1, notInvestor.address)
+
+      expect(fundAfter.WETH9).to.equal(fundBefore.WETH9)
+      expect(notInvestorAfter.fundWETH).to.equal(notInvestorBefore.fundWETH)
     })
 
     it("invalid case", async function () {
@@ -334,28 +379,122 @@ describe('DotoliFund', () => {
 
   })
 
-  describe('deposit', () => {
+  describe('deposit -> WETH, UNI', () => {
 
-    it("deposit WETH", async function () {
+    it("manager1 deposit WETH", async function () {
+      const fundBefore = await getFundAccount(fundId1)
+      const manager1Before = await getInvestorAccount(fundId1, manager1.address)
+
       await fund.connect(manager1).deposit(fundId1, WETH9, DEPOSIT_AMOUNT)
+
+      const fundAfter = await getFundAccount(fundId1)
+      const manager1After = await getInvestorAccount(fundId1, manager1.address)
+
+      expect(fundAfter.WETH9).to.equal(fundBefore.WETH9.add(DEPOSIT_AMOUNT))
+      expect(manager1After.fundWETH).to.equal(manager1Before.fundWETH.add(DEPOSIT_AMOUNT))
+    })
+
+    it("investor1 deposit WETH", async function () {
+      const fundBefore = await getFundAccount(fundId1)
+      const investor1Before = await getInvestorAccount(fundId1, investor1.address)
+
       await fund.connect(investor1).deposit(fundId1, WETH9, DEPOSIT_AMOUNT)
+
+      const fundAfter = await getFundAccount(fundId1)
+      const investor1After = await getInvestorAccount(fundId1, investor1.address)
+
+      expect(fundAfter.WETH9).to.equal(fundBefore.WETH9.add(DEPOSIT_AMOUNT))
+      expect(investor1After.fundWETH).to.equal(investor1Before.fundWETH.add(DEPOSIT_AMOUNT))
+    })
+
+    it("manager2 deposit WETH", async function () {
+      const fundBefore = await getFundAccount(fundId1)
+      const manager2Before = await getInvestorAccount(fundId1, manager2.address)
+
       await fund.connect(manager2).deposit(fundId1, WETH9, DEPOSIT_AMOUNT)
 
+      const fundAfter = await getFundAccount(fundId1)
+      const manager2After = await getInvestorAccount(fundId1, manager2.address)
+
+      expect(fundAfter.WETH9).to.equal(fundBefore.WETH9.add(DEPOSIT_AMOUNT))
+      expect(manager2After.fundWETH).to.equal(manager2Before.fundWETH.add(DEPOSIT_AMOUNT))
+    })
+
+    it("notInvestor deposit WETH", async function () {
+      const fundBefore = await getFundAccount(fundId1)
+      const notInvestorBefore = await getInvestorAccount(fundId1, notInvestor.address)
+
       await weth9.connect(manager2).approve(notInvestor.address, constants.MaxUint256)
-      await uni.connect(manager2).approve(notInvestor.address, constants.MaxUint256)
       await weth9.connect(manager2).transfer(notInvestor.address, ethers.utils.parseEther("0.0001"))
-      await uni.connect(manager2).transfer(notInvestor.address, ethers.utils.parseEther("0.0001"))
 
       await expect(fund.connect(notInvestor).deposit(fundId1, WETH9, ethers.utils.parseEther("0.00001")))
         .to.be.revertedWith('US')
+
+      const fundAfter = await getFundAccount(fundId1)
+      const notInvestorAfter = await getInvestorAccount(fundId1, notInvestor.address)
+
+      expect(fundAfter.WETH9).to.equal(fundBefore.WETH9)
+      expect(notInvestorAfter.fundWETH).to.equal(notInvestorBefore.fundWETH)
     })
 
-    it("deposit UNI", async function () {
-      await fund.connect(manager1).deposit(fundId1, UNI, ethers.utils.parseEther("0.00001"))
-      await fund.connect(investor1).deposit(fundId1, UNI, ethers.utils.parseEther("0.00001"))
-      await fund.connect(manager2).deposit(fundId1, UNI, ethers.utils.parseEther("0.00001"))
+    it("manager1 deposit UNI", async function () {
+      const fundBefore = await getFundAccount(fundId1)
+      const manager1Before = await getInvestorAccount(fundId1, manager1.address)
+
+      const depositAmountUNI = ethers.utils.parseEther("0.00001")
+      await fund.connect(manager1).deposit(fundId1, UNI, depositAmountUNI)
+
+      const fundAfter = await getFundAccount(fundId1)
+      const manager1After = await getInvestorAccount(fundId1, manager1.address)
+
+      expect(fundAfter.UNI).to.equal(fundBefore.UNI.add(depositAmountUNI))
+      expect(manager1After.fundUNI).to.equal(manager1Before.fundUNI.add(depositAmountUNI))
+    })
+
+    it("investor1 deposit UNI", async function () {
+      const fundBefore = await getFundAccount(fundId1)
+      const investor1Before = await getInvestorAccount(fundId1, investor1.address)
+
+      const depositAmountUNI = ethers.utils.parseEther("0.00001")
+      await fund.connect(investor1).deposit(fundId1, UNI, depositAmountUNI)
+
+      const fundAfter = await getFundAccount(fundId1)
+      const investor1After = await getInvestorAccount(fundId1, investor1.address)
+
+      expect(fundAfter.UNI).to.equal(fundBefore.UNI.add(depositAmountUNI))
+      expect(investor1After.fundUNI).to.equal(investor1Before.fundUNI.add(depositAmountUNI))
+    })
+
+    it("manager2 deposit UNI", async function () {
+      const fundBefore = await getFundAccount(fundId1)
+      const manager2Before = await getInvestorAccount(fundId1, manager2.address)
+
+      const depositAmountUNI = ethers.utils.parseEther("0.00001")
+      await fund.connect(manager2).deposit(fundId1, UNI, depositAmountUNI)
+
+      const fundAfter = await getFundAccount(fundId1)
+      const manager2After = await getInvestorAccount(fundId1, manager2.address)
+
+      expect(fundAfter.UNI).to.equal(fundBefore.UNI.add(depositAmountUNI))
+      expect(manager2After.fundUNI).to.equal(manager2Before.fundUNI.add(depositAmountUNI))
+    })
+
+    it("notInvestor deposit UNI", async function () {
+      const fundBefore = await getFundAccount(fundId1)
+      const notInvestorBefore = await getInvestorAccount(fundId1, notInvestor.address)
+
+      const depositAmountUNI = ethers.utils.parseEther("0.00001")
+      await uni.connect(manager2).approve(notInvestor.address, constants.MaxUint256)
+      await uni.connect(manager2).transfer(notInvestor.address, ethers.utils.parseEther("0.0001"))
+
       await expect(fund.connect(notInvestor).deposit(fundId1, UNI, ethers.utils.parseEther("0.00001")))
         .to.be.revertedWith('US')
+
+      const fundAfter = await getFundAccount(fundId1)
+      const notInvestorAfter = await getInvestorAccount(fundId1, notInvestor.address)
+
+      expect(fundAfter.UNI).to.equal(fundBefore.UNI)
+      expect(notInvestorAfter.fundUNI).to.equal(notInvestorBefore.fundUNI)
     })
 
     it("invalid case", async function () {
@@ -364,18 +503,146 @@ describe('DotoliFund', () => {
 
   })
 
-  describe('withdraw', () => {
+  describe('withdraw -> WETH, UNI', () => {
 
-    it("withdraw WETH", async function () {
-      await fund.connect(manager1).withdraw(fundId1, WETH9, ethers.utils.parseEther("0.00001"))
-      await fund.connect(investor1).withdraw(fundId1, WETH9, ethers.utils.parseEther("0.00001"))
-      await fund.connect(manager2).withdraw(fundId1, WETH9, ethers.utils.parseEther("0.00001"))
+    it("manager1 withdraw WETH", async function () {
+      const fundBefore = await getFundAccount(fundId1)
+      const manager1Before = await getInvestorAccount(fundId1, manager1.address)
+
+      const withdrawAmount = ethers.utils.parseEther("0.00001")
+      await fund.connect(manager1).withdraw(fundId1, WETH9, withdrawAmount)
+
+      const fundAfter = await getFundAccount(fundId1)
+      const manager1After = await getInvestorAccount(fundId1, manager1.address)
+
+      expect(fundAfter.WETH9).to.equal(fundBefore.WETH9.sub(withdrawAmount))
+      expect(manager1After.fundWETH).to.equal(manager1Before.fundWETH.sub(withdrawAmount))
     })
 
-    it("withdraw UNI", async function () {
-      await fund.connect(manager1).withdraw(fundId1, UNI, ethers.utils.parseEther("0.00001"))
-      await fund.connect(investor1).withdraw(fundId1, UNI, ethers.utils.parseEther("0.00001"))
-      await fund.connect(manager2).withdraw(fundId1, UNI, ethers.utils.parseEther("0.00001"))
+    it("investor1 withdraw WETH", async function () {
+      const fundBefore = await getFundAccount(fundId1)
+      const investor1Before = await getInvestorAccount(fundId1, investor1.address)
+
+      const withdrawAmount = ethers.utils.parseEther("0.00001")
+      await fund.connect(investor1).withdraw(fundId1, WETH9, withdrawAmount)
+
+      //withdraw fee
+      const fee = withdrawAmount.mul(MANAGER_FEE).div(10000).div(100)
+      const investorWithdrawAmount = withdrawAmount.sub(fee)
+
+      const fundAfter = await getFundAccount(fundId1)
+      const investor1After = await getInvestorAccount(fundId1, investor1.address)
+
+      expect(investor1After.fundWETH).to.equal(investor1Before.fundWETH.sub(withdrawAmount))
+      expect(fundAfter.WETH9).to.equal(fundBefore.WETH9.sub(investorWithdrawAmount))
+      expect(fundAfter.feeTokens[0][0]).to.equal(WETH9)
+      expect(fundAfter.feeTokens[0][1]).to.equal(fundBefore.feeTokens[0][1].add(fee))
+    })
+
+    it("manager2 withdraw WETH", async function () {
+      const fundBefore = await getFundAccount(fundId1)
+      const manager2Before = await getInvestorAccount(fundId1, manager2.address)
+
+      const withdrawAmount = ethers.utils.parseEther("0.00001")
+      await fund.connect(manager2).withdraw(fundId1, WETH9, withdrawAmount)
+
+      //withdraw fee
+      const fee = withdrawAmount.mul(MANAGER_FEE).div(10000).div(100)
+      const investorWithdrawAmount = withdrawAmount.sub(fee)
+
+      const fundAfter = await getFundAccount(fundId1)
+      const manager2After = await getInvestorAccount(fundId1, manager2.address)
+
+      expect(manager2After.fundWETH).to.equal(manager2Before.fundWETH.sub(withdrawAmount))
+      expect(fundAfter.WETH9).to.equal(fundBefore.WETH9.sub(investorWithdrawAmount))
+      expect(fundAfter.feeTokens[0][0]).to.equal(WETH9)
+      expect(fundAfter.feeTokens[0][1]).to.equal(fundBefore.feeTokens[0][1].add(fee))
+    })
+
+    it("notInvestor withdraw WETH", async function () {
+      const fundBefore = await getFundAccount(fundId1)
+      const notInvestorBefore = await getInvestorAccount(fundId1, notInvestor.address)
+
+      const withdrawAmount = ethers.utils.parseEther("0.00001")
+      await weth9.connect(manager2).approve(notInvestor.address, constants.MaxUint256)
+      await weth9.connect(manager2).transfer(notInvestor.address, ethers.utils.parseEther("0.0001"))
+
+      await expect(fund.connect(notInvestor).withdraw(fundId1, WETH9, withdrawAmount))
+        .to.be.revertedWith('US')
+
+      const fundAfter = await getFundAccount(fundId1)
+      const notInvestorAfter = await getInvestorAccount(fundId1, notInvestor.address)
+
+      expect(fundAfter.WETH9).to.equal(fundBefore.WETH9)
+      expect(notInvestorAfter.fundWETH).to.equal(notInvestorBefore.fundWETH)
+    })
+
+    it("manager1 withdraw UNI", async function () {
+      const fundBefore = await getFundAccount(fundId1)
+      const manager1Before = await getInvestorAccount(fundId1, manager1.address)
+
+      const withdrawAmount = ethers.utils.parseEther("0.00001")
+      await fund.connect(manager1).withdraw(fundId1, UNI, withdrawAmount)
+
+      const fundAfter = await getFundAccount(fundId1)
+      const manager1After = await getInvestorAccount(fundId1, manager1.address)
+
+      expect(fundAfter.UNI).to.equal(fundBefore.UNI.sub(withdrawAmount))
+      expect(manager1After.fundUNI).to.equal(manager1Before.fundUNI.sub(withdrawAmount))
+    })
+
+    it("investor1 withdraw UNI", async function () {
+      const fundBefore = await getFundAccount(fundId1)
+      const investor1Before = await getInvestorAccount(fundId1, investor1.address)
+
+      const withdrawAmount = ethers.utils.parseEther("0.00001")
+      await fund.connect(investor1).withdraw(fundId1, UNI, withdrawAmount)
+
+      //withdraw fee
+      const fee = withdrawAmount.mul(MANAGER_FEE).div(10000).div(100)
+      const investorWithdrawAmount = withdrawAmount.sub(fee)
+
+      const fundAfter = await getFundAccount(fundId1)
+      const investor1After = await getInvestorAccount(fundId1, investor1.address)
+
+      expect(investor1After.fundUNI).to.equal(investor1Before.fundUNI.sub(withdrawAmount))
+      expect(fundAfter.UNI).to.equal(fundBefore.UNI.sub(investorWithdrawAmount))
+      expect(fundAfter.feeTokens[1][0]).to.equal(UNI)
+      expect(fundAfter.feeTokens[1][1]).to.equal(fundBefore.feeTokens[1][1].add(fee))
+    })
+
+    it("manager2 withdraw UNI", async function () {
+      const fundBefore = await getFundAccount(fundId1)
+      const manager2Before = await getInvestorAccount(fundId1, manager2.address)
+
+      const withdrawAmount = ethers.utils.parseEther("0.00001")
+      await fund.connect(manager2).withdraw(fundId1, UNI, withdrawAmount)
+
+      //withdraw fee
+      const fee = withdrawAmount.mul(MANAGER_FEE).div(10000).div(100)
+      const investorWithdrawAmount = withdrawAmount.sub(fee)
+
+      const fundAfter = await getFundAccount(fundId1)
+      const manager2After = await getInvestorAccount(fundId1, manager2.address)
+
+      expect(manager2After.fundUNI).to.equal(manager2Before.fundUNI.sub(withdrawAmount))
+      expect(fundAfter.UNI).to.equal(fundBefore.UNI.sub(investorWithdrawAmount))
+      expect(fundAfter.feeTokens[1][0]).to.equal(UNI)
+      expect(fundAfter.feeTokens[1][1]).to.equal(fundBefore.feeTokens[1][1].add(fee))
+    })
+
+    it("notInvestor withdraw UNI", async function () {
+      const fundBefore = await getFundAccount(fundId1)
+      const notInvestorBefore = await getInvestorAccount(fundId1, notInvestor.address)
+
+      await expect(fund.connect(notInvestor).withdraw(fundId1, UNI, ethers.utils.parseEther("0.00001")))
+        .to.be.revertedWith('US')
+
+      const fundAfter = await getFundAccount(fundId1)
+      const notInvestorAfter = await getInvestorAccount(fundId1, notInvestor.address)
+
+      expect(fundAfter.UNI).to.equal(fundBefore.UNI)
+      expect(notInvestorAfter.fundUNI).to.equal(notInvestorBefore.fundUNI)
     })
 
     it("invalid case", async function () {

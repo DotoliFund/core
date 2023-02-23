@@ -302,28 +302,9 @@ describe('Swap', () => {
 
 
 
-
-
-
   describe('exactInputSingle', () => {
 
     it("exactInputSingle -> only manager", async function () {
-
-    })
-
-    it("exactInputSingle fund1 -> manager1", async function () {
-
-    })
-
-    it("exactInputSingle fund1 -> investor1", async function () {
-
-    })
-
-    it("exactInputSingle fund1 -> manager2", async function () {
-
-    })
-
-    it("exactInputSingle fund1 -> notInvestor", async function () {
 
     })
 
@@ -340,22 +321,6 @@ describe('Swap', () => {
 
     })
 
-    it("exactOutputSingle fund1 -> manager1", async function () {
-
-    })
-
-    it("exactOutputSingle fund1 -> investor1", async function () {
-
-    })
-
-    it("exactOutputSingle fund1 -> manager2", async function () {
-
-    })
-
-    it("exactOutputSingle fund1 -> notInvestor", async function () {
-
-    })
-
     it("invalid case", async function () {
 
     })
@@ -369,22 +334,6 @@ describe('Swap', () => {
 
     })
 
-    it("exactInput fund1 -> manager1", async function () {
-
-    })
-
-    it("exactInput fund1 -> investor1", async function () {
-
-    })
-
-    it("exactInput fund1 -> manager2", async function () {
-
-    })
-
-    it("exactInput fund1 -> notInvestor", async function () {
-
-    })
-
     it("invalid case", async function () {
 
     })
@@ -394,22 +343,6 @@ describe('Swap', () => {
   describe('exactOutput', () => {
 
     it("exactOutput -> only manager", async function () {
-
-    })
-
-    it("exactOutput fund1 -> manager1", async function () {
-
-    })
-
-    it("exactOutput fund1 -> investor1", async function () {
-
-    })
-
-    it("exactOutput fund1 -> manager2", async function () {
-
-    })
-
-    it("exactOutput fund1 -> notInvestor", async function () {
 
     })
 

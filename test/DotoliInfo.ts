@@ -245,7 +245,7 @@ describe('DotoliInfo', () => {
       await expect(info.connect(manager2).increaseFundToken(fundId1, WETH9, 10000)).to.be.revertedWith('NO')
     })
 
-    it("tested in fund.ts, swap.ts, liquidity.ts", async function () {
+    it("tested in DotoliFund.ts, swap.ts, liquidity.ts", async function () {
 
     })
 
@@ -261,7 +261,7 @@ describe('DotoliInfo', () => {
 
     })
 
-    it("tested in fund.ts, swap.ts, liquidity.ts", async function () {
+    it("tested in DotoliFund.ts, swap.ts, liquidity.ts", async function () {
 
     })
 
@@ -280,7 +280,7 @@ describe('DotoliInfo', () => {
         .to.be.revertedWith('NO')
     })
 
-    it("tested in fund.ts, swap.ts, liquidity.ts", async function () {
+    it("tested in DotoliFund.ts, swap.ts, liquidity.ts", async function () {
 
     })
 
@@ -299,7 +299,7 @@ describe('DotoliInfo', () => {
         .to.be.revertedWith('NO')
     })
 
-    it("tested in fund.ts, swap.ts, liquidity.ts", async function () {
+    it("tested in DotoliFund.ts, swap.ts, liquidity.ts", async function () {
 
     })
 
