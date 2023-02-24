@@ -62,6 +62,7 @@ describe('DotoliFund', () => {
   let fund: Contract
   let weth9: Contract
   let uni: Contract
+  let nonfungiblePositionManager: Contract
 
   let fundId1: BigNumber
   let fundId2: BigNumber
@@ -95,6 +96,7 @@ describe('DotoliFund', () => {
 
     weth9 = await ethers.getContractAt("@uniswap/v3-periphery/contracts/interfaces/external/IWETH9.sol:IWETH9", WETH9)
     uni = await ethers.getContractAt("@openzeppelin/contracts/token/ERC20/IERC20.sol:IERC20", UNI)
+    nonfungiblePositionManager = await ethers.getContractAt("@uniswap/v3-periphery/contracts/interfaces/INonfungiblePositionManager.sol:INonfungiblePositionManager", NonfungiblePositionManager)
 
     getInvestorAccount = async (fundId: BigNumber, who: string) => {
       const balances = await Promise.all([
@@ -104,7 +106,7 @@ describe('DotoliFund', () => {
         info.connect(who).getInvestorTokenAmount(fundId, who, UNI),
       ])
       return {
-        WETH9: balances[0],
+        WETH: balances[0],
         UNI: balances[1],
         fundWETH: balances[2],
         fundUNI: balances[3],
@@ -118,7 +120,7 @@ describe('DotoliFund', () => {
         info.connect(notInvestor).getFeeTokens(fundId),
       ])
       return {
-        WETH9: balances[0],
+        WETH: balances[0],
         UNI: balances[1],
         feeTokens: balances[2],
       }
@@ -318,7 +320,7 @@ describe('DotoliFund', () => {
       const fundAfter = await getFundAccount(fundId1)
       const manager1After = await getInvestorAccount(fundId1, manager1.address)
 
-      expect(fundAfter.WETH9).to.equal(fundBefore.WETH9.add(DEPOSIT_AMOUNT))
+      expect(fundAfter.WETH).to.equal(fundBefore.WETH.add(DEPOSIT_AMOUNT))
       expect(manager1After.fundWETH).to.equal(manager1Before.fundWETH.add(DEPOSIT_AMOUNT))
     })
 
@@ -335,7 +337,7 @@ describe('DotoliFund', () => {
       const fundAfter = await getFundAccount(fundId1)
       const investor1After = await getInvestorAccount(fundId1, investor1.address)
 
-      expect(fundAfter.WETH9).to.equal(fundBefore.WETH9.add(DEPOSIT_AMOUNT))
+      expect(fundAfter.WETH).to.equal(fundBefore.WETH.add(DEPOSIT_AMOUNT))
       expect(investor1After.fundWETH).to.equal(investor1Before.fundWETH.add(DEPOSIT_AMOUNT))
     })
 
@@ -352,7 +354,7 @@ describe('DotoliFund', () => {
       const fundAfter = await getFundAccount(fundId1)
       const manager2After = await getInvestorAccount(fundId1, manager2.address)
 
-      expect(fundAfter.WETH9).to.equal(fundBefore.WETH9.add(DEPOSIT_AMOUNT))
+      expect(fundAfter.WETH).to.equal(fundBefore.WETH.add(DEPOSIT_AMOUNT))
       expect(manager2After.fundWETH).to.equal(manager2Before.fundWETH.add(DEPOSIT_AMOUNT))
     })
 
@@ -369,7 +371,7 @@ describe('DotoliFund', () => {
       const fundAfter = await getFundAccount(fundId1)
       const notInvestorAfter = await getInvestorAccount(fundId1, notInvestor.address)
 
-      expect(fundAfter.WETH9).to.equal(fundBefore.WETH9)
+      expect(fundAfter.WETH).to.equal(fundBefore.WETH)
       expect(notInvestorAfter.fundWETH).to.equal(notInvestorBefore.fundWETH)
     })
 
@@ -390,7 +392,7 @@ describe('DotoliFund', () => {
       const fundAfter = await getFundAccount(fundId1)
       const manager1After = await getInvestorAccount(fundId1, manager1.address)
 
-      expect(fundAfter.WETH9).to.equal(fundBefore.WETH9.add(DEPOSIT_AMOUNT))
+      expect(fundAfter.WETH).to.equal(fundBefore.WETH.add(DEPOSIT_AMOUNT))
       expect(manager1After.fundWETH).to.equal(manager1Before.fundWETH.add(DEPOSIT_AMOUNT))
     })
 
@@ -403,7 +405,7 @@ describe('DotoliFund', () => {
       const fundAfter = await getFundAccount(fundId1)
       const investor1After = await getInvestorAccount(fundId1, investor1.address)
 
-      expect(fundAfter.WETH9).to.equal(fundBefore.WETH9.add(DEPOSIT_AMOUNT))
+      expect(fundAfter.WETH).to.equal(fundBefore.WETH.add(DEPOSIT_AMOUNT))
       expect(investor1After.fundWETH).to.equal(investor1Before.fundWETH.add(DEPOSIT_AMOUNT))
     })
 
@@ -416,7 +418,7 @@ describe('DotoliFund', () => {
       const fundAfter = await getFundAccount(fundId1)
       const manager2After = await getInvestorAccount(fundId1, manager2.address)
 
-      expect(fundAfter.WETH9).to.equal(fundBefore.WETH9.add(DEPOSIT_AMOUNT))
+      expect(fundAfter.WETH).to.equal(fundBefore.WETH.add(DEPOSIT_AMOUNT))
       expect(manager2After.fundWETH).to.equal(manager2Before.fundWETH.add(DEPOSIT_AMOUNT))
     })
 
@@ -433,7 +435,7 @@ describe('DotoliFund', () => {
       const fundAfter = await getFundAccount(fundId1)
       const notInvestorAfter = await getInvestorAccount(fundId1, notInvestor.address)
 
-      expect(fundAfter.WETH9).to.equal(fundBefore.WETH9)
+      expect(fundAfter.WETH).to.equal(fundBefore.WETH)
       expect(notInvestorAfter.fundWETH).to.equal(notInvestorBefore.fundWETH)
     })
 
@@ -515,7 +517,7 @@ describe('DotoliFund', () => {
       const fundAfter = await getFundAccount(fundId1)
       const manager1After = await getInvestorAccount(fundId1, manager1.address)
 
-      expect(fundAfter.WETH9).to.equal(fundBefore.WETH9.sub(withdrawAmount))
+      expect(fundAfter.WETH).to.equal(fundBefore.WETH.sub(withdrawAmount))
       expect(manager1After.fundWETH).to.equal(manager1Before.fundWETH.sub(withdrawAmount))
     })
 
@@ -534,7 +536,7 @@ describe('DotoliFund', () => {
       const investor1After = await getInvestorAccount(fundId1, investor1.address)
 
       expect(investor1After.fundWETH).to.equal(investor1Before.fundWETH.sub(withdrawAmount))
-      expect(fundAfter.WETH9).to.equal(fundBefore.WETH9.sub(investorWithdrawAmount))
+      expect(fundAfter.WETH).to.equal(fundBefore.WETH.sub(investorWithdrawAmount))
       expect(fundAfter.feeTokens[0][0]).to.equal(WETH9)
       expect(fundAfter.feeTokens[0][1]).to.equal(fundBefore.feeTokens[0][1].add(fee))
     })
@@ -554,7 +556,7 @@ describe('DotoliFund', () => {
       const manager2After = await getInvestorAccount(fundId1, manager2.address)
 
       expect(manager2After.fundWETH).to.equal(manager2Before.fundWETH.sub(withdrawAmount))
-      expect(fundAfter.WETH9).to.equal(fundBefore.WETH9.sub(investorWithdrawAmount))
+      expect(fundAfter.WETH).to.equal(fundBefore.WETH.sub(investorWithdrawAmount))
       expect(fundAfter.feeTokens[0][0]).to.equal(WETH9)
       expect(fundAfter.feeTokens[0][1]).to.equal(fundBefore.feeTokens[0][1].add(fee))
     })
@@ -573,7 +575,7 @@ describe('DotoliFund', () => {
       const fundAfter = await getFundAccount(fundId1)
       const notInvestorAfter = await getInvestorAccount(fundId1, notInvestor.address)
 
-      expect(fundAfter.WETH9).to.equal(fundBefore.WETH9)
+      expect(fundAfter.WETH).to.equal(fundBefore.WETH)
       expect(notInvestorAfter.fundWETH).to.equal(notInvestorBefore.fundWETH)
     })
 
@@ -663,9 +665,29 @@ describe('DotoliFund', () => {
         amountOutMinimum
       )
 
+      const fundBefore = await getFundAccount(fundId1)
+      const manager1Before = await getInvestorAccount(fundId1, manager1.address)
+
       await fund.connect(manager1).swap(fundId1, manager1.address, params, { value: 0 })
+
+      const fundAfter = await getFundAccount(fundId1)
+      const manager1After = await getInvestorAccount(fundId1, manager1.address)
+      expect(fundAfter.WETH).to.equal(fundBefore.WETH.sub(swapInputAmount))
+      expect(fundAfter.UNI).to.be.above(fundBefore.UNI)
+      expect(manager1After.fundWETH).to.equal(manager1Before.fundWETH.sub(swapInputAmount))
+      expect(manager1After.fundUNI).to.be.above(manager1Before.fundUNI)
+
+
+      const investor1Before = await getInvestorAccount(fundId1, investor1.address)
+
       await fund.connect(manager1).swap(fundId1, investor1.address, params, { value: 0 })
-      await fund.connect(manager1).swap(fundId1, manager2.address, params, { value: 0 })
+
+      const fundAfter2 = await getFundAccount(fundId1)
+      const investor1After = await getInvestorAccount(fundId1, investor1.address)
+      expect(fundAfter2.WETH).to.equal(fundAfter.WETH.sub(swapInputAmount))
+      expect(fundAfter2.UNI).to.be.above(fundAfter.UNI)
+      expect(investor1After.fundWETH).to.equal(investor1Before.fundWETH.sub(swapInputAmount))
+      expect(investor1After.fundUNI).to.be.above(investor1Before.fundUNI)
     })
 
     it("swap UNI -> WETH", async function () {
@@ -678,9 +700,28 @@ describe('DotoliFund', () => {
         amountOutMinimum
       )
 
+      const fundBefore = await getFundAccount(fundId1)
+      const manager1Before = await getInvestorAccount(fundId1, manager1.address)
+
       await fund.connect(manager1).swap(fundId1, manager1.address, params, { value: 0 })
+
+      const fundAfter = await getFundAccount(fundId1)
+      const manager1After = await getInvestorAccount(fundId1, manager1.address)
+      expect(fundAfter.UNI).to.equal(fundBefore.UNI.sub(swapInputAmount))
+      expect(fundAfter.WETH).to.be.above(fundBefore.WETH)
+      expect(manager1After.fundUNI).to.equal(manager1Before.fundUNI.sub(swapInputAmount))
+      expect(manager1After.fundWETH).to.be.above(manager1Before.fundWETH)
+      
+      const investor1Before = await getInvestorAccount(fundId1, investor1.address)
+
       await fund.connect(manager1).swap(fundId1, investor1.address, params, { value: 0 })
-      await fund.connect(manager1).swap(fundId1, manager2.address, params, { value: 0 })
+
+      const fundAfter2 = await getFundAccount(fundId1)
+      const investor1After = await getInvestorAccount(fundId1, investor1.address)
+      expect(fundAfter2.UNI).to.equal(fundAfter.UNI.sub(swapInputAmount))
+      expect(fundAfter2.WETH).to.be.above(fundAfter.WETH)
+      expect(investor1After.fundUNI).to.equal(investor1Before.fundUNI.sub(swapInputAmount))
+      expect(investor1After.fundWETH).to.be.above(investor1Before.fundWETH)
     })
 
     it("invalid case", async function () {
@@ -692,13 +733,35 @@ describe('DotoliFund', () => {
   describe('withdrawFee', () => {
 
     it("withdrawFee WETH", async function () {
+      const fundBefore = await getFundAccount(fundId1)
+      const manager1Before = await getInvestorAccount(fundId1, manager1.address)
+
       await fund.connect(manager1).withdrawFee(fundId1, WETH9, 10000)
+
+      const fundAfter = await getFundAccount(fundId1)
+      const manager1After = await getInvestorAccount(fundId1, manager1.address)
+      expect(fundAfter.WETH).to.equal(fundBefore.WETH.sub(10000))
+      expect(manager1After.fundWETH).to.equal(manager1Before.fundWETH)
+      expect(fundAfter.feeTokens[0][0]).to.equal(WETH9)
+      expect(fundAfter.feeTokens[0][1]).to.equal(fundBefore.feeTokens[0][1].sub(10000))
+
       await expect(fund.connect(investor1).withdrawFee(fundId1, WETH9, 10000)).to.be.revertedWith('NM')
       await expect(fund.connect(manager2).withdrawFee(fundId1, WETH9, 10000)).to.be.revertedWith('NM')
     })
 
     it("withdrawFee UNI", async function () {
+      const fundBefore = await getFundAccount(fundId1)
+      const manager1Before = await getInvestorAccount(fundId1, manager1.address)
+
       await fund.connect(manager1).withdrawFee(fundId1, UNI, 10000)
+
+      const fundAfter = await getFundAccount(fundId1)
+      const manager1After = await getInvestorAccount(fundId1, manager1.address)
+      expect(fundAfter.UNI).to.equal(fundBefore.UNI.sub(10000))
+      expect(manager1After.fundUNI).to.equal(manager1Before.fundUNI)
+      expect(fundAfter.feeTokens[1][0]).to.equal(UNI)
+      expect(fundAfter.feeTokens[1][1]).to.equal(fundBefore.feeTokens[1][1].sub(10000))
+
       await expect(fund.connect(investor1).withdrawFee(fundId1, UNI, 10000)).to.be.revertedWith('NM')
       await expect(fund.connect(manager2).withdrawFee(fundId1, UNI, 10000)).to.be.revertedWith('NM')
     })
@@ -720,96 +783,87 @@ describe('DotoliFund', () => {
         BigNumber.from(10),
       )
 
+      const fundBefore = await getFundAccount(fundId1)
+      const manager1Before = await getInvestorAccount(fundId1, manager1.address)
+
       await fund.connect(manager1).mintNewPosition(
         fundId1,
         manager1.address,
         params, 
         { value: 0 }
       )
+
+      const fundAfter = await getFundAccount(fundId1)
+      const manager1After = await getInvestorAccount(fundId1, manager1.address)
+      expect(fundAfter.UNI).to.be.below(fundBefore.UNI.sub(2000))
+      expect(fundAfter.WETH).to.be.below(fundBefore.WETH.sub(10))
+      expect(manager1After.fundUNI).to.be.below(manager1Before.fundUNI.sub(2000))
+      expect(manager1After.fundWETH).to.be.below(manager1Before.fundWETH.sub(10))
+
+      const investor1Before = await getInvestorAccount(fundId1, investor1.address)
+
       await fund.connect(manager1).mintNewPosition(
         fundId1,
         investor1.address,
         params, 
         { value: 0 }
       )
-      await fund.connect(manager1).mintNewPosition(
-        fundId1,
-        manager2.address,
-        params, 
-        { value: 0 }
-      )
 
-      await expect(fund.connect(investor1).mintNewPosition(
-        fundId1,
-        manager1.address,
-        params, 
-        { value: 0 }
-      )).to.be.revertedWith('NM')
-      await expect(fund.connect(investor1).mintNewPosition(
-        fundId1,
-        investor1.address,
-        params, 
-        { value: 0 }
-      )).to.be.revertedWith('NM')
-      await expect(fund.connect(investor1).mintNewPosition(
-        fundId1,
-        manager2.address,
-        params, 
-        { value: 0 }
-      )).to.be.revertedWith('NM')
-
-      await expect(fund.connect(manager2).mintNewPosition(
-        fundId1,
-        manager1.address,
-        params, 
-        { value: 0 }
-      )).to.be.revertedWith('NM')
-      await expect(fund.connect(manager2).mintNewPosition(
-        fundId1,
-        investor1.address,
-        params, 
-        { value: 0 }
-      )).to.be.revertedWith('NM')
-      await expect(fund.connect(manager2).mintNewPosition(
-        fundId1,
-        manager2.address,
-        params, 
-        { value: 0 }
-      )).to.be.revertedWith('NM')
-
+      const fundAfter2 = await getFundAccount(fundId1)
+      const investor1After = await getInvestorAccount(fundId1, investor1.address)
+      expect(fundAfter2.UNI).to.be.below(fundAfter.UNI.sub(2000))
+      expect(fundAfter2.WETH).to.be.below(fundAfter.WETH.sub(10))
+      expect(investor1After.fundUNI).to.be.below(investor1Before.fundUNI.sub(2000))
+      expect(investor1After.fundWETH).to.be.below(investor1Before.fundWETH.sub(10))
     })
 
   })
 
-
   describe('increaseLiquidity', () => {
 
-    it("increase liquidity WETH + UNI1", async function () {
-      const tokenIds = await info.connect(manager1).getTokenIds(fundId1, investor1.address)
-      const params = increaseParams(
-        tokenIds[0],
-        BigNumber.from(20000),
-        BigNumber.from(100),
-        BigNumber.from(2000),
-        BigNumber.from(10),
-      )
+    it("increase liquidity WETH + UNI", async function () {
+      const WETHAmount = BigNumber.from(100)
+      const UNIAmount = BigNumber.from(20000)
+      const minWETHAmount = BigNumber.from(10)
+      const minUNIAmount = BigNumber.from(2000)
 
+      const fundBefore = await getFundAccount(fundId1)
+      const investor1Before = await getInvestorAccount(fundId1, investor1.address)
+
+      const tokenIds = await info.connect(manager1).getTokenIds(fundId1, investor1.address)
+      const tokenId = await nonfungiblePositionManager.connect(manager1).positions(tokenIds[0])
+
+      let params 
+      if (tokenId.token0 == WETH9 && tokenId.token1 == UNI) {
+        params = increaseParams(
+          tokenIds[0],
+          WETHAmount,
+          UNIAmount,
+          minWETHAmount,
+          minUNIAmount,
+        )
+      } else {
+        params = increaseParams(
+          tokenIds[0],
+          UNIAmount,
+          WETHAmount,
+          minUNIAmount,
+          minWETHAmount,
+        )
+      }
 
       await fund.connect(manager1).increaseLiquidity(
         fundId1,
         params, 
         { value: 0 }
       )
-      await expect(fund.connect(investor1).increaseLiquidity(
-        fundId1,
-        params, 
-        { value: 0 }
-      )).to.be.revertedWith('NM')
-      await expect(fund.connect(manager2).increaseLiquidity(
-        fundId1,
-        params, 
-        { value: 0 }
-      )).to.be.revertedWith('NM')
+
+      const fundAfter = await getFundAccount(fundId1)
+      const investor1After = await getInvestorAccount(fundId1, investor1.address)
+      expect(fundAfter.UNI).to.be.below(fundBefore.UNI.sub(minUNIAmount))
+      expect(fundAfter.WETH).to.be.below(fundBefore.WETH.sub(minWETHAmount))
+      expect(investor1After.fundUNI).to.be.below(investor1Before.fundUNI.sub(minUNIAmount))
+      expect(investor1After.fundWETH).to.be.below(investor1Before.fundWETH.sub(minWETHAmount))
     })
 
   })
@@ -817,60 +871,75 @@ describe('DotoliFund', () => {
   describe('collectPositionFee', () => {
 
     it("collect fee WETH + UNI", async function () {
-      const tokenIds = await info.connect(manager1).getTokenIds(fundId1, investor1.address)
+      const tokenIds = await info.connect(investor1).getTokenIds(fundId1, investor1.address)
       const params = collectParams(
         tokenIds[0],
         MaxUint128,
         MaxUint128
       )
 
-      await fund.connect(manager1).collectPositionFee(
-        fundId1,
-        params, 
-        { value: 0 }
-      )
+      const fundBefore = await getFundAccount(fundId1)
+      const investor1Before = await getInvestorAccount(fundId1, investor1.address)
+
       await fund.connect(investor1).collectPositionFee(
         fundId1,
         params, 
         { value: 0 }
       )
-      await expect(fund.connect(manager2).collectPositionFee(
-        fundId1,
-        params, 
-        { value: 0 }
-      )).to.be.revertedWith('NA')
-      
+
+      const fundAfter = await getFundAccount(fundId1)
+      const investor1After = await getInvestorAccount(fundId1, investor1.address)
+      expect(fundAfter.UNI).to.be.at.least(fundBefore.UNI)
+      expect(fundAfter.WETH).to.be.at.least(fundBefore.WETH)
+      expect(investor1After.fundUNI).to.be.at.least(investor1Before.fundUNI)
+      expect(investor1After.fundWETH).to.be.at.least(investor1Before.fundWETH)
+
     })
 
   })
 
   describe('decreaseLiquidity', () => {
 
-    it("decrease liquidity WETH + UNI1", async function () {
-      const tokenIds = await info.connect(manager1).getTokenIds(fundId1, investor1.address)
-      const params = decreaseParams(
-        tokenIds[0],
-        1000,
-        BigNumber.from(2000),
-        BigNumber.from(10),
+    it("decrease liquidity WETH + UNI", async function () {
+      const minWETHAmount = BigNumber.from(10)
+      const minUNIAmount = BigNumber.from(2000)
+
+      const fundBefore = await getFundAccount(fundId1)
+      const investor1Before = await getInvestorAccount(fundId1, investor1.address)
+
+      const tokenIds = await info.connect(investor1).getTokenIds(fundId1, investor1.address)
+      const tokenId = await nonfungiblePositionManager.connect(investor1).positions(tokenIds[0])
+
+      let params 
+      if (tokenId.token0 == WETH9 && tokenId.token1 == UNI) {
+        params = decreaseParams(
+          tokenIds[0],
+          1000,
+          minWETHAmount,
+          minUNIAmount,
+        )
+      } else {
+        params = decreaseParams(
+          tokenIds[0],
+          1000,
+          minUNIAmount,
+          minWETHAmount,
+        )
+      }
+
+      await fund.connect(investor1).decreaseLiquidity(
+        fundId1,
+        params, 
+        { value: 0 }
       )
 
-      await fund.connect(manager1).decreaseLiquidity(
-        fundId1,
-        params, 
-        { value: 0 }
-      )
-      await expect(fund.connect(investor1).decreaseLiquidity(
-        fundId1,
-        params, 
-        { value: 0 }
-      ))
-      await expect(fund.connect(manager2).decreaseLiquidity(
-        fundId1,
-        params, 
-        { value: 0 }
-      )).to.be.revertedWith('NA')
-      
+      const fundAfter = await getFundAccount(fundId1)
+      const investor1After = await getInvestorAccount(fundId1, investor1.address)
+      expect(fundAfter.UNI).to.be.at.least(fundBefore.UNI.add(minUNIAmount))
+      expect(fundAfter.WETH).to.be.at.least(fundBefore.WETH.add(minWETHAmount))
+      expect(investor1After.fundUNI).to.be.at.least(investor1Before.fundUNI.add(minUNIAmount))
+      expect(investor1After.fundWETH).to.be.at.least(investor1Before.fundWETH.add(minWETHAmount))
+
     })
 
   })

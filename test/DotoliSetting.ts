@@ -62,6 +62,7 @@ describe('DotoliSetting', () => {
   let fund: Contract
   let weth9: Contract
   let uni: Contract
+  let nonfungiblePositionManager: Contract
 
   let fundId1: BigNumber
   let fundId2: BigNumber
@@ -95,6 +96,7 @@ describe('DotoliSetting', () => {
 
     weth9 = await ethers.getContractAt("@uniswap/v3-periphery/contracts/interfaces/external/IWETH9.sol:IWETH9", WETH9)
     uni = await ethers.getContractAt("@openzeppelin/contracts/token/ERC20/IERC20.sol:IERC20", UNI)
+    nonfungiblePositionManager = await ethers.getContractAt("@uniswap/v3-periphery/contracts/interfaces/INonfungiblePositionManager.sol:INonfungiblePositionManager", NonfungiblePositionManager)
 
     getInvestorAccount = async (fundId: BigNumber, who: string) => {
       const balances = await Promise.all([
@@ -104,7 +106,7 @@ describe('DotoliSetting', () => {
         info.connect(who).getInvestorTokenAmount(fundId, who, UNI),
       ])
       return {
-        WETH9: balances[0],
+        WETH: balances[0],
         UNI: balances[1],
         fundWETH: balances[2],
         fundUNI: balances[3],
@@ -118,7 +120,7 @@ describe('DotoliSetting', () => {
         info.connect(notInvestor).getFeeTokens(fundId),
       ])
       return {
-        WETH9: balances[0],
+        WETH: balances[0],
         UNI: balances[1],
         feeTokens: balances[2],
       }
