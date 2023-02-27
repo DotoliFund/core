@@ -229,9 +229,11 @@ describe('Swap', () => {
       )
       await fund.connect(manager1).swap(fundId1, manager1.address, params, { value: 0 })
 
-      //withdraw
+      //withdraw ETH, UNI
+      await fund.connect(manager1).withdraw(fundId1, WETH9, ethers.utils.parseEther("0.1"))
       await fund.connect(manager1).withdraw(fundId1, UNI, ethers.utils.parseEther("0.1"))
 
+      //get WETH in wallet
       await weth9.connect(manager1).deposit({
         from: manager1.address,
         value: WETH_CHARGE_AMOUNT
@@ -259,9 +261,11 @@ describe('Swap', () => {
       )
       await fund.connect(manager1).swap(fundId1, investor1.address, params, { value: 0 })
 
-      //withdraw
+      //withdraw ETH, UNI
+      await fund.connect(investor1).withdraw(fundId1, WETH9, ethers.utils.parseEther("0.1"))
       await fund.connect(investor1).withdraw(fundId1, UNI, ethers.utils.parseEther("0.1"))
 
+      //get WETH in wallet
       await weth9.connect(investor1).deposit({
         from: investor1.address,
         value: WETH_CHARGE_AMOUNT
@@ -289,9 +293,11 @@ describe('Swap', () => {
       )
       await fund.connect(manager1).swap(fundId1, manager2.address, params, { value: 0 })
 
-      //withdraw
+      //withdraw ETH, UNI
+      await fund.connect(manager2).withdraw(fundId1, WETH9, ethers.utils.parseEther("0.1"))
       await fund.connect(manager2).withdraw(fundId1, UNI, ethers.utils.parseEther("0.1"))
 
+      //get WETH in wallet
       await weth9.connect(manager2).deposit({
         from: manager2.address,
         value: WETH_CHARGE_AMOUNT
@@ -301,8 +307,6 @@ describe('Swap', () => {
       // do nothing
     })
   })
-
-
 
   describe('exactInputSingle', () => {
 
