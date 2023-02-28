@@ -7,16 +7,16 @@ async function main() {
   console.log("Deploying contracts with the account:", test_account_1.address);
   console.log("Account balance:", (await test_account_1.getBalance()).toString());
 
-  const SwapRouter = await ethers.getContractFactory("SwapRouter");
-  const swapRouter = await SwapRouter.deploy();
-  await swapRouter.deployed();
-  console.log("SwapRouter address : ", swapRouter.address);
-  console.log("Account balance:", (await test_account_1.getBalance()).toString());
+  const uniswapV3Factory = '0x1F98431c8aD98523631AE4a59f267346ea31F984';
+  const nonfungiblePositionManager = '0xC36442b4a4522E871399CD717aBDD847Ab11FE88';
 
-  const LiquidityRouter = await ethers.getContractFactory("LiquidityRouter");
-  const liquidityRouter = await LiquidityRouter.deploy();
-  await liquidityRouter.deployed();
-  console.log("LiquidityRouter address : ", liquidityRouter.address);
+  const LiquidityOracle = await ethers.getContractFactory("LiquidityOracle");
+  const liquidityOracle = await LiquidityOracle.deploy(
+    uniswapV3Factory,
+    nonfungiblePositionManager
+  );
+  await liquidityOracle.deployed();
+  console.log("LiquidityOracle address : ", liquidityOracle.address);
   console.log("Account balance:", (await test_account_1.getBalance()).toString());
 }
 

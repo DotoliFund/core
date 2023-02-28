@@ -4,8 +4,8 @@ pragma solidity =0.7.6;
 pragma abicoder v2;
 
 interface IDotoliSetting {
-    event FactoryCreated();
-    event OwnerChanged(address indexed oldOwner, address indexed newOwner);
+    event SettingCreated();
+    event OwnerChanged(address oldOwner, address newOwner);
     event MinPoolAmountChanged(uint256 amount);
     event ManagerFeeChanged(uint256 managerFee);
     event WhiteListTokenAdded(address indexed token);

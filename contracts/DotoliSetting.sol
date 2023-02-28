@@ -33,7 +33,7 @@ contract DotoliSetting is IDotoliSetting {
         weth9 = _weth9;
         whiteListTokens[dotoli] = true;
         whiteListTokens[weth9] = true;
-        emit FactoryCreated();
+        emit SettingCreated();
     }
 
     function setOwner(address newOwner) external override onlyOwner {

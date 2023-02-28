@@ -27,7 +27,7 @@ contract DotoliInfo is Token, IDotoliInfo {
     mapping(uint256 => Token[]) public feeTokens;                           // feeTokens[fundId]
     mapping(uint256 => mapping(address => Token[])) public investorTokens;  // investorTokens[fundId][investor]
 
-    // tokenId
+    // uniswap v3 liquidity pool tokenId
     mapping(uint256 => mapping(address => uint256[])) public tokenIds;      // tokenIds[fundId][investor]
     mapping(uint256 => address) public override tokenIdOwner;               // tokenIdOwner[tokenId] => owner of uniswap v3 liquidity position
 
@@ -38,6 +38,7 @@ contract DotoliInfo is Token, IDotoliInfo {
 
     constructor() {
         owner = msg.sender;
+        emit InfoCreated();
     }
 
     function setOwner(address newOwner) external override onlyOwner {

@@ -6,6 +6,7 @@ pragma abicoder v2;
 import './IToken.sol';
 
 interface IDotoliInfo is IToken {
+    event InfoCreated();
     event OwnerChanged(address owner, address newOwner);
     event FundCreated(uint256 fundId, address indexed manager);
     event Subscribe(uint256 fundId, address indexed investor);
