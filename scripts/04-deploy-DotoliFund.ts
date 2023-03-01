@@ -13,8 +13,8 @@ async function main() {
   //goerli
   const WETH9 = '0xB4FBF271143F4FBf7B91A5ded31805e42b2208d6'
 
-  const DotoliSetting = '0x2154E8B9fA4b6b9913eF5C8eEF34616A4D54d3b6'
-  const DotoliInfo= '0x2a0aEfAFbc005bb64Bf4f9Ffae0B9D976C3D057A'
+  const DotoliSetting = '0x883271c9ae70Ef10DDB303f4CEec6d98471F8F59'
+  const DotoliInfo= '0x6d1458a0F26cE53e62e0f2772185132BFD672f48'
 
   const DotoliFund = await ethers.getContractFactory("DotoliFund");
   const Fund = await DotoliFund.deploy(
@@ -24,6 +24,11 @@ async function main() {
   );
   await Fund.deployed();
   console.log("Fund address : ", Fund.address);
+  console.log("Account balance:", (await test_account_1.getBalance()).toString());
+
+  const infoContract = await ethers.getContractAt("DotoliInfo", DotoliInfo)
+  const transferTx = await infoContract.setOwner(Fund.address)
+  await transferTx.wait(1)
   console.log("Account balance:", (await test_account_1.getBalance()).toString());
 }
 
