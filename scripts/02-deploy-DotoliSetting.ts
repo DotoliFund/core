@@ -13,7 +13,7 @@ async function main() {
   // const UNI = '0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984';
 
   //goerli
-  const DOTOLI = '0x833fB04f9eA28ec65398a13beE4E447caD0240C3'
+  const DOTOLI = '0x4E318f23D8F6E18aae7F237DDC57C32F3fEe8d8a'
   const WETH9 = '0xB4FBF271143F4FBf7B91A5ded31805e42b2208d6'
   //const UNI = '0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984'
   
@@ -24,7 +24,7 @@ async function main() {
   console.log("Account balance:", (await test_account_1.getBalance()).toString());
 
   const settingContract = await ethers.getContractAt("DotoliSetting", Setting.address)
-  const TimeLockAddress = '0xa4Eb9FccaBD4c61d2d21563586329a12794FB4d1';
+  const TimeLockAddress = '0x3F149037A0A40f2EF0F047F5416E16171ccce3AB';
   const transferTx = await settingContract.setOwner(TimeLockAddress)
   await transferTx.wait(1)
   console.log("Account balance:", (await test_account_1.getBalance()).toString());
