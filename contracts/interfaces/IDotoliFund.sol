@@ -17,9 +17,7 @@ interface IDotoliFund {
 
     enum SwapType{
         EXACT_INPUT_SINGLE_HOP,
-        EXACT_INPUT_MULTI_HOP,
-        EXACT_OUTPUT_SINGLE_HOP,
-        EXACT_OUTPUT_MULTI_HOP
+        EXACT_INPUT_MULTI_HOP
     }
 
     struct SwapParams {

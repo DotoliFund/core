@@ -367,66 +367,6 @@ describe('Swap', () => {
 
   })
 
-
-  describe('exactOutputSingle', () => {
-
-    it("exactOutputSingle -> only manager", async function () {
-      const swapOutputAmount = ethers.utils.parseEther("0.00000001")
-      const amountInMaximum = ethers.utils.parseEther("0.00001")
-      const params = exactOutputSingleParams(
-        WETH9, 
-        UNI, 
-        swapOutputAmount, 
-        amountInMaximum, 
-        BigNumber.from(0)
-      )
-
-      const fundBefore = await getFundAccount(fundId1)
-      const manager1Before = await getInvestorAccount(fundId1, manager1.address)
-
-      await fund.connect(manager1).swap(fundId1, manager1.address, params, { value: 0 })
-      const fundAfter = await getFundAccount(fundId1)
-      const manager1After = await getInvestorAccount(fundId1, manager1.address)
-      expect(fundAfter.UNI).to.equal(fundBefore.UNI.add(swapOutputAmount))
-      expect(fundAfter.WETH).to.be.below(fundBefore.WETH)
-      expect(manager1After.fundUNI).to.equal(manager1Before.fundUNI.add(swapOutputAmount))
-      expect(manager1After.fundWETH).to.be.below(manager1Before.fundWETH)
-
-      const investor1Before = await getInvestorAccount(fundId1, investor1.address)
-
-      await fund.connect(manager1).swap(fundId1, investor1.address, params, { value: 0 })
-
-      const fundAfter2 = await getFundAccount(fundId1)
-      const investor1After = await getInvestorAccount(fundId1, investor1.address)
-      expect(fundAfter2.UNI).to.equal(fundAfter.UNI.add(swapOutputAmount))
-      expect(fundAfter2.WETH).to.be.below(fundAfter.WETH)
-      expect(investor1After.fundUNI).to.equal(investor1Before.fundUNI.add(swapOutputAmount))
-      expect(investor1After.fundWETH).to.be.below(investor1Before.fundWETH)
-
-      const manager2Before = await getInvestorAccount(fundId1, manager2.address)
-
-      await fund.connect(manager1).swap(fundId1, manager2.address, params, { value: 0 })
-
-      const fundAfter3 = await getFundAccount(fundId1)
-      const manager2After = await getInvestorAccount(fundId1, manager2.address)
-      expect(fundAfter3.UNI).to.equal(fundAfter2.UNI.add(swapOutputAmount))
-      expect(fundAfter3.WETH).to.be.below(fundAfter2.WETH)
-      expect(manager2After.fundUNI).to.equal(manager2Before.fundUNI.add(swapOutputAmount))
-      expect(manager2After.fundWETH).to.be.below(manager2Before.fundWETH)
-
-      await expect(fund.connect(investor1).swap(fundId1, investor1.address, params, { value: 0 }))
-        .to.be.revertedWith('NM')
-      await expect(fund.connect(manager2).swap(fundId1, manager2.address, params, { value: 0 }))
-        .to.be.revertedWith('NM')
-    })
-
-    it("invalid case", async function () {
-
-    })
-
-  })
-
-
   describe('exactInput', () => {
 
     it("exactInput -> only manager", async function () {
@@ -472,64 +412,6 @@ describe('Swap', () => {
       expect(fundAfter3.UNI).to.be.above(fundAfter2.UNI)
       expect(manager2After.fundWETH).to.equal(manager2Before.fundWETH.sub(swapInputAmount))
       expect(manager2After.fundUNI).to.be.above(manager2Before.fundUNI)
-
-      await expect(fund.connect(investor1).swap(fundId1, investor1.address, params, { value: 0 }))
-        .to.be.revertedWith('NM')
-      await expect(fund.connect(manager2).swap(fundId1, manager2.address, params, { value: 0 }))
-        .to.be.revertedWith('NM')
-    })
-
-    it("invalid case", async function () {
-
-    })
-
-  })
-
-  describe('exactOutput', () => {
-
-    it("exactOutput -> only manager", async function () {
-      const tokens = [WETH9, DAI, UNI]
-      const swapOutputAmount = ethers.utils.parseEther("0.000001")
-      const amountInMaximum = ethers.utils.parseEther("0.0001")
-      const params = exactOutputParams(
-        tokens,
-        swapOutputAmount,
-        amountInMaximum
-      )
-
-      const fundBefore = await getFundAccount(fundId1)
-      const manager1Before = await getInvestorAccount(fundId1, manager1.address)
-
-      await fund.connect(manager1).swap(fundId1, manager1.address, params, { value: 0 })
-
-      const fundAfter = await getFundAccount(fundId1)
-      const manager1After = await getInvestorAccount(fundId1, manager1.address)
-      expect(fundAfter.UNI).to.equal(fundBefore.UNI.add(swapOutputAmount))
-      expect(fundAfter.WETH).to.be.below(fundBefore.WETH)
-      expect(manager1After.fundUNI).to.equal(manager1Before.fundUNI.add(swapOutputAmount))
-      expect(manager1After.fundWETH).to.be.below(manager1Before.fundWETH)
-
-      const investor1Before = await getInvestorAccount(fundId1, investor1.address)
-
-      await fund.connect(manager1).swap(fundId1, investor1.address, params, { value: 0 })
-
-      const fundAfter2 = await getFundAccount(fundId1)
-      const investor1After = await getInvestorAccount(fundId1, investor1.address)
-      expect(fundAfter2.UNI).to.equal(fundAfter.UNI.add(swapOutputAmount))
-      expect(fundAfter2.WETH).to.be.below(fundAfter.WETH)
-      expect(investor1After.fundUNI).to.equal(investor1Before.fundUNI.add(swapOutputAmount))
-      expect(investor1After.fundWETH).to.be.below(investor1Before.fundWETH)
-
-      const manager2Before = await getInvestorAccount(fundId1, manager2.address)
-
-      await fund.connect(manager1).swap(fundId1, manager2.address, params, { value: 0 })
-
-      const fundAfter3 = await getFundAccount(fundId1)
-      const manager2After = await getInvestorAccount(fundId1, manager2.address)
-      expect(fundAfter3.UNI).to.equal(fundAfter2.UNI.add(swapOutputAmount))
-      expect(fundAfter3.WETH).to.be.below(fundAfter2.WETH)
-      expect(manager2After.fundUNI).to.equal(manager2Before.fundUNI.add(swapOutputAmount))
-      expect(manager2After.fundWETH).to.be.below(manager2Before.fundWETH)
 
       await expect(fund.connect(investor1).swap(fundId1, investor1.address, params, { value: 0 }))
         .to.be.revertedWith('NM')

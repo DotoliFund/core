@@ -5,7 +5,7 @@ pragma abicoder v2;
 
 import '@uniswap/v3-periphery/contracts/libraries/Path.sol';
 import '@uniswap/v3-periphery/contracts/interfaces/external/IWETH9.sol';
-import '@uniswap/swap-router-contracts/contracts/interfaces/ISwapRouter02.sol';
+import '@uniswap/v3-periphery/contracts/interfaces/ISwapRouter.sol';
 import '@uniswap/v3-periphery/contracts/interfaces/INonfungiblePositionManager.sol';
 import './interfaces/IERC20Minimal.sol';
 import './interfaces/IDotoliSetting.sol';
@@ -18,7 +18,7 @@ contract DotoliFund is IDotoliFund {
     using Path for bytes;
 
     uint128 MAX_INT = 2**128 - 1;
-    address public constant swapRouter = 0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45;
+    address public constant swapRouter = 0xE592427A0AEce92De3Edee1F18E0157C05861564;
     address public constant nonfungiblePositionManager = 0xC36442b4a4522E871399CD717aBDD847Ab11FE88;
 
     address public weth9;
@@ -171,17 +171,18 @@ contract DotoliFund is IDotoliFund {
         // approve
         IERC20Minimal(trade.tokenIn).approve(swapRouter, trade.amountIn);
 
-        ISwapRouter02.ExactInputSingleParams memory params =
-            IV3SwapRouter.ExactInputSingleParams({
+        ISwapRouter.ExactInputSingleParams memory params =
+            ISwapRouter.ExactInputSingleParams({
                 tokenIn: trade.tokenIn,
                 tokenOut: trade.tokenOut,
                 fee: trade.fee,
                 recipient: address(this),
+                deadline: block.timestamp,
                 amountIn: trade.amountIn,
                 amountOutMinimum: trade.amountOutMinimum,
                 sqrtPriceLimitX96: 0
             });
-        uint256 amountOut = ISwapRouter02(swapRouter).exactInputSingle(params);
+        uint256 amountOut = ISwapRouter(swapRouter).exactInputSingle(params);
         
         handleSwap(fundId, investor, trade.tokenIn, trade.tokenOut, trade.amountIn, amountOut);
     }
@@ -196,71 +197,17 @@ contract DotoliFund is IDotoliFund {
         // approve
         IERC20Minimal(tokenIn).approve(swapRouter, trade.amountIn);
 
-        ISwapRouter02.ExactInputParams memory params =
-            IV3SwapRouter.ExactInputParams({
+        ISwapRouter.ExactInputParams memory params =
+            ISwapRouter.ExactInputParams({
                 path: trade.path,
                 recipient: address(this),
+                deadline: block.timestamp,
                 amountIn: trade.amountIn,
                 amountOutMinimum: trade.amountOutMinimum
             });
-        uint256 amountOut = ISwapRouter02(swapRouter).exactInput(params);
+        uint256 amountOut = ISwapRouter(swapRouter).exactInput(params);
 
         handleSwap(fundId, investor, tokenIn, tokenOut, trade.amountIn, amountOut);
-    }
-
-    function exactOutputSingle(uint256 fundId, address investor, SwapParams calldata trade) private {
-        require(IDotoliSetting(setting).whiteListTokens(trade.tokenOut), 'NWT');
-        uint256 tokenBalance = IDotoliInfo(info).getInvestorTokenAmount(fundId, investor, trade.tokenIn);
-        require(trade.amountIn <= tokenBalance, 'NET');
-
-        // approve
-        IERC20Minimal(trade.tokenIn).approve(swapRouter, trade.amountInMaximum);
-
-        ISwapRouter02.ExactOutputSingleParams memory params =
-            IV3SwapRouter.ExactOutputSingleParams({
-                tokenIn: trade.tokenIn,
-                tokenOut: trade.tokenOut,
-                fee: trade.fee,
-                recipient: address(this),
-                amountOut: trade.amountOut,
-                amountInMaximum: trade.amountInMaximum,
-                sqrtPriceLimitX96: 0
-            });
-        uint256 amountIn = ISwapRouter02(swapRouter).exactOutputSingle(params);
-
-        // For exact output swaps, the amountInMaximum may not have all been spent.
-        if (amountIn < trade.amountInMaximum) {
-            IERC20Minimal(trade.tokenIn).approve(swapRouter, 0);
-        }
-
-        handleSwap(fundId, investor, trade.tokenIn, trade.tokenOut, amountIn, trade.amountOut);
-    }
-
-    function exactOutput(uint256 fundId, address investor, SwapParams calldata trade) private {
-        address tokenIn = getLastTokenFromPath(trade.path);
-        (address tokenOut, , ) = trade.path.decodeFirstPool();
-        require(IDotoliSetting(setting).whiteListTokens(tokenOut), 'NWT');
-        uint256 tokenBalance = IDotoliInfo(info).getInvestorTokenAmount(fundId, investor, tokenIn);
-        require(trade.amountInMaximum <= tokenBalance, 'NET');
-
-        // approve
-        IERC20Minimal(tokenIn).approve(swapRouter, trade.amountInMaximum);
-
-        ISwapRouter02.ExactOutputParams memory params =
-            IV3SwapRouter.ExactOutputParams({
-                path: trade.path,
-                recipient: address(this),
-                amountOut: trade.amountOut,
-                amountInMaximum: trade.amountInMaximum
-            });
-        uint256 amountIn = ISwapRouter02(swapRouter).exactOutput(params);
-
-        // If the swap did not require the full amountInMaximum to achieve the exact amountOut then we approve the router to spend 0.
-        if (amountIn < trade.amountInMaximum) {
-            IERC20Minimal(tokenIn).approve(swapRouter, 0);
-        }
-
-        handleSwap(fundId, investor, tokenIn, tokenOut, amountIn, trade.amountOut);
     }
 
     function swap(uint256 fundId, address investor, SwapParams[] calldata trades) 
@@ -275,14 +222,6 @@ contract DotoliFund is IDotoliFund {
             else if (trades[i].swapType == SwapType.EXACT_INPUT_MULTI_HOP) 
             {
                 exactInput(fundId, investor, trades[i]);
-            } 
-            else if (trades[i].swapType == SwapType.EXACT_OUTPUT_SINGLE_HOP) 
-            {
-                exactOutputSingle(fundId, investor, trades[i]);
-            }
-            else if (trades[i].swapType == SwapType.EXACT_OUTPUT_MULTI_HOP) 
-            {
-                exactOutput(fundId, investor, trades[i]);
             }
         }
     }

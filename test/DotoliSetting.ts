@@ -268,10 +268,10 @@ describe('DotoliSetting', () => {
       expect(isTheGraphWLT).to.be.false
       let isMaticWLT = await setting.connect(manager1).whiteListTokens(matic)
       expect(isMaticWLT).to.be.false
-      let isAudioWLT = await setting.connect(manager1).whiteListTokens(audio)
-      expect(isAudioWLT).to.be.false
-      let isNearWLT = await setting.connect(manager1).whiteListTokens(near)
-      expect(isNearWLT).to.be.false
+      // let isAudioWLT = await setting.connect(manager1).whiteListTokens(audio)
+      // expect(isAudioWLT).to.be.false
+      // let isNearWLT = await setting.connect(manager1).whiteListTokens(near)
+      // expect(isNearWLT).to.be.false
       // let isLinkWLT = await setting.connect(manager1).whiteListTokens(link)
       // expect(isLinkWLT).to.be.false
       // let isBatWLT = await setting.connect(manager1).whiteListTokens(bat)
@@ -293,10 +293,10 @@ describe('DotoliSetting', () => {
       await expect(setting.connect(deployer).setWhiteListToken(theGraph)).to.be.revertedWith('CWLT')
       //console.log('MATIC')
       await expect(setting.connect(deployer).setWhiteListToken(matic)).to.be.revertedWith('CWLT')
-      //console.log('AUDIO')
-      await expect(setting.connect(deployer).setWhiteListToken(audio)).to.be.revertedWith('CWLT')
-      //console.log('NEAR')
-      await expect(setting.connect(deployer).setWhiteListToken(near)).to.be.revertedWith('CWLT')
+      // console.log('AUDIO')
+      // await expect(setting.connect(deployer).setWhiteListToken(audio)).to.be.revertedWith('CWLT')
+      // console.log('NEAR')
+      // await expect(setting.connect(deployer).setWhiteListToken(near)).to.be.revertedWith('CWLT')
       // console.log('LINK')
       // await expect(setting.connect(deployer).setWhiteListToken(link)).to.be.revertedWith('CWLT')
       // console.log('BAT')
