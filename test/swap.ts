@@ -1,45 +1,20 @@
-import { Wallet, constants, BigNumber, ContractTransaction, Contract } from 'ethers'
+import { Wallet, constants, BigNumber, Contract } from 'ethers'
 import { expect } from "chai"
-import { ethers, waffle } from 'hardhat'
-import { LiquidityOracle } from '../typechain-types/contracts/LiquidityOracle'
-import { DotoliSetting } from '../typechain-types/contracts/DotoliSetting'
-import { DotoliInfo } from '../typechain-types/contracts/DotoliInfo'
-import { DotoliFund } from '../typechain-types/contracts/DotoliFund'
-import { encodePath } from './shared/path'
+import { ethers } from 'hardhat'
 import { 
   exactInputSingleParams,
-  exactOutputSingleParams,
   exactInputParams,
-  exactOutputParams
 } from './shared/swap'
-import { 
-  mintParams,
-  increaseParams,
-  collectParams,
-  decreaseParams
-} from './shared/liquidity'
-import { 
-  DOTOLI,
+import {
   WETH9,
-  WBTC,
-  USDC,
   UNI,
   DAI,
   DOTOLI,
-  NULL_ADDRESS,
-  V3_SWAP_ROUTER_ADDRESS,
   WETH_CHARGE_AMOUNT,
   DEPOSIT_AMOUNT,
-  WITHDRAW_AMOUNT,
-  MANAGER_FEE,
-  WHITE_LIST_TOKENS,
-  FeeAmount,
-  MaxUint128,
-  TICK_SPACINGS,
   UNISWAP_V3_FACTORY,
   NonfungiblePositionManager
 } from "./shared/constants"
-import { getMaxTick, getMinTick } from './shared/ticks'
 
 
 describe('Swap', () => {
@@ -72,17 +47,17 @@ describe('Swap', () => {
   ) => Promise<{
     WETH: BigNumber,
     UNI: BigNumber,
+    feeTokens : string[],
   }>
 
   let getInvestorAccount: (
     fundId: BigNumber,
     who: string
   ) => Promise<{
-    weth9: BigNumber,
-    uni: BigNumber,
+    WETH: BigNumber,
+    UNI: BigNumber,
     fundWETH: BigNumber,
     fundUNI: BigNumber,
-    feeTokens : string[],
   }>
 
   before('get signer', async () => {
