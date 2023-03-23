@@ -14,8 +14,8 @@ contract DotoliSetting is IDotoliSetting {
 
     address public uniswapV3Factory = 0x1F98431c8aD98523631AE4a59f267346ea31F984;
     address public override owner;
-    address public dotoli;
     address public override weth9;
+    address public dotoli;
 
     uint256 public override managerFee = 10000; // 10000 : 1%, 3000 : 0.3%
     uint256 public override minPoolAmount = 1e18; // to be whiteListToken, needed min weth9 value of (token + weth9) pool
@@ -52,7 +52,7 @@ contract DotoliSetting is IDotoliSetting {
         emit ManagerFeeChanged(_managerFee);
     }
 
-    function checkWhiteListToken(address _token, uint256 minPoolAmount) private view returns (bool) {
+    function checkWhiteListToken(address _token) private view returns (bool) {
         uint16[3] memory fees = [500, 3000, 10000];
         uint256 poolAmount = 0;
 
@@ -91,7 +91,7 @@ contract DotoliSetting is IDotoliSetting {
 
     function setWhiteListToken(address _token) external override onlyOwner {
         require(whiteListTokens[_token] == false, 'WLT');
-        require(checkWhiteListToken(_token, minPoolAmount), 'CWLT');
+        require(checkWhiteListToken(_token), 'CWLT');
         whiteListTokens[_token] = true;
         emit WhiteListTokenAdded(_token);
     }
