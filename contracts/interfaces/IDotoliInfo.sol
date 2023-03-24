@@ -11,10 +11,10 @@ interface IDotoliInfo is IToken {
     event FundCreated(uint256 fundId, address indexed manager);
     event Subscribe(uint256 fundId, address indexed investor);
     
-    function owner() external view returns (address owner);
-    function manager(uint256 fundId) external view returns (address manager);
-    function managingFund(address manager) external view returns (uint256 fundId);
-    function tokenIdOwner(uint256 tokenId) external view returns (address owner);
+    function owner() external view returns (address _owner);
+    function manager(uint256 fundId) external view returns (address _manager);
+    function managingFund(address _manager) external view returns (uint256 fundId);
+    function tokenIdOwner(uint256 tokenId) external view returns (address _owner);
     function fundIdCount() external view returns (uint256 fundCount);
 
     function setOwner(address newOwner) external;
