@@ -3,20 +3,25 @@
 pragma solidity =0.7.6;
 pragma abicoder v2;
 
-import './IToken.sol';
-
-interface IDotoliFund is IToken {
+interface IDotoliFund {
+    
+    event Deposit(uint256 fundId, address indexed investor, address token, uint256 amount);
+    event Withdraw(uint256 fundId, address indexed investor, address token, uint256 amount, uint256 feeAmount);
+    event Swap(uint256 fundId, address indexed investor, address tokenIn, address tokenOut, uint256 amountIn, uint256 amountOut);
+    event DepositFee(uint256 fundId, address indexed investor, address token, uint256 amount);
+    event WithdrawFee(uint256 fundId, address indexed manager, address token, uint256 amount);
+    event MintNewPosition(uint256 fundId, address indexed investor, address token0, address token1, uint256 amount0, uint256 amount1);
+    event IncreaseLiquidity(uint256 fundId, address indexed investor, address token0, address token1, uint256 amount0, uint256 amount1);
+    event CollectPositionFee(uint256 fundId, address indexed investor, address token0, address token1, uint256 amount0, uint256 amount1);
+    event DecreaseLiquidity(uint256 fundId, address indexed investor, address token0, address token1, uint256 amount0, uint256 amount1);
 
     enum SwapType{
         EXACT_INPUT_SINGLE_HOP,
-        EXACT_INPUT_MULTI_HOP,
-        EXACT_OUTPUT_SINGLE_HOP,
-        EXACT_OUTPUT_MULTI_HOP
+        EXACT_INPUT_MULTI_HOP
     }
 
     struct SwapParams {
         SwapType swapType;
-        address investor;
         address tokenIn;
         address tokenOut;
         uint24 fee;
@@ -28,8 +33,7 @@ interface IDotoliFund is IToken {
         bytes path;
     }
 
-    struct MintNewPositionParams {
-        address investor;
+    struct MintParams {
         address token0;
         address token1;
         uint24 fee;
@@ -43,7 +47,6 @@ interface IDotoliFund is IToken {
     }
         
     struct IncreaseLiquidityParams {
-        address investor;
         uint256 tokenId;
         uint256 amount0Desired;
         uint256 amount1Desired;
@@ -52,15 +55,13 @@ interface IDotoliFund is IToken {
         uint256 deadline;
     }
 
-    struct CollectPositionFeeParams {
-        address investor;
+    struct CollectParams {
         uint256 tokenId;
         uint128 amount0Max;
         uint128 amount1Max;
     }
 
     struct DecreaseLiquidityParams {
-        address investor;
         uint256 tokenId;
         uint128 liquidity;
         uint256 amount0Min;
@@ -68,31 +69,16 @@ interface IDotoliFund is IToken {
         uint256 deadline;
     }
 
-    event Initialize(address indexed fund, address manager);
-    event ManagerFeeIn(address indexed investor, address token, uint256 amount);
-    event ManagerFeeOut(address token, uint256 amount);
-    event Deposit(address indexed investor, address token, uint256 amount);
-    event Withdraw(address indexed investor, address token, uint256 amount, uint256 feeAmount);
-    event Swap(address indexed investor, address tokenIn, address tokenOut, uint256 amountIn, uint256 amountOut);
-    event MintNewPosition(address indexed investor, address token0, address token1, uint256 amount0, uint256 amount1);
-    event IncreaseLiquidity(address indexed investor, address token0, address token1, uint256 amount0, uint256 amount1);
-    event CollectPositionFee(address indexed investor, address token0, address token1, uint256 amount0, uint256 amount1);
-    event DecreaseLiquidity(address indexed investor, address token0, address token1, uint256 amount0, uint256 amount1);
-
-    function manager() external view returns (address);
-
-    function initialize(address _manager) external;    
-    function deposit(address _token, uint256 _amount) external payable;
-    function withdraw(address _token, uint256 _amount) external payable;
-    function feeOut(address _token, uint256 _amount) external payable;
-    function swap(SwapParams[] calldata trades) external payable;
-    function mintNewPosition(MintNewPositionParams calldata params) external returns (uint256 tokenId, uint128 liquidity, uint256 amount0, uint256 amount1);
-    function increaseLiquidity(IncreaseLiquidityParams calldata params) external returns (uint128 liquidity, uint256 amount0, uint256 amount1);
-    function collectPositionFee(CollectPositionFeeParams calldata params) external returns (uint256 amount0, uint256 amount1);
-    function decreaseLiquidity(DecreaseLiquidityParams calldata params) external returns (uint256 amount0, uint256 amount1);
-
-    function getInvestorTokens(address investor) external returns (Token[] memory);
-    function getFeeTokens() external returns (Token[] memory);
-    function getInvestorTokenAmount(address investor, address token) external returns (uint256);
-    function getPositionTokenIds(address investor) external returns (uint256[] memory);
+    function deposit(uint256 fundId, address _token, uint256 _amount) external;
+    function withdraw(uint256 fundId, address _token, uint256 _amount) external payable;
+    function swap(uint256 fundId, address investor, SwapParams[] calldata trades) external;
+    function withdrawFee(uint256 fundId, address _token, uint256 _amount) external payable;
+    function mintNewPosition(uint256 fundId, address investor, MintParams calldata params) external 
+        returns (uint256 tokenId, uint128 liquidity, uint256 amount0, uint256 amount1);
+    function increaseLiquidity(uint256 fundId, IncreaseLiquidityParams calldata params) external 
+        returns (uint128 liquidity, uint256 amount0, uint256 amount1);
+    function collectPositionFee(uint256 fundId, CollectParams calldata params) external 
+        returns (uint256 amount0, uint256 amount1);
+    function decreaseLiquidity(uint256 fundId, DecreaseLiquidityParams calldata params)external 
+        returns (uint256 amount0, uint256 amount1);
 }
