@@ -12,7 +12,6 @@ import './interfaces/IDotoliSetting.sol';
 import './interfaces/IDotoliFund.sol';
 import './interfaces/IDotoliInfo.sol';
 
-
 contract DotoliFund is IDotoliFund {
     
     using Path for bytes;
@@ -318,7 +317,6 @@ contract DotoliFund is IDotoliFund {
             uint256 amount1
         ) 
     {
-        //require(investor == IDotoliInfo(info).tokenIdOwner(_params.tokenId), 'INVALID');
         address investor = IDotoliInfo(info).tokenIdOwner(_params.tokenId);
 
         (, , address token0, address token1, , , , , , , , ) 
@@ -358,7 +356,6 @@ contract DotoliFund is IDotoliFund {
             uint256 amount1
         ) 
     {
-        //require(investor == IDotoliInfo(info).tokenIdOwner(_params.tokenId), 'INVALID');
         address investor = IDotoliInfo(info).tokenIdOwner(_params.tokenId);
 
         INonfungiblePositionManager.CollectParams memory params =
@@ -390,7 +387,6 @@ contract DotoliFund is IDotoliFund {
             uint256 amount1
         ) 
     {
-        //require(investor == IDotoliInfo(info).tokenIdOwner(_params.tokenId), 'INVALID');
         address investor = IDotoliInfo(info).tokenIdOwner(_params.tokenId);
 
         INonfungiblePositionManager.DecreaseLiquidityParams memory params =

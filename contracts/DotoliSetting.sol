@@ -9,7 +9,6 @@ import './libraries/FullMath.sol';
 import './interfaces/IERC20Minimal.sol';
 import './interfaces/IDotoliSetting.sol';
 
-
 contract DotoliSetting is IDotoliSetting {
 
     address public uniswapV3Factory = 0x1F98431c8aD98523631AE4a59f267346ea31F984;
