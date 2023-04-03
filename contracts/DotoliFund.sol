@@ -229,16 +229,15 @@ contract DotoliFund is IDotoliFund {
         external payable override onlyManager(msg.sender, fundId)
     {
         bool isSuccess = IDotoliInfo(info).decreaseFeeToken(fundId, token, amount);
-        if (isSuccess) {
-            if (token == weth9) {
-                IWETH9(weth9).withdraw(amount);
-                (bool success, ) = payable(msg.sender).call{value: amount}(new bytes(0));
-                require(success, 'FW');
-            } else {
-                IERC20Minimal(token).transfer(msg.sender, amount);
-            }
-            IDotoliInfo(info).decreaseFundToken(fundId, token, amount);
+        require(isSuccess, 'FD');
+        if (token == weth9) {
+            IWETH9(weth9).withdraw(amount);
+            (bool success, ) = payable(msg.sender).call{value: amount}(new bytes(0));
+            require(success, 'FW');
+        } else {
+            IERC20Minimal(token).transfer(msg.sender, amount);
         }
+        IDotoliInfo(info).decreaseFundToken(fundId, token, amount);
         emit WithdrawFee(fundId, msg.sender, token, amount);
     }
 

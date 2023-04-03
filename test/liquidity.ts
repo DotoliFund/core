@@ -394,6 +394,99 @@ describe('Liquidity', () => {
       )).to.be.revertedWith('NM')
     })
 
+
+    it("none whiteList token0", async function () {
+      await setting.connect(deployer).resetWhiteListToken(UNI)
+
+      const params = mintParams(
+        UNI,
+        WETH9,
+        FeeAmount.MEDIUM,
+        getMinTick(TICK_SPACINGS[FeeAmount.MEDIUM]),
+        getMaxTick(TICK_SPACINGS[FeeAmount.MEDIUM]),
+        BigNumber.from(20000),
+        BigNumber.from(100),
+        BigNumber.from(2000),
+        BigNumber.from(10),
+      )
+
+      await expect(fund.connect(manager1).mintNewPosition(
+        fundId1,
+        manager1.address,
+        params, 
+        { value: 0 }
+      )).to.be.revertedWith('NWT0')
+
+      await setting.connect(deployer).setWhiteListToken(UNI)
+    })
+
+    it("none whiteList token1", async function () {
+      await setting.connect(deployer).resetWhiteListToken(UNI)
+      
+      const params = mintParams(
+        WETH9,
+        UNI,
+        FeeAmount.MEDIUM,
+        getMinTick(TICK_SPACINGS[FeeAmount.MEDIUM]),
+        getMaxTick(TICK_SPACINGS[FeeAmount.MEDIUM]),
+        BigNumber.from(100),
+        BigNumber.from(20000),
+        BigNumber.from(10),
+        BigNumber.from(2000),
+      )
+
+      await expect(fund.connect(manager1).mintNewPosition(
+        fundId1,
+        manager1.address,
+        params, 
+        { value: 0 }
+      )).to.be.revertedWith('NWT1')
+
+      await setting.connect(deployer).setWhiteListToken(UNI)
+    })
+
+    it("not enough token0 amount", async function () {
+      const params = mintParams(
+        UNI,
+        WETH9,
+        FeeAmount.MEDIUM,
+        getMinTick(TICK_SPACINGS[FeeAmount.MEDIUM]),
+        getMaxTick(TICK_SPACINGS[FeeAmount.MEDIUM]),
+        ethers.utils.parseEther("1000.0"),
+        BigNumber.from(100),
+        ethers.utils.parseEther("100.0"),
+        BigNumber.from(10),
+      )
+
+      await expect(fund.connect(manager1).mintNewPosition(
+        fundId1,
+        manager1.address,
+        params, 
+        { value: 0 }
+      )).to.be.revertedWith('NET0')
+    })
+
+    it("not enough token1 amount", async function () {
+      const params = mintParams(
+        UNI,
+        WETH9,
+        FeeAmount.MEDIUM,
+        getMinTick(TICK_SPACINGS[FeeAmount.MEDIUM]),
+        getMaxTick(TICK_SPACINGS[FeeAmount.MEDIUM]),
+        BigNumber.from(20000),
+        ethers.utils.parseEther("1000.0"),
+        BigNumber.from(2000),
+        ethers.utils.parseEther("100.0"),
+      )
+
+      await expect(fund.connect(manager1).mintNewPosition(
+        fundId1,
+        manager1.address,
+        params, 
+        { value: 0 }
+      )).to.be.revertedWith('NET1')
+    })
+
     it("invalid case", async function () {
 
     })
@@ -545,9 +638,6 @@ describe('Liquidity', () => {
       const minWETHAmount = BigNumber.from(10)
       const minUNIAmount = BigNumber.from(2000)
 
-      const fundBefore = await getFundAccount(fundId1)
-      const manager1Before = await getInvestorAccount(fundId1, manager1.address)
-
       const tokenIds = await info.connect(manager1).getTokenIds(fundId1, investor1.address)
       const tokenId = await nonfungiblePositionManager.connect(manager1).positions(tokenIds[0])
 
@@ -603,6 +693,117 @@ describe('Liquidity', () => {
         params2, 
         { value: 0 }
       )).to.be.revertedWith('NM')
+    })
+
+
+    it("none whiteList token0, token1", async function () {
+      await setting.connect(deployer).resetWhiteListToken(UNI)
+
+      const WETHAmount = BigNumber.from(100)
+      const UNIAmount = BigNumber.from(20000)
+      const minWETHAmount = BigNumber.from(10)
+      const minUNIAmount = BigNumber.from(2000)
+
+      const tokenIds = await info.connect(manager1).getTokenIds(fundId1, investor1.address)
+      const tokenId = await nonfungiblePositionManager.connect(manager1).positions(tokenIds[0])
+
+      let params 
+      if (tokenId.token0 == WETH9 && tokenId.token1 == UNI) {
+        params = increaseParams(
+          tokenIds[0],
+          WETHAmount,
+          UNIAmount,
+          minWETHAmount,
+          minUNIAmount,
+        )
+
+        await expect(fund.connect(manager1).increaseLiquidity(
+          fundId1,
+          params, 
+          { value: 0 }
+        )).to.be.revertedWith('NWT1')
+
+      } else {
+        params = increaseParams(
+          tokenIds[0],
+          UNIAmount,
+          WETHAmount,
+          minUNIAmount,
+          minWETHAmount,
+        )
+
+        await expect(fund.connect(manager1).increaseLiquidity(
+          fundId1,
+          params, 
+          { value: 0 }
+        )).to.be.revertedWith('NWT0')
+      }
+
+      await setting.connect(deployer).setWhiteListToken(UNI)
+    })
+
+    it("not enough token amount", async function () {
+      const tokenIds = await info.connect(manager1).getTokenIds(fundId1, investor1.address)
+      const tokenId = await nonfungiblePositionManager.connect(manager1).positions(tokenIds[0])
+
+      let params 
+      if (tokenId.token0 == WETH9 && tokenId.token1 == UNI) {
+        params = increaseParams(
+          tokenIds[0],
+          ethers.utils.parseEther("1000.0"),
+          BigNumber.from(20000),
+          ethers.utils.parseEther("100.0"),
+          BigNumber.from(2000),
+        )
+
+        await expect(fund.connect(manager1).increaseLiquidity(
+          fundId1,
+          params, 
+          { value: 0 }
+        )).to.be.revertedWith('NET0')
+
+        params = increaseParams(
+          tokenIds[0],
+          BigNumber.from(100),
+          ethers.utils.parseEther("1000.0"),
+          BigNumber.from(10),
+          ethers.utils.parseEther("100.0"),
+        )
+
+        await expect(fund.connect(manager1).increaseLiquidity(
+          fundId1,
+          params, 
+          { value: 0 }
+        )).to.be.revertedWith('NET1')
+      } else {
+        params = increaseParams(
+          tokenIds[0],
+          BigNumber.from(20000),
+          ethers.utils.parseEther("1000.0"),
+          BigNumber.from(2000),
+          ethers.utils.parseEther("100.0"),
+        )
+
+        await expect(fund.connect(manager1).increaseLiquidity(
+          fundId1,
+          params, 
+          { value: 0 }
+        )).to.be.revertedWith('NET1')
+
+        params = increaseParams(
+          tokenIds[0],
+          ethers.utils.parseEther("1000.0"),
+          BigNumber.from(100),
+          ethers.utils.parseEther("100.0"),
+          BigNumber.from(10),
+        )
+
+        await expect(fund.connect(manager1).increaseLiquidity(
+          fundId1,
+          params, 
+          { value: 0 }
+        )).to.be.revertedWith('NET0')
+      }
     })
 
     it("invalid case", async function () {
@@ -894,7 +1095,6 @@ describe('Liquidity', () => {
       expect(fundAfter.feeTokens[1][1]).to.be.at.least(fundBefore.feeTokens[1][1]) //feeTokens[0][1] : uni amount
       expect(investor1After.fundUNI).to.be.at.least(investor1Before.fundUNI)
       expect(investor1After.fundWETH).to.be.at.least(investor1Before.fundWETH)
-
 
       const tokenIds2 = await info.connect(manager2).getTokenIds(fundId1, manager2.address)
       const params2 = decreaseParams(

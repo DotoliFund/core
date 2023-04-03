@@ -754,6 +754,17 @@ describe('DotoliFund', () => {
       await expect(fund.connect(manager2).withdrawFee(fundId1, UNI, 10000)).to.be.revertedWith('NM')
     })
 
+    it("no exist token", async function () {
+      await expect(fund.connect(manager1).withdrawFee(fundId1, DAI, 10000)).to.be.revertedWith('FD')
+    })
+
+    it("not enough token amount", async function () {
+      await expect(fund.connect(manager1).withdrawFee(fundId1, UNI, ethers.utils.parseEther("1000.0"))).to.be.revertedWith('NET')
+    })
+
+    it("invalid case", async function () {
+
+    })
   })
 
   describe('mintNewPosition', () => {
@@ -857,7 +868,7 @@ describe('DotoliFund', () => {
   })
 
   describe('collectPositionFee', () => {
-
+    
     it("collect fee WETH + UNI", async function () {
       const tokenIds = await info.connect(investor1).getTokenIds(fundId1, investor1.address)
       const params = collectParams(
@@ -884,7 +895,6 @@ describe('DotoliFund', () => {
       expect(investor1After.fundUNI).to.be.at.least(investor1Before.fundUNI)
       expect(investor1After.fundWETH).to.be.at.least(investor1Before.fundWETH)
     })
-
   })
 
   describe('decreaseLiquidity', () => {
@@ -928,7 +938,6 @@ describe('DotoliFund', () => {
       expect(fundAfter.WETH).to.be.at.least(fundBefore.WETH.add(minWETHAmount))
       expect(investor1After.fundUNI).to.be.at.least(investor1Before.fundUNI.add(minUNIAmount))
       expect(investor1After.fundWETH).to.be.at.least(investor1Before.fundWETH.add(minWETHAmount))
-
     })
 
   })
