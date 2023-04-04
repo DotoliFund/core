@@ -3,9 +3,9 @@ import { ethers } from "hardhat";
 require('dotenv').config()
 
 async function main() {
-  const [test_account_1] = await ethers.getSigners();
-  console.log("Deploying contracts with the account:", test_account_1.address);
-  console.log("Account balance:", (await test_account_1.getBalance()).toString());
+  const [account] = await ethers.getSigners();
+  console.log("Deploying contracts with the account:", account.address);
+  console.log("Account balance:", (await account.getBalance()).toString());
 
   const uniswapV3Factory = '0x1F98431c8aD98523631AE4a59f267346ea31F984';
   const nonfungiblePositionManager = '0xC36442b4a4522E871399CD717aBDD847Ab11FE88';
@@ -17,7 +17,7 @@ async function main() {
   );
   await liquidityOracle.deployed();
   console.log("LiquidityOracle address : ", liquidityOracle.address);
-  console.log("Account balance:", (await test_account_1.getBalance()).toString());
+  console.log("Account balance:", (await account.getBalance()).toString());
 }
 
 // We recommend this pattern to be able to use async/await everywhere

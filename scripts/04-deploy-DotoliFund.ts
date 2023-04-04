@@ -3,9 +3,9 @@ import { ethers } from "hardhat";
 require('dotenv').config()
 
 async function main() {
-  const [test_account_1] = await ethers.getSigners();
-  console.log("Deploying contracts with the account:", test_account_1.address);
-  console.log("Account balance:", (await test_account_1.getBalance()).toString());
+  const [account] = await ethers.getSigners();
+  console.log("Deploying contracts with the account:", account.address);
+  console.log("Account balance:", (await account.getBalance()).toString());
 
   //mainnet
   const WETH9 = '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2';
@@ -13,8 +13,8 @@ async function main() {
   // //goerli
   // const WETH9 = '0xB4FBF271143F4FBf7B91A5ded31805e42b2208d6'
 
-  const DotoliSetting = '0x04e4351B57aD0362A1Ac82759617c221112c8a22'
-  const DotoliInfo= '0xd8F93D42E2a57137Ae9A3bF89c88f05db15B2B2e'
+  const DotoliSetting = '0x5E1cE0e492f956b4a1A1963E4A465256C060966c'
+  const DotoliInfo= '0xD72008394f456362765446aD8638a0B0ee226d70'
 
   const DotoliFund = await ethers.getContractFactory("DotoliFund");
   const Fund = await DotoliFund.deploy(
@@ -24,13 +24,13 @@ async function main() {
   );
   await Fund.deployed();
   console.log("Fund address : ", Fund.address);
-  console.log("Account balance:", (await test_account_1.getBalance()).toString());
+  console.log("Account balance:", (await account.getBalance()).toString());
 
-  console.log("DotoliInfo setOwner to Fund", (await test_account_1.getBalance()).toString());
+  console.log("DotoliInfo setOwner to Fund", (await account.getBalance()).toString());
   const infoContract = await ethers.getContractAt("DotoliInfo", DotoliInfo)
   const transferTx = await infoContract.setOwner(Fund.address)
   await transferTx.wait(1)
-  console.log("Account balance:", (await test_account_1.getBalance()).toString());
+  console.log("Account balance:", (await account.getBalance()).toString());
 }
 
 // We recommend this pattern to be able to use async/await everywhere
