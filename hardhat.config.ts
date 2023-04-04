@@ -9,6 +9,11 @@ const API_URL_MAINNET = process.env.API_URL_MAINNET;
 const API_URL_GOERLI = process.env.API_URL_GOERLI;
 const API_URL_POLYGON_MAINNET = process.env.API_URL_POLYGON_MAINNET;
 
+const DEPLOY_PRIVATE_KEY = process.env.DEPLOY_PRIVATE_KEY;
+if (typeof DEPLOY_PRIVATE_KEY === 'undefined') {
+  throw new Error(`DEPLOY_PRIVATE_KEY must be a defined environment variable`);
+}
+
 // Replace this private key with your Goerli account private key
 // To export your private key from Metamask, open Metamask and
 // go to Account Details > Export Private Key
@@ -78,7 +83,7 @@ const config: HardhatUserConfig = {
     },
     mainnet: {
       url: `https://eth-mainnet.g.alchemy.com/v2/${API_URL_MAINNET}`,
-      accounts: [TEST_PRIVATE_KEY1]
+      accounts: [DEPLOY_PRIVATE_KEY]
     },
     goerli: {
       url: `https://eth-goerli.g.alchemy.com/v2/${API_URL_GOERLI}`,
