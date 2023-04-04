@@ -6,9 +6,6 @@ pragma abicoder v2;
 import './base/Token.sol';
 import './interfaces/IDotoliInfo.sol';
 
-//TODO : remove console log
-import "hardhat/console.sol";
-
 contract DotoliInfo is Token, IDotoliInfo {
     
     address public override owner;
