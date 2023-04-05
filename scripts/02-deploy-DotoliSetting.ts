@@ -3,9 +3,9 @@ import { ethers } from "hardhat";
 require('dotenv').config()
 
 async function main() {
-  const [test_account_1] = await ethers.getSigners();
-  console.log("Deploying contracts with the account:", test_account_1.address);
-  console.log("Account balance:", (await test_account_1.getBalance()).toString());
+  const [account] = await ethers.getSigners();
+  console.log("Deploying contracts with the account:", account.address);
+  console.log("Account balance:", (await account.getBalance()).toString());
 
   //mainnet
   const DOTOLI = '0xEAE906dC299ccd9Cd94584377d0F96Ce144c942f';
@@ -21,13 +21,13 @@ async function main() {
   const Setting = await DotoliSetting.deploy(DOTOLI, WETH9);
   await Setting.deployed();
   console.log("Setting address : ", Setting.address);
-  console.log("Account balance:", (await test_account_1.getBalance()).toString());
+  console.log("Account balance:", (await account.getBalance()).toString());
 
   const settingContract = await ethers.getContractAt("DotoliSetting", Setting.address)
   const TimeLockAddress = '0x670e49c72648E1bEB3BA45a4Ac5783fe8B402A2e';
   const transferTx = await settingContract.setOwner(TimeLockAddress)
   await transferTx.wait(1)
-  console.log("Account balance:", (await test_account_1.getBalance()).toString());
+  console.log("Account balance:", (await account.getBalance()).toString());
 }
 
 // We recommend this pattern to be able to use async/await everywhere
