@@ -7,14 +7,14 @@ async function main() {
   console.log("Deploying contracts with the account:", account.address);
   console.log("Account balance:", (await account.getBalance()).toString());
 
-  //mainnet
-  const WETH9 = '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2';
+  // //mainnet
+  // const WETH9 = '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2';
 
-  // //goerli
-  // const WETH9 = '0xB4FBF271143F4FBf7B91A5ded31805e42b2208d6'
+  //goerli
+  const WETH9 = '0xB4FBF271143F4FBf7B91A5ded31805e42b2208d6'
 
-  const DotoliSetting = '0x04e4351B57aD0362A1Ac82759617c221112c8a22'
-  const DotoliInfo= '0xd8F93D42E2a57137Ae9A3bF89c88f05db15B2B2e'
+  const DotoliSetting = '0x6700CFcC692Ed84eF1d2DB1882461Aee1306C4f2'
+  const DotoliInfo= '0x342F633A0F701a5d19b5Bf8eB521eEEa77123611'
 
   const DotoliFund = await ethers.getContractFactory("DotoliFund");
   const Fund = await DotoliFund.deploy(
