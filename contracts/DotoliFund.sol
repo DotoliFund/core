@@ -145,7 +145,7 @@ contract DotoliFund is IDotoliFund {
         emit Swap(fundId, investor, swapFrom, swapTo, swapFromAmount, swapToAmount);
     }
 
-    function getLastTokenFromPath(bytes memory path) private view returns (address) {
+    function getLastTokenFromPath(bytes memory path) private pure returns (address) {
         address _tokenOut;
 
         while (true) {
